@@ -206,6 +206,11 @@ func globalDefaultStatusError(status types.ModelStatus) error {
 	}
 }
 
+// ListGlobalDefaults returns all models marked as global default (is_global_default=true).
+func (s *modelService) ListGlobalDefaults(ctx context.Context) ([]*types.Model, error) {
+	return s.repo.ListGlobalDefaults(ctx)
+}
+
 // ListModels returns all models belonging to the tenant.
 // For non-admin users, returns global default models instead of tenant-specific models.
 func (s *modelService) ListModels(ctx context.Context) ([]*types.Model, error) {

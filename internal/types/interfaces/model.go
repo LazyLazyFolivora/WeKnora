@@ -19,6 +19,9 @@ type ModelService interface {
 	GetModelByID(ctx context.Context, id string) (*types.Model, error)
 	// ListModels lists all models
 	ListModels(ctx context.Context) ([]*types.Model, error)
+	// ListGlobalDefaults returns all models marked as global default (is_global_default=true).
+	// Does NOT filter by tenant_id — used to fill model IDs for non-admin users.
+	ListGlobalDefaults(ctx context.Context) ([]*types.Model, error)
 	// UpdateModel updates a model
 	UpdateModel(ctx context.Context, model *types.Model) error
 	// DeleteModel deletes a model

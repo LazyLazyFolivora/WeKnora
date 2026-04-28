@@ -20,10 +20,11 @@ import (
 // Provides functionality for creating, retrieving, updating, and deleting tenants
 // through the REST API endpoints
 type TenantHandler struct {
-	service     interfaces.TenantService
-	userService interfaces.UserService
-	kbService   interfaces.KnowledgeBaseService
-	config      *config.Config
+	service      interfaces.TenantService
+	userService  interfaces.UserService
+	kbService    interfaces.KnowledgeBaseService
+	modelService interfaces.ModelService
+	config       *config.Config
 }
 
 // authorizeTenantAccess checks that the authenticated user owns the target tenant
@@ -58,12 +59,13 @@ func (h *TenantHandler) authorizeTenantAccess(c *gin.Context, targetTenantID uin
 //   - config: Application configuration
 //
 // Returns a pointer to the newly created TenantHandler
-func NewTenantHandler(service interfaces.TenantService, userService interfaces.UserService, kbService interfaces.KnowledgeBaseService, config *config.Config) *TenantHandler {
+func NewTenantHandler(service interfaces.TenantService, userService interfaces.UserService, kbService interfaces.KnowledgeBaseService, modelService interfaces.ModelService, config *config.Config) *TenantHandler {
 	return &TenantHandler{
-		service:     service,
-		userService: userService,
-		kbService:   kbService,
-		config:      config,
+		service:      service,
+		userService:  userService,
+		kbService:    kbService,
+		modelService: modelService,
+		config:       config,
 	}
 }
 
@@ -942,9 +944,28 @@ func (h *TenantHandler) GetTenantConversationConfig(c *gin.Context) {
 	}
 
 	// If tenant has no conversation config, return defaults from config.yaml
-	var response *types.ConversationConfig
-	logger.Info(ctx, "Tenant has no conversation config, returning defaults")
-	response = h.buildDefaultConversationConfig()
+	response := h.buildDefaultConversationConfig()
+
+	// For non-admin users, fill in global default model IDs so the frontend
+	// can correctly determine agent readiness without requiring per-tenant model config.
+	callerUser, _ := ctx.Value(types.UserContextKey).(*types.User)
+	if callerUser != nil && !callerUser.IsAdmin && h.modelService != nil {
+		if defaults, err := h.modelService.ListGlobalDefaults(ctx); err == nil {
+			for _, m := range defaults {
+				switch m.Type {
+				case types.ModelTypeKnowledgeQA:
+					if response.SummaryModelID == "" {
+						response.SummaryModelID = m.ID
+					}
+				case types.ModelTypeRerank:
+					if response.RerankModelID == "" {
+						response.RerankModelID = m.ID
+					}
+				}
+			}
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    response,
