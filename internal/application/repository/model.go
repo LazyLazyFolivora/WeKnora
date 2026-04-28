@@ -28,7 +28,7 @@ func (r *modelRepository) Create(ctx context.Context, m *types.Model) error {
 func (r *modelRepository) GetByID(ctx context.Context, tenantID uint64, id string) (*types.Model, error) {
 	var m types.Model
 	if err := r.db.WithContext(ctx).Where("id = ?", id).Where(
-		"tenant_id = ? OR is_builtin = true", tenantID,
+		"tenant_id = ? OR is_builtin = true OR is_global_default = true", tenantID,
 	).First(&m).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
