@@ -195,7 +195,7 @@ html,
         Microsoft YaHei, SimSun, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background: var(--td-bg-color-page);
+    background: #063190;
     color: var(--td-text-color-primary);
 }
 

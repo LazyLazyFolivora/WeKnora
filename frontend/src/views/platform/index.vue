@@ -1,7 +1,15 @@
 <template>
     <div class="main" ref="dropzone">
+        <!-- 渐变背景层 -->
+        <div class="app-bg" aria-hidden="true">
+        </div>
+
         <Menu></Menu>
-        <RouterView v-if="isRouterAlive" />
+        <div class="main-content">
+            <RouterView v-if="isRouterAlive" />
+        </div>
+        <!-- door.png：横跨整个页面底部 -->
+        <img :src="appBgDoor" class="app-bg-door" aria-hidden="true" alt="" />
         <div class="upload-mask" v-show="ismask">
             <input type="file" style="display: none" ref="uploadInput" accept=".pdf,.docx,.doc,.pptx,.ppt,.txt,.md,.jpg,.jpeg,.png,.csv,.xls,.xlsx" />
             <UploadMask></UploadMask>
@@ -20,6 +28,7 @@ import Settings from '@/views/settings/Settings.vue'
 import { getKnowledgeBaseById } from '@/api/knowledge-base/index'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { useI18n } from 'vue-i18n'
+import appBgDoor from '@/assets/img/door.png'
 
 let { requestMethod } = useKnowledgeBase()
 const route = useRoute();
@@ -36,15 +45,7 @@ const reloadApp = () => {
 }
 provide('app:reload', reloadApp)
 
-// 仅在 Wails 桌面端运行时拦截 Cmd/Ctrl+R：
-// 桌面端没有浏览器地址栏，整页重载会白屏，所以用前端软刷新替代。
-// 浏览器（含 Web 版 / 非 Lite 部署）里不拦截，交给浏览器做真正的整页刷新，
-// 否则会出现左侧菜单、全局设置、Pinia store 等不随"刷新"一起重置的问题。
-// @ts-ignore
-const isWailsDesktop = typeof window !== 'undefined' && !!(window as any).runtime?.EventsOn
-
 const handleGlobalKeyDown = (e: KeyboardEvent) => {
-    if (!isWailsDesktop) return
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'r') {
         e.preventDefault()
         reloadApp()
@@ -72,13 +73,7 @@ const checkKnowledgeBaseInitialization = async (): Promise<boolean> => {
         const kbResponse = await getKnowledgeBaseById(currentKbId);
         const kb = kbResponse.data;
         
-        if (!kb.summary_model_id) {
-            MessagePlugin.warning(t('knowledgeBase.notInitialized'));
-            return false;
-        }
-        const strategy = kb.indexing_strategy;
-        const needsEmbedding = !strategy || strategy.vector_enabled || strategy.keyword_enabled;
-        if (needsEmbedding && !kb.embedding_model_id) {
+        if (!kb.embedding_model_id || !kb.summary_model_id) {
             MessagePlugin.warning(t('knowledgeBase.notInitialized'));
             return false;
         }
@@ -148,8 +143,9 @@ onMounted(() => {
     document.addEventListener('dragover', handleGlobalDragOver, true);
     document.addEventListener('dragleave', handleGlobalDragLeave, true);
     document.addEventListener('drop', handleGlobalDrop, true);
-    if (isWailsDesktop) {
-        window.addEventListener('keydown', handleGlobalKeyDown);
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    // @ts-ignore
+    if (window.runtime?.EventsOn) {
         // @ts-ignore
         window.runtime.EventsOn('app:reload', () => {
             reloadApp()
@@ -163,13 +159,11 @@ onUnmounted(() => {
     document.removeEventListener('dragover', handleGlobalDragOver, true);
     document.removeEventListener('dragleave', handleGlobalDragLeave, true);
     document.removeEventListener('drop', handleGlobalDrop, true);
-    if (isWailsDesktop) {
-        window.removeEventListener('keydown', handleGlobalKeyDown);
+    window.removeEventListener('keydown', handleGlobalKeyDown);
+    // @ts-ignore
+    if (window.runtime?.EventsOff) {
         // @ts-ignore
-        if (window.runtime?.EventsOff) {
-            // @ts-ignore
-            window.runtime.EventsOff('app:reload')
-        }
+        window.runtime.EventsOff('app:reload')
     }
     dragCounter = 0;
 });
@@ -180,8 +174,59 @@ onUnmounted(() => {
     width: 100%;
     height: 100%;
     min-width: 600px;
-    /* 统一整页背景，让左侧菜单与右侧内容区视觉连贯 */
-    background: var(--td-bg-color-container);
+    position: relative;
+    background: #063190;
+    overflow: hidden;
+}
+
+/* 渐变背景层 */
+.app-bg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+        radial-gradient(circle 1158px at 66% 93%, #20469B 0%, transparent 100%),
+        radial-gradient(circle 664px at 41% 100%, #395AA7 0%, transparent 100%),
+        radial-gradient(circle 480px at 31% 107%, #526FB1 0%, transparent 100%),
+        #063190;
+}
+
+/* 白色内容面板 */
+.main-content {
+    position: relative;
+    z-index: auto;
+    flex: 1;
+    min-width: 0;
+    margin: 16px 16px 0 0;
+    background: #E6EAF5;
+    border-radius: 16px 16px 0 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* door.png：内容面板内底部，z-index:0 在 RouterView 下面 */
+.app-bg-door {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: auto;
+    display: block;
+    pointer-events: none;
+    z-index: 3;
+    opacity: 0.5;
+    filter: hue-rotate(-71deg) saturate(0.4) brightness(0.7) sepia(0.3);
+}
+
+/* RouterView 在 door 上面 */
+.main-content > *:not(.app-bg-door) {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    position: relative;
+    z-index: 1;
 }
 
 .upload-mask {

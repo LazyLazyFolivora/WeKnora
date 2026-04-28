@@ -24,13 +24,7 @@
                 @click="handleCreateAgent"
               >
                 <template #icon>
-                  <span class="btn-icon-wrapper">
-                    <svg class="sparkles-icon" width="19" height="19" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M10 3L10.8 6.2C10.9 6.7 11.3 7.1 11.8 7.2L15 8L11.8 8.8C11.3 8.9 10.9 9.3 10.8 9.8L10 13L9.2 9.8C9.1 9.3 8.7 8.9 8.2 8.8L5 8L8.2 7.2C8.7 7.1 9.1 6.7 9.2 6.2L10 3Z" fill="currentColor" stroke="currentColor" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M15.5 4L15.8 5.2C15.85 5.45 16.05 5.65 16.3 5.7L17.5 6L16.3 6.3C16.05 6.35 15.85 6.55 15.8 6.8L15.5 8L15.2 6.8C15.15 6.55 14.95 6.35 14.7 6.3L13.5 6L14.7 5.7C14.95 5.65 15.15 5.45 15.2 5.2L15.5 4Z" fill="currentColor" stroke="currentColor" stroke-width="0.6" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M4.5 13L4.8 14.2C4.85 14.45 5.05 14.65 5.3 14.7L6.5 15L5.3 15.3C5.05 15.35 4.85 15.55 4.8 15.8L4.5 17L4.2 15.8C4.15 15.55 3.95 15.35 3.7 15.3L2.5 15L3.7 14.7C3.95 14.65 4.15 14.45 4.2 14.2L4.5 13Z" fill="currentColor" stroke="currentColor" stroke-width="0.6" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </span>
+                  <img src="@/assets/img/agent-title-icon.svg" style="width:24px;height:24px;display:block;margin:0;" />
                 </template>
               </t-button>
             </t-tooltip>
@@ -72,11 +66,11 @@
       >
         <!-- 装饰星星 -->
         <div class="card-decoration">
-          <svg class="star-icon" width="24" height="24" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M10 3L10.8 6.2C10.9 6.7 11.3 7.1 11.8 7.2L15 8L11.8 8.8C11.3 8.9 10.9 9.3 10.8 9.8L10 13L9.2 9.8C9.1 9.3 8.7 8.9 8.2 8.8L5 8L8.2 7.2C8.7 7.1 9.1 6.7 9.2 6.2L10 3Z" stroke="currentColor" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round" fill="currentColor" fill-opacity="0.15"/>
-          </svg>
-          <svg class="star-icon small" width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M10 3L10.8 6.2C10.9 6.7 11.3 7.1 11.8 7.2L15 8L11.8 8.8C11.3 8.9 10.9 9.3 10.8 9.8L10 13L9.2 9.8C9.1 9.3 8.7 8.9 8.2 8.8L5 8L8.2 7.2C8.7 7.1 9.1 6.7 9.2 6.2L10 3Z" stroke="currentColor" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round" fill="currentColor" fill-opacity="0.15"/>
+          <svg width="110" height="110" viewBox="0 0 110 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="55" cy="55" rx="46" ry="18" stroke="currentColor" stroke-width="2" fill="none"/>
+            <ellipse cx="55" cy="55" rx="46" ry="18" stroke="currentColor" stroke-width="2" fill="none" transform="rotate(60 55 55)"/>
+            <ellipse cx="55" cy="55" rx="46" ry="18" stroke="currentColor" stroke-width="2" fill="none" transform="rotate(120 55 55)"/>
+            <circle cx="55" cy="55" r="5" fill="currentColor" fill-opacity="0.6"/>
           </svg>
         </div>
         <div class="card-header">
@@ -206,11 +200,11 @@
       >
         <!-- 装饰星星 -->
         <div class="card-decoration">
-          <svg class="star-icon" width="24" height="24" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M10 3L10.8 6.2C10.9 6.7 11.3 7.1 11.8 7.2L15 8L11.8 8.8C11.3 8.9 10.9 9.3 10.8 9.8L10 13L9.2 9.8C9.1 9.3 8.7 8.9 8.2 8.8L5 8L8.2 7.2C8.7 7.1 9.1 6.7 9.2 6.2L10 3Z" stroke="currentColor" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round" fill="currentColor" fill-opacity="0.15"/>
-          </svg>
-          <svg class="star-icon small" width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M10 3L10.8 6.2C10.9 6.7 11.3 7.1 11.8 7.2L15 8L11.8 8.8C11.3 8.9 10.9 9.3 10.8 9.8L10 13L9.2 9.8C9.1 9.3 8.7 8.9 8.2 8.8L5 8L8.2 7.2C8.7 7.1 9.1 6.7 9.2 6.2L10 3Z" stroke="currentColor" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round" fill="currentColor" fill-opacity="0.15"/>
+          <svg width="110" height="110" viewBox="0 0 110 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="55" cy="55" rx="46" ry="18" stroke="currentColor" stroke-width="2" fill="none"/>
+            <ellipse cx="55" cy="55" rx="46" ry="18" stroke="currentColor" stroke-width="2" fill="none" transform="rotate(60 55 55)"/>
+            <ellipse cx="55" cy="55" rx="46" ry="18" stroke="currentColor" stroke-width="2" fill="none" transform="rotate(120 55 55)"/>
+            <circle cx="55" cy="55" r="5" fill="currentColor" fill-opacity="0.6"/>
           </svg>
         </div>
         
@@ -336,11 +330,11 @@
         @click="handleSpaceAgentCardClick(shared)"
       >
         <div class="card-decoration">
-          <svg class="star-icon" width="24" height="24" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M10 3L10.8 6.2C10.9 6.7 11.3 7.1 11.8 7.2L15 8L11.8 8.8C11.3 8.9 10.9 9.3 10.8 9.8L10 13L9.2 9.8C9.1 9.3 8.7 8.9 8.2 8.8L5 8L8.2 7.2C8.7 7.1 9.1 6.7 9.2 6.2L10 3Z" stroke="currentColor" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round" fill="currentColor" fill-opacity="0.15"/>
-          </svg>
-          <svg class="star-icon small" width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M10 3L10.8 6.2C10.9 6.7 11.3 7.1 11.8 7.2L15 8L11.8 8.8C11.3 8.9 10.9 9.3 10.8 9.8L10 13L9.2 9.8C9.1 9.3 8.7 8.9 8.2 8.8L5 8L8.2 7.2C8.7 7.1 9.1 6.7 9.2 6.2L10 3Z" stroke="currentColor" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round" fill="currentColor" fill-opacity="0.15"/>
+          <svg width="110" height="110" viewBox="0 0 110 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="55" cy="55" rx="46" ry="18" stroke="currentColor" stroke-width="2" fill="none"/>
+            <ellipse cx="55" cy="55" rx="46" ry="18" stroke="currentColor" stroke-width="2" fill="none" transform="rotate(60 55 55)"/>
+            <ellipse cx="55" cy="55" rx="46" ry="18" stroke="currentColor" stroke-width="2" fill="none" transform="rotate(120 55 55)"/>
+            <circle cx="55" cy="55" r="5" fill="currentColor" fill-opacity="0.6"/>
           </svg>
         </div>
         <div class="card-header">
@@ -1168,7 +1162,7 @@ defineExpose({
   gap: 4px;
   padding: 2px 8px;
   border-radius: 10px;
-  background: var(--td-bg-color-container-hover);
+  background: rgba(255, 255, 255, 0.12);
   flex-shrink: 0;
 }
 
@@ -1179,7 +1173,7 @@ defineExpose({
 }
 
 .org-source-text {
-  color: var(--td-text-color-secondary);
+  color: rgba(230, 234, 245, 0.8);
   font-family: "PingFang SC";
   font-size: 11px;
   font-weight: 500;
@@ -1192,8 +1186,8 @@ defineExpose({
   gap: 3px;
   padding: 2px 8px;
   border-radius: 10px;
-  background: var(--td-bg-color-container-hover);
-  color: var(--td-text-color-secondary);
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(230, 234, 245, 0.8);
   font-family: "PingFang SC";
   font-size: 11px;
   font-weight: 500;
@@ -1222,12 +1216,14 @@ defineExpose({
 
 /* 与知识库列表卡片统一尺寸：160px 高、18px 20px 内边距、12px 圆角 */
 .agent-card {
-  border: .5px solid var(--td-component-stroke);
+  border: 1.5px solid rgba(4, 193, 252, 0.5);
   border-radius: 12px;
   overflow: hidden;
   box-sizing: border-box;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  background: var(--td-bg-color-container);
+  box-shadow:
+    0 0 0 1px rgba(4, 193, 252, 0.1),
+    0 4px 20px rgba(0, 0, 0, 0.4);
+  background: linear-gradient(135deg, rgba(0, 20, 60, 0.92) 0%, rgba(0, 40, 90, 0.85) 100%);
   position: relative;
   cursor: pointer;
   transition: all 0.25s ease;
@@ -1238,45 +1234,30 @@ defineExpose({
   min-height: 160px;
 
   &:hover {
-    border-color: var(--td-brand-color);
-    box-shadow: 0 4px 12px rgba(7, 192, 95, 0.12);
+    border-color: #04C1FC;
+    box-shadow:
+      0 0 0 1px rgba(4, 193, 252, 0.35),
+      0 0 20px rgba(4, 193, 252, 0.15),
+      0 8px 24px rgba(0, 0, 0, 0.5);
   }
 
-  // 普通模式样式
+  // 普通模式
   &.agent-mode-normal {
-    background: linear-gradient(135deg, var(--td-bg-color-container) 0%, rgba(7, 192, 95, 0.04) 100%);
-
-    &:hover {
-      border-color: var(--td-brand-color);
-      background: linear-gradient(135deg, var(--td-bg-color-container) 0%, rgba(7, 192, 95, 0.08) 100%);
-    }
-
-    .card-decoration {
-      color: rgba(7, 192, 95, 0.35);
-    }
-
-    &:hover .card-decoration {
-      color: rgba(7, 192, 95, 0.5);
-    }
+    background: linear-gradient(135deg, rgba(0, 20, 60, 0.92) 0%, rgba(0, 60, 40, 0.7) 100%);
+    &:hover { border-color: #04C1FC; }
+    .card-decoration { color: rgba(7, 192, 95, 0.4); }
+    &:hover .card-decoration { color: rgba(7, 192, 95, 0.6); }
   }
 
-  // Agent 模式样式
+  // Agent 模式
   &.agent-mode-agent {
-    background: linear-gradient(135deg, var(--td-bg-color-container) 0%, rgba(124, 77, 255, 0.04) 100%);
-
+    background: linear-gradient(135deg, rgba(0, 20, 60, 0.92) 0%, rgba(40, 20, 80, 0.7) 100%);
     &:hover {
-      border-color: var(--td-brand-color);
-      box-shadow: 0 4px 12px rgba(124, 77, 255, 0.12);
-      background: linear-gradient(135deg, var(--td-bg-color-container) 0%, rgba(124, 77, 255, 0.08) 100%);
+      border-color: #04C1FC;
+      box-shadow: 0 0 20px rgba(124, 77, 255, 0.2), 0 8px 24px rgba(0, 0, 0, 0.5);
     }
-
-    .card-decoration {
-      color: rgba(124, 77, 255, 0.35);
-    }
-
-    &:hover .card-decoration {
-      color: rgba(124, 77, 255, 0.5);
-    }
+    .card-decoration { color: rgba(124, 77, 255, 0.4); }
+    &:hover .card-decoration { color: rgba(124, 77, 255, 0.6); }
   }
 
   // 确保内容在装饰之上
@@ -1334,22 +1315,18 @@ defineExpose({
 
 .card-decoration {
   position: absolute;
-  top: 12px;
-  right: 44px;
-  display: flex;
-  align-items: flex-start;
-  gap: 4px;
+  top: -10px;
+  right: -10px;
+  width: 110px;
+  height: 110px;
   pointer-events: none;
   z-index: 0;
-  transition: color 0.25s ease;
-  
-  .star-icon {
-    opacity: 0.9;
-    
-    &.small {
-      margin-top: 10px;
-      opacity: 0.7;
-    }
+  color: #007FCC;
+  opacity: 0.2;
+  transition: opacity 0.25s ease;
+
+  .agent-card:hover & {
+    opacity: 0.35;
   }
 }
 
@@ -1369,7 +1346,7 @@ defineExpose({
 }
 
 .card-title {
-  color: var(--td-text-color-primary);
+  color: #E6EAF5;
   font-family: "PingFang SC", -apple-system, sans-serif;
   font-size: 15px;
   font-weight: 600;
@@ -1385,13 +1362,13 @@ defineExpose({
 .builtin-badge {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 2px 8px;
-  border-radius: 10px;
-  background: var(--td-bg-color-container-hover);
-  color: var(--td-text-color-secondary);
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: #6A83BC;
+  color: #E6EAF5;
   font-family: "PingFang SC";
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   flex-shrink: 0;
 }
@@ -1400,25 +1377,25 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 8px;
   flex-shrink: 0;
 
   &.agent-emoji {
-    font-size: 18px;
+    font-size: 20px;
     line-height: 1;
-    background: var(--td-bg-color-container-hover);
+    background: rgba(255, 255, 255, 0.1);
   }
-  
+
   &.normal {
-    background: linear-gradient(135deg, rgba(7, 192, 95, 0.15) 0%, rgba(7, 192, 95, 0.08) 100%);
-    color: var(--td-brand-color-active);
+    background: #007FCC;
+    color: #fff;
   }
-  
+
   &.agent {
-    background: linear-gradient(135deg, rgba(124, 77, 255, 0.15) 0%, rgba(124, 77, 255, 0.08) 100%);
-    color: var(--td-brand-color);
+    background: linear-gradient(135deg, #6A83BC, #395AA7);
+    color: #fff;
   }
 }
 
@@ -1490,7 +1467,7 @@ defineExpose({
   -webkit-line-clamp: 2;
   line-clamp: 2;
   overflow: hidden;
-  color: var(--td-text-color-secondary);
+  color: rgba(230, 234, 245, 0.7);
   font-family: "PingFang SC", -apple-system, sans-serif;
   font-size: 12px;
   font-weight: 400;
@@ -1503,7 +1480,7 @@ defineExpose({
   justify-content: space-between;
   margin-top: auto;
   padding-top: 8px;
-  border-top: .5px solid var(--td-component-stroke);
+  border-top: .5px solid rgba(255, 255, 255, 0.15);
 }
 
 .bottom-left {
@@ -1522,69 +1499,53 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 5px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   cursor: default;
   transition: background 0.2s ease;
+  background: #0060AA;
+  color: #E6EAF5;
 
   &.mode-normal {
-    background: rgba(7, 192, 95, 0.08);
-    color: var(--td-brand-color-active);
-
-    &:hover {
-      background: rgba(7, 192, 95, 0.12);
-    }
+    background: #007FCC;
+    color: #fff;
+    &:hover { background: #0090e0; }
   }
 
   &.mode-agent {
-    background: rgba(124, 77, 255, 0.08);
-    color: var(--td-brand-color);
-
-    &:hover {
-      background: rgba(124, 77, 255, 0.12);
-    }
+    background: linear-gradient(135deg, #6A83BC, #395AA7);
+    color: #fff;
+    &:hover { background: #4a6aaa; }
   }
 
   &.web-search {
-    background: rgba(255, 152, 0, 0.08);
-    color: var(--td-warning-color);
-
-    &:hover {
-      background: rgba(255, 152, 0, 0.12);
-    }
+    background: #0060AA;
+    color: #8398C7;
+    &:hover { background: #0070c0; }
   }
 
   &.knowledge {
-    background: rgba(7, 192, 95, 0.08);
-    color: var(--td-brand-color-active);
-
-    &:hover {
-      background: rgba(7, 192, 95, 0.12);
-    }
+    background: #0060AA;
+    color: #8398C7;
+    &:hover { background: #0070c0; }
   }
 
   &.mcp {
-    background: rgba(236, 72, 153, 0.08);
-    color: var(--td-error-color);
-
-    &:hover {
-      background: rgba(236, 72, 153, 0.12);
-    }
+    background: #0060AA;
+    color: #8398C7;
+    &:hover { background: #0070c0; }
   }
 
   &.multi-turn {
-    background: rgba(59, 130, 246, 0.08);
-    color: var(--td-brand-color);
-
-    &:hover {
-      background: rgba(59, 130, 246, 0.12);
-    }
+    background: #0060AA;
+    color: #8398C7;
+    &:hover { background: #0070c0; }
   }
 }
 
 .card-time {
-  color: var(--td-text-color-placeholder);
+  color: rgba(230, 234, 245, 0.5);
   font-family: "PingFang SC";
   font-size: 12px;
   font-weight: 400;

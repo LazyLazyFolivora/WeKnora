@@ -264,7 +264,7 @@ const getIconActiveState = (itemPath: string) => {
 // 分离上下两部分菜单（使用 visibleMenuArr 以便 lite 模式过滤 logout）
 const topMenuItems = computed<MenuItem[]>(() => {
     return (visibleMenuArr.value as unknown as MenuItem[]).filter((item: MenuItem) => 
-        item.path === 'knowledge-bases' || item.path === 'knowledge-search' || item.path === 'agents' || item.path === 'organizations' || item.path === 'creatChat'
+        item.path === 'knowledge-bases' || item.path === 'agents' || item.path === 'organizations' || item.path === 'creatChat'
     );
 });
 
@@ -769,16 +769,17 @@ const onDragHandleMouseDown = (e: MouseEvent) => {
     min-width: 260px;
     width: 260px;
     padding: 8px;
-    background: var(--td-bg-color-sidebar);
+    background: transparent;
     box-sizing: border-box;
     height: 100vh;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    border-right: 1px solid var(--td-component-stroke);
-    box-shadow: 1px 0 0 rgba(0, 0, 0, 0.02);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: none;
     transition: width 0.25s ease, min-width 0.25s ease;
     position: relative;
+    /* z-index 不设，避免创建独立层叠上下文，让 door.png 能覆盖侧边栏 */
 
     // macOS Wails 桌面：红绿灯位于 HiddenInset 标题栏区域，需让出顶部空间
     html.wails-desktop & {
@@ -825,14 +826,14 @@ const onDragHandleMouseDown = (e: MouseEvent) => {
         height: 36px;
         flex-shrink: 0;
         cursor: pointer;
-        color: var(--td-text-color-secondary);
+        color: rgba(255, 255, 255, 0.7);
         border-radius: 4px;
         transition: background-color 0.2s ease;
         box-sizing: border-box;
 
         &:hover {
-            background: var(--td-bg-color-container-hover);
-            color: var(--td-text-color-primary);
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
         }
     }
 
@@ -902,6 +903,8 @@ const onDragHandleMouseDown = (e: MouseEvent) => {
         flex-shrink: 0;
         display: flex;
         flex-direction: column;
+        position: relative;
+        z-index: 4;
     }
 
     .menu_box {
@@ -940,16 +943,16 @@ const onDragHandleMouseDown = (e: MouseEvent) => {
     }
 
     .menu_item_active {
-        border-radius: 4px;
-        background: var(--td-brand-color-light) !important;
+        border-radius: 6px;
+        background: #6A83BC !important;
 
         .menu_icon,
         .menu_title {
-            color: var(--td-brand-color) !important;
+            color: #E6EAF5 !important;
         }
 
         .menu-create-hint {
-            color: var(--td-brand-color) !important;
+            color: #E6EAF5 !important;
             opacity: 1;
         }
     }
@@ -958,7 +961,7 @@ const onDragHandleMouseDown = (e: MouseEvent) => {
 
         .menu_icon,
         .menu_title {
-            color: var(--td-text-color-primary);
+            color: #E6EAF5;
         }
     }
 
@@ -977,7 +980,7 @@ const onDragHandleMouseDown = (e: MouseEvent) => {
         padding: 13px 8px 13px 16px;
         box-sizing: border-box;
         margin-bottom: 4px;
-        border-radius: 4px;
+        border-radius: 6px;
         transition: background-color 0.2s ease;
 
         .menu_item-box {
@@ -986,12 +989,12 @@ const onDragHandleMouseDown = (e: MouseEvent) => {
         }
 
         &:hover {
-            border-radius: 4px;
-            background: var(--td-bg-color-container-hover);
+            border-radius: 6px;
+            background: rgba(0, 96, 170, 0.55);
 
             .menu_icon,
             .menu_title {
-                color: var(--td-text-color-primary);
+                color: #fff;
             }
         }
     }
@@ -999,7 +1002,7 @@ const onDragHandleMouseDown = (e: MouseEvent) => {
     .menu_icon {
         display: flex;
         margin-right: 10px;
-        color: var(--td-text-color-secondary);
+        color: rgba(255, 255, 255, 0.7);
 
         .icon {
             width: 20px;
@@ -1009,7 +1012,7 @@ const onDragHandleMouseDown = (e: MouseEvent) => {
     }
 
     .menu_title {
-        color: var(--td-text-color-secondary);
+        color: rgba(255, 255, 255, 0.85);
         text-overflow: ellipsis;
         font-family: "PingFang SC";
         font-size: 14px;
@@ -1042,7 +1045,7 @@ const onDragHandleMouseDown = (e: MouseEvent) => {
         font-family: "PingFang SC";
         font-size: 12px;
         font-weight: 600;
-        color: var(--td-text-color-disabled);
+        color: rgba(255, 255, 255, 0.45);
         padding: 12px 18px 6px 18px;
         margin-top: 8px;
         line-height: 20px;
@@ -1066,7 +1069,7 @@ const onDragHandleMouseDown = (e: MouseEvent) => {
         cursor: pointer;
         display: flex;
         align-items: center;
-        color: var(--td-text-color-secondary);
+        color: rgba(255, 255, 255, 0.7);
         font-weight: 400;
         line-height: 22px;
         height: 36px;
@@ -1089,7 +1092,7 @@ const onDragHandleMouseDown = (e: MouseEvent) => {
         .menu-more {
             display: inline-block;
             font-weight: bold;
-            color: var(--td-brand-color);
+            color: rgba(255, 255, 255, 0.7);
         }
 
         .sub_title {
@@ -1097,12 +1100,12 @@ const onDragHandleMouseDown = (e: MouseEvent) => {
         }
 
         &:hover {
-            background: var(--td-bg-color-container-hover);
-            color: var(--td-text-color-primary);
-            border-radius: 8px;
+            background: rgba(0, 96, 170, 0.55);
+            color: #fff;
+            border-radius: 6px;
 
             .menu-more {
-                color: var(--td-text-color-primary);
+                color: #fff;
             }
 
             .menu-more-wrap {
@@ -1117,12 +1120,12 @@ const onDragHandleMouseDown = (e: MouseEvent) => {
     }
 
     .submenu_item_active {
-        background: var(--td-brand-color-light) !important;
-        color: var(--td-brand-color) !important;
-        border-radius: 8px;
+        background: #6A83BC !important;
+        color: #E6EAF5 !important;
+        border-radius: 6px;
 
         .menu-more {
-            color: var(--td-brand-color) !important;
+            color: #E6EAF5 !important;
         }
 
         .menu-more-wrap {
@@ -1154,14 +1157,14 @@ const onDragHandleMouseDown = (e: MouseEvent) => {
     margin-left: auto;
     margin-right: 8px;
     font-size: 13px;
-    color: var(--td-text-color-disabled);
+    color: rgba(255, 255, 255, 0.55);
     cursor: pointer;
     flex-shrink: 0;
     transition: color 0.2s ease;
     font-weight: 400;
 
     &:hover {
-        color: var(--td-text-color-primary);
+        color: #fff;
     }
 }
 
@@ -1171,14 +1174,14 @@ const onDragHandleMouseDown = (e: MouseEvent) => {
     align-items: center;
     justify-content: space-between;
     padding: 8px 14px;
-    border-top: 1px solid var(--td-component-stroke);
-    background: var(--td-bg-color-container);
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.15);
 
     .batch-footer-left {
         display: flex;
         align-items: center;
         font-size: 13px;
-        color: var(--td-text-color-placeholder);
+        color: rgba(255, 255, 255, 0.65);
     }
 }
 
@@ -1268,7 +1271,7 @@ const onDragHandleMouseDown = (e: MouseEvent) => {
     margin-left: auto;
     margin-right: 8px;
     font-size: 16px;
-    color: var(--td-brand-color);
+    color: rgba(255, 255, 255, 0.7);
     opacity: 0.7;
     transition: opacity 0.2s ease;
     flex-shrink: 0;
@@ -1284,8 +1287,8 @@ const onDragHandleMouseDown = (e: MouseEvent) => {
     padding: 0 5px;
     margin-left: 6px;
     border-radius: 9px;
-    background: rgba(250, 173, 20, 0.2);
-    color: var(--td-warning-color);
+    background: rgba(250, 173, 20, 0.3);
+    color: #ffd166;
     font-size: 12px;
     font-weight: 600;
     line-height: 18px;
@@ -1302,23 +1305,26 @@ const onDragHandleMouseDown = (e: MouseEvent) => {
 html[theme-mode="dark"] .aside_box .logo_box .logo {
     filter: invert(1) hue-rotate(180deg);
 }
+// Light mode: logo also needs to be white on dark sidebar
+html:not([theme-mode="dark"]) .aside_box .logo_box .logo {
+    filter: brightness(0) invert(1);
+}
 
-// Dark mode: make SVG icons match text color (loaded via <img>, currentColor won't work)
-html[theme-mode="dark"] .aside_box .menu_icon img.icon {
-    filter: invert(1);
-    opacity: 0.55;
+// Sidebar is always dark blue — make all icons white
+.aside_box .menu_icon img.icon {
+    filter: brightness(0) invert(1);
+    opacity: 0.75;
 }
-// Hover state: brighter icon like text
-html[theme-mode="dark"] .aside_box .menu_item:hover .menu_icon img.icon {
-    opacity: 0.9;
+// Hover: full white
+.aside_box .menu_item:hover .menu_icon img.icon {
+    opacity: 1;
 }
-// menu_item_c_active: text is primary, so icon should match
-html[theme-mode="dark"] .aside_box .menu_item_c_active .menu_icon img.icon {
-    opacity: 0.9;
+// Active item: full white
+.aside_box .menu_item_active .menu_icon img.icon {
+    opacity: 1;
 }
-// Active (green) icons should not be inverted
-html[theme-mode="dark"] .aside_box .menu_item_active .menu_icon img.icon {
-    filter: none;
+// c_active: full white
+.aside_box .menu_item_c_active .menu_icon img.icon {
     opacity: 1;
 }
 

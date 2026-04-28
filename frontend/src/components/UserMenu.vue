@@ -301,14 +301,14 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
+  padding: 10px 12px;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
-  background: transparent;
+  background: #007FCC;
 
   &:hover {
-    background: var(--td-bg-color-container-hover);
+    background: #0072b8;
   }
 
   &:active {
@@ -317,12 +317,12 @@ onUnmounted(() => {
 }
 
 .user-avatar {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
-  background: linear-gradient(135deg, var(--td-brand-color) 0%, var(--td-brand-color-active) 100%);
+  background: #B3C1DC;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -335,8 +335,8 @@ onUnmounted(() => {
   }
 
   .avatar-placeholder {
-    color: var(--td-text-color-anti);
-    font-size: 16px;
+    color: #fff;
+    font-size: 15px;
     font-weight: 600;
   }
 }
@@ -348,8 +348,8 @@ onUnmounted(() => {
 
   .user-name {
     font-size: 14px;
-    font-weight: 500;
-    color: var(--td-text-color-primary);
+    font-weight: 600;
+    color: #fff;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -357,7 +357,7 @@ onUnmounted(() => {
 
   .user-email {
     font-size: 12px;
-    color: var(--td-text-color-secondary);
+    color: rgba(255, 255, 255, 0.75);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -366,7 +366,7 @@ onUnmounted(() => {
 
 .dropdown-icon {
   font-size: 16px;
-  color: var(--td-text-color-secondary);
+  color: rgba(255, 255, 255, 0.8);
   flex-shrink: 0;
   transition: transform 0.2s;
 }
@@ -377,10 +377,10 @@ onUnmounted(() => {
   left: 8px;
   right: 8px;
   margin-bottom: 8px;
-  background: var(--td-bg-color-container);
+  background: #007FCC;
   border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
-  border: 1px solid var(--td-component-stroke);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   overflow: hidden;
   z-index: 1000;
 }
@@ -389,31 +389,31 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
+  padding: 11px 16px;
   cursor: pointer;
   transition: all 0.2s;
   font-size: 14px;
-  color: var(--td-text-color-primary);
+  color: #fff;
 
   &:hover {
-    background: var(--td-bg-color-container-hover);
+    background: rgba(255, 255, 255, 0.15);
   }
 
   &.danger {
-    color: var(--td-error-color);
+    color: #ffb3b3;
 
     &:hover {
-      background: var(--td-error-color-light);
+      background: rgba(255, 80, 80, 0.18);
     }
 
     .menu-icon {
-      color: var(--td-error-color);
+      color: #ffb3b3;
     }
   }
 
   .menu-icon {
     font-size: 16px;
-    color: var(--td-text-color-secondary);
+    color: rgba(255, 255, 255, 0.8);
     
     &.svg-icon {
       width: 16px;
@@ -459,33 +459,33 @@ onUnmounted(() => {
     line-height: 1.2;
     padding: 2px 5px;
     border-radius: 4px;
-    background: var(--td-brand-color-light);
-    color: var(--td-brand-color);
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
     letter-spacing: 0.02em;
   }
 
   .menu-github-star-icon {
     flex-shrink: 0;
-    color: var(--td-warning-color);
+    color: #ffd166;
   }
 
   .menu-external-icon {
     width: 14px;
     height: 14px;
-    color: var(--td-text-color-disabled);
+    color: rgba(255, 255, 255, 0.5);
     flex-shrink: 0;
     transition: color 0.2s ease;
     pointer-events: none;
   }
 
   &:hover .menu-external-icon {
-    color: var(--td-brand-color);
+    color: #fff;
   }
 }
 
 .menu-divider {
   height: 1px;
-  background: var(--td-component-stroke);
+  background: rgba(255, 255, 255, 0.15);
   margin: 4px 0;
 }
 
