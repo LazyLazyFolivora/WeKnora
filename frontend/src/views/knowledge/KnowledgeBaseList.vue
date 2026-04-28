@@ -22,7 +22,7 @@
                 style="--wails-draggable: no-drag"
                 @click="handleCreateKnowledgeBase"
               >
-                <template #icon><t-icon name="folder-add" size="16px" /></template>
+                <template #icon><img src="@/assets/img/folder-icon.svg" style="width:24px;height:24px;display:block;margin:0;" /></template>
               </t-button>
             </t-tooltip>
           </div>
@@ -484,7 +484,7 @@
 
     <!-- 全部空状态 -->
     <div v-if="spaceSelection === 'all' && filteredKnowledgeBases.length === 0 && !loading" class="empty-state">
-      <img class="empty-img" src="@/assets/img/upload.svg" alt="">
+      <img src="@/assets/img/empty-kb.svg" class="empty-img" alt="" />
       <span class="empty-txt">{{ $t('knowledgeList.empty.title') }}</span>
       <span class="empty-desc">{{ $t('knowledgeList.empty.description') }}</span>
       <t-button class="kb-create-btn empty-state-btn" @click="handleCreateKnowledgeBase">
@@ -495,7 +495,7 @@
 
     <!-- 我的知识库空状态 -->
     <div v-if="spaceSelection === 'mine' && kbs.length === 0 && !loading" class="empty-state">
-      <img class="empty-img" src="@/assets/img/upload.svg" alt="">
+      <img src="@/assets/img/empty-kb.svg" class="empty-img" alt="" />
       <span class="empty-txt">{{ $t('knowledgeList.empty.title') }}</span>
       <span class="empty-desc">{{ $t('knowledgeList.empty.description') }}</span>
       <t-button class="kb-create-btn empty-state-btn" @click="handleCreateKnowledgeBase">
@@ -506,7 +506,7 @@
 
     <!-- 空间下知识库空状态 -->
     <div v-if="spaceSelectionOrgId && !spaceKbsLoading && spaceKbsList.length === 0" class="empty-state">
-      <img class="empty-img" src="@/assets/img/upload.svg" alt="">
+      <img class="empty-img" src="@/assets/img/empty-kb.svg" alt="">
       <span class="empty-txt">{{ $t('knowledgeList.empty.sharedTitle') }}</span>
       <span class="empty-desc">{{ $t('knowledgeList.empty.sharedDescription') }}</span>
     </div>
@@ -1004,13 +1004,8 @@ const confirmDelete = () => {
 }
 
 const isInitialized = (kb: KB) => {
-  // LLM (summary) model is always required
-  if (!kb.summary_model_id || kb.summary_model_id === '') return false
-  // Embedding model only required when RAG indexing is enabled (vector or keyword)
-  const strategy = (kb as any).indexing_strategy
-  const needsEmbedding = !strategy || strategy.vector_enabled || strategy.keyword_enabled
-  if (needsEmbedding && (!kb.embedding_model_id || kb.embedding_model_id === '')) return false
-  return true
+  return !!(kb.embedding_model_id && kb.embedding_model_id !== '' && 
+            kb.summary_model_id && kb.summary_model_id !== '')
 }
 
 // 计算是否有未初始化的知识库
@@ -1312,22 +1307,22 @@ const handleUploadFinishedEvent = (event: Event) => {
 
 .header-action-btn {
   padding: 0 !important;
-  min-width: 28px !important;
-  width: 28px !important;
-  height: 28px !important;
+  min-width: 32px !important;
+  width: 32px !important;
+  height: 32px !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  background: var(--td-bg-color-secondarycontainer) !important;
-  border: 1px solid var(--td-component-stroke) !important;
+  background: transparent !important;
+  border: none !important;
   border-radius: 6px !important;
   color: var(--td-text-color-secondary);
   cursor: pointer;
-  transition: background 0.2s, border-color 0.2s, color 0.2s;
+  transition: background 0.2s, color 0.2s;
 
   &:hover {
-    background: var(--td-bg-color-secondarycontainer) !important;
-    border-color: var(--td-component-stroke) !important;
+    background: rgba(0, 0, 0, 0.06) !important;
+    border-color: transparent !important;
     color: var(--td-text-color-primary);
   }
 
@@ -1406,11 +1401,11 @@ const handleUploadFinishedEvent = (event: Event) => {
   align-items: center;
   gap: 5px;
   padding: 3px 8px;
-  background: rgba(7, 192, 95, 0.06);
+  background: rgba(0, 96, 170, 0.1);
   border-radius: 6px;
   font-size: 12px;
   line-height: 1.4;
-  color: var(--td-text-color-secondary);
+  color: #0060AA;
   max-width: 140px;
   transition: background-color 0.15s ease;
 
@@ -1429,22 +1424,22 @@ const handleUploadFinishedEvent = (event: Event) => {
   }
 
   .t-icon {
-    color: var(--td-brand-color);
+    color: #0060AA;
     flex-shrink: 0;
   }
 }
 
-// 「我的」知识库标签（与 .org-source 同套样式：灰字 + 绿标 + 浅绿底）
+// 「我的」知识库标签
 .personal-source {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   padding: 3px 8px;
-  background: rgba(7, 192, 95, 0.06);
+  background: rgba(0, 96, 170, 0.1);
   border-radius: 6px;
   font-size: 11px;
   line-height: 1.4;
-  color: var(--td-text-color-secondary);
+  color: #0060AA;
   font-weight: 500;
   transition: background-color 0.15s ease;
 
@@ -1453,7 +1448,7 @@ const handleUploadFinishedEvent = (event: Event) => {
   }
 
   .t-icon {
-    color: var(--td-brand-color);
+    color: #0060AA;
     flex-shrink: 0;
   }
 }
@@ -1616,12 +1611,16 @@ const handleUploadFinishedEvent = (event: Event) => {
 }
 
 .kb-card {
-  border: .5px solid var(--td-component-stroke);
+  border: 1px solid rgba(106, 131, 188, 0.3);
   border-radius: 12px;
   overflow: hidden;
   box-sizing: border-box;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  background: var(--td-bg-color-container);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(
+    225deg,
+    rgba(0, 127, 204, 0.36) 0%,
+    rgba(255, 255, 255, 0.07) 100%
+  );
   position: relative;
   cursor: pointer;
   transition: all 0.25s ease;
@@ -1639,60 +1638,84 @@ const handleUploadFinishedEvent = (event: Event) => {
   }
 
   &:hover {
-    border-color: var(--td-brand-color);
-    box-shadow: 0 4px 12px rgba(7, 192, 95, 0.12);
+    border-color: rgba(131, 152, 199, 0.6);
+    box-shadow: 0 4px 16px rgba(0, 127, 204, 0.25);
   }
 
   &.uninitialized {
     opacity: 0.9;
   }
 
-  // 文档类型样式
+  // 文档类型：右上角蓝色光晕装饰
   &.kb-type-document {
-    background: linear-gradient(135deg, var(--td-bg-color-container) 0%, rgba(7, 192, 95, 0.04) 100%);
-
-    &:hover {
-      border-color: var(--td-brand-color);
-      background: linear-gradient(135deg, var(--td-bg-color-container) 0%, rgba(7, 192, 95, 0.08) 100%);
+    // 右上圆
+    &::before {
+      content: '';
+      position: absolute;
+      top: -19px;
+      right: -16px;
+      width: 131px;
+      height: 131px;
+      border-radius: 50%;
+      background: #007FCC;
+      opacity: 0.5;
+      pointer-events: none;
+      z-index: 0;
+      mix-blend-mode: soft-light;
     }
-
-    // 右上角装饰
+    // 右下圆
     &::after {
       content: '';
       position: absolute;
-      top: 0;
-      right: 0;
-      width: 60px;
-      height: 60px;
-      background: linear-gradient(135deg, rgba(7, 192, 95, 0.08) 0%, transparent 100%);
-      border-radius: 0 12px 0 100%;
+      bottom: -23px;
+      right: -82px;
+      width: 197px;
+      height: 197px;
+      border-radius: 50%;
+      background: #0060AA;
+      opacity: 0.5;
       pointer-events: none;
       z-index: 0;
+      mix-blend-mode: soft-light;
     }
   }
 
-  // 问答类型样式
+  // 问答类型：右上角紫蓝色光晕
   &.kb-type-faq {
-    background: linear-gradient(135deg, var(--td-bg-color-container) 0%, rgba(0, 82, 217, 0.04) 100%);
+    background: linear-gradient(
+      225deg,
+      rgba(6, 49, 144, 0.5) 0%,
+      rgba(0, 127, 204, 0.2) 100%
+    );
 
-    &:hover {
-      border-color: var(--td-brand-color);
-      box-shadow: 0 4px 12px rgba(0, 82, 217, 0.12);
-      background: linear-gradient(135deg, var(--td-bg-color-container) 0%, rgba(0, 82, 217, 0.08) 100%);
+    &::before {
+      content: '';
+      position: absolute;
+      top: -19px;
+      right: -16px;
+      width: 131px;
+      height: 131px;
+      border-radius: 50%;
+      background: #063190;
+      opacity: 0.5;
+      pointer-events: none;
+      z-index: 0;
+      mix-blend-mode: soft-light;
     }
 
-    // 右上角装饰
     &::after {
       content: '';
       position: absolute;
-      top: 0;
-      right: 0;
-      width: 60px;
-      height: 60px;
-      background: linear-gradient(135deg, rgba(0, 82, 217, 0.08) 0%, transparent 100%);
-      border-radius: 0 12px 0 100%;
+      bottom: -23px;
+      right: -82px;
+      width: 197px;
+      height: 197px;
+      border-radius: 50%;
+      background: #0060AA;
+      opacity: 0.5;
       pointer-events: none;
       z-index: 0;
+      mix-blend-mode: soft-light;
     }
   }
 
@@ -1700,7 +1723,7 @@ const handleUploadFinishedEvent = (event: Event) => {
     position: absolute;
     top: 8px;
     left: 8px;
-    color: var(--td-brand-color);
+    color: #E6EAF5;
     z-index: 2;
     opacity: 0.7;
   }
@@ -1761,7 +1784,7 @@ const handleUploadFinishedEvent = (event: Event) => {
     flex: 1;
     font-size: 15px;
     font-weight: 600;
-    color: var(--td-text-color-primary);
+    color: #0a1a3a;
     letter-spacing: 0.01em;
     white-space: nowrap;
     overflow: hidden;
@@ -1795,7 +1818,7 @@ const handleUploadFinishedEvent = (event: Event) => {
 }
 
 .card-title {
-  color: var(--td-text-color-primary);
+  color: #0a1a3a;
   font-family: "PingFang SC", -apple-system, sans-serif;
   font-size: 15px;
   font-weight: 600;
@@ -1857,7 +1880,7 @@ const handleUploadFinishedEvent = (event: Event) => {
   -webkit-line-clamp: 2;
   line-clamp: 2;
   overflow: hidden;
-  color: var(--td-text-color-secondary);
+  color: rgba(10, 26, 58, 0.55);
   font-family: "PingFang SC", -apple-system, sans-serif;
   font-size: 12px;
   font-weight: 400;
@@ -1870,7 +1893,7 @@ const handleUploadFinishedEvent = (event: Event) => {
   justify-content: space-between;
   margin-top: auto;
   padding-top: 8px;
-  border-top: .5px solid var(--td-component-stroke);
+  border-top: .5px solid rgba(0, 96, 170, 0.15);
 }
 
 .bottom-left {
@@ -1889,7 +1912,7 @@ const handleUploadFinishedEvent = (event: Event) => {
 
   .card-time {
     font-size: 12px;
-    color: var(--td-text-color-placeholder);
+    color: rgba(10, 26, 58, 0.45);
   }
 }
 
@@ -1910,81 +1933,49 @@ const handleUploadFinishedEvent = (event: Event) => {
   transition: background 0.2s ease;
 
   &.type-document {
-    background: rgba(7, 192, 95, 0.08);
-    color: var(--td-brand-color-active);
+    background: #0060AA;
+    color: #8398C7;
     width: auto;
     padding: 0 6px;
     gap: 3px;
-
-    &:hover {
-      background: rgba(7, 192, 95, 0.12);
-    }
-
-    .badge-count {
-      font-size: 11px;
-      font-weight: 500;
-    }
-
-    .processing-icon {
-      animation: spin 1s linear infinite;
-    }
+    &:hover { background: #0070c0; }
+    .badge-count { font-size: 11px; font-weight: 500; }
+    .processing-icon { animation: spin 1s linear infinite; }
   }
 
   &.type-faq {
-    background: rgba(0, 82, 217, 0.08);
-    color: var(--td-brand-color);
+    background: #063190;
+    color: #8398C7;
     width: auto;
     padding: 0 6px;
     gap: 3px;
-
-    &:hover {
-      background: rgba(0, 82, 217, 0.12);
-    }
-
-    .badge-count {
-      font-size: 11px;
-      font-weight: 500;
-    }
-
-    .processing-icon {
-      animation: spin 1s linear infinite;
-    }
+    &:hover { background: #0a3fa8; }
+    .badge-count { font-size: 11px; font-weight: 500; }
+    .processing-icon { animation: spin 1s linear infinite; }
   }
 
   &.kg {
-    background: rgba(124, 77, 255, 0.08);
-    color: var(--td-brand-color);
-
-    &:hover {
-      background: rgba(124, 77, 255, 0.12);
-    }
+    background: #0060AA;
+    color: #8398C7;
+    &:hover { background: #0070c0; }
   }
 
   &.multimodal {
-    background: rgba(255, 152, 0, 0.08);
-    color: var(--td-warning-color);
-
-    &:hover {
-      background: rgba(255, 152, 0, 0.12);
-    }
+    background: #0060AA;
+    color: #8398C7;
+    &:hover { background: #0070c0; }
   }
 
   &.question {
-    background: rgba(0, 150, 136, 0.08);
-    color: var(--td-success-color);
-
-    &:hover {
-      background: rgba(0, 150, 136, 0.12);
-    }
+    background: #0060AA;
+    color: #8398C7;
+    &:hover { background: #0070c0; }
   }
 
   &.shared {
-    background: rgba(0, 82, 217, 0.08);
-    color: var(--td-brand-color);
-
-    &:hover {
-      background: rgba(0, 82, 217, 0.12);
-    }
+    background: #0060AA;
+    color: #8398C7;
+    &:hover { background: #0070c0; }
   }
 
   &.role-admin {
@@ -2067,11 +2058,12 @@ const handleUploadFinishedEvent = (event: Event) => {
   .empty-img {
     width: 162px;
     height: 162px;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
+    filter: drop-shadow(0 4px 12px rgba(0, 127, 204, 0.2));
   }
 
   .empty-txt {
-    color: var(--td-text-color-placeholder);
+    color: rgba(0, 0, 0, 0.65);
     font-family: "PingFang SC";
     font-size: 16px;
     font-weight: 600;
@@ -2080,7 +2072,7 @@ const handleUploadFinishedEvent = (event: Event) => {
   }
 
   .empty-desc {
-    color: var(--td-text-color-disabled);
+    color: rgba(0, 0, 0, 0.4);
     font-family: "PingFang SC";
     font-size: 14px;
     font-weight: 400;
@@ -2090,6 +2082,21 @@ const handleUploadFinishedEvent = (event: Event) => {
 
   .empty-state-btn {
     margin-top: 20px;
+    background: linear-gradient(to bottom, #063190, #007FCC) !important;
+    border: none !important;
+    border-radius: 3px !important;
+    color: #E6EAF5 !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25) !important;
+    font-size: 14px !important;
+    padding: 0 20px !important;
+    height: 36px !important;
+    &:hover {
+      background: linear-gradient(to bottom, #0a3fa8, #0090e0) !important;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;
+    }
+    :deep(.t-button__icon), :deep(.t-icon) {
+      color: #E6EAF5 !important;
+    }
   }
 }
 

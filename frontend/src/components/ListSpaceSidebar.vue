@@ -178,7 +178,7 @@ const props = withDefaults(
     hideAll?: boolean
     hideShared?: boolean
   }>(),
-  { mode: 'resource', collapsedKey: 'sidebar-collapsed-list', countAll: undefined, countMine: undefined, countShared: undefined, countByOrg: () => ({}), countCreated: undefined, countJoined: undefined, hideAll: false, hideShared: false }
+  { mode: 'resource', collapsedKey: 'sidebar-collapsed-list', countAll: undefined, countMine: undefined, countShared: undefined, countByOrg: () => ({}), countCreated: undefined, countJoined: undefined, hideAll: false, hideShared: true }
 )
 
 const storageKey = props.collapsedKey + '-expanded'
@@ -348,20 +348,20 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
 
   &:hover {
-    background: var(--td-bg-color-secondarycontainer);
-    color: var(--td-text-color-primary);
+    background: rgba(106, 131, 188, 0.25);
+    color: #E6EAF5;
   }
 
   &.active {
-    background: var(--td-success-color-light);
-    color: var(--td-brand-color);
+    background: #6A83BC;
+    color: #E6EAF5;
 
     &:hover {
-      background: var(--td-success-color-light);
+      background: #7a91c8;
     }
 
     .icon-label {
-      color: var(--td-brand-color);
+      color: #E6EAF5;
       font-weight: 520;
     }
   }
