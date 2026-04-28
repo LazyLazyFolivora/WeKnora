@@ -455,6 +455,9 @@ func (s *sessionService) buildSearchTargets(
 				kbTenantMap[kbID] = tenantID
 			} else if kb.TenantID == tenantID {
 				kbTenantMap[kbID] = tenantID
+			} else if kb.IsPublic {
+				// Public KB: use the KB's own tenant for retrieval
+				kbTenantMap[kbID] = kb.TenantID
 			} else if s.kbShareService != nil && userID != "" {
 				hasAccess, _ := s.kbShareService.HasKBPermission(ctx, kbID, userID, types.OrgRoleViewer)
 				if hasAccess {
