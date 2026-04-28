@@ -104,6 +104,19 @@ func (s *sessionService) AgentQA(
 	if hasKnowledgeSearchTool {
 		rerankModelID := req.CustomAgent.Config.RerankModelID
 		if rerankModelID == "" {
+			// Fallback to global default rerank model when agent has no explicit rerank model configured
+			defaults, defErr := s.modelService.ListGlobalDefaults(ctx)
+			if defErr == nil {
+				for _, m := range defaults {
+					if m.Type == types.ModelTypeRerank {
+						rerankModelID = m.ID
+						logger.Infof(ctx, "Using global default rerank model %s for agent %s", rerankModelID, req.CustomAgent.ID)
+						break
+					}
+				}
+			}
+		}
+		if rerankModelID == "" {
 			logger.Warnf(ctx, "No rerank model configured for custom agent %s, but knowledge_search tool is enabled", req.CustomAgent.ID)
 			return errors.New("rerank model (rerank_model_id) is not configured in custom agent settings")
 		}
