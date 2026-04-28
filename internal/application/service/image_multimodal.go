@@ -14,6 +14,7 @@ import (
 	"github.com/Tencent/WeKnora/internal/logger"
 	"github.com/Tencent/WeKnora/internal/models/utils/ollama"
 	"github.com/Tencent/WeKnora/internal/models/vlm"
+	"github.com/Tencent/WeKnora/internal/tracing/langfuse"
 	"github.com/Tencent/WeKnora/internal/types"
 	"github.com/Tencent/WeKnora/internal/types/interfaces"
 	secutils "github.com/Tencent/WeKnora/internal/utils"
@@ -254,6 +255,28 @@ func (s *ImageMultimodalService) indexChunks(ctx context.Context, payload types.
 		return
 	}
 
+	// Skip vector/keyword indexing when the KB has no embedding-based pipeline enabled
+	// (e.g. Wiki-only KBs). Without this check, GetEmbeddingModel would fail because
+	// EmbeddingModelID is intentionally empty for such KBs. The multimodal chunks
+	// themselves are already persisted in the DB above, so skipping index here is safe.
+	if !kb.NeedsEmbeddingModel() {
+		logger.Infof(ctx, "[ImageMultimodal] Vector/keyword indexing disabled for KB %s, skipping index for %d multimodal chunks",
+			kb.ID, len(chunks))
+		// Still mark chunks as indexed so downstream finalization sees a consistent state.
+		for _, chunk := range chunks {
+			dbChunk, gerr := s.chunkService.GetChunkByIDOnly(ctx, chunk.ID)
+			if gerr != nil {
+				logger.Warnf(ctx, "[ImageMultimodal] Failed to fetch chunk %s for status update: %v", chunk.ID, gerr)
+				continue
+			}
+			dbChunk.Status = int(types.ChunkStatusIndexed)
+			if uerr := s.chunkService.UpdateChunk(ctx, dbChunk); uerr != nil {
+				logger.Warnf(ctx, "[ImageMultimodal] Failed to update chunk %s status to indexed: %v", chunk.ID, uerr)
+			}
+		}
+		return
+	}
+
 	embeddingModel, err := s.modelService.GetEmbeddingModel(ctx, kb.EmbeddingModelID)
 	if err != nil {
 		logger.Warnf(ctx, "[ImageMultimodal] Failed to get embedding model for indexing: %v", err)
@@ -397,6 +420,7 @@ func (s *ImageMultimodalService) enqueueKnowledgePostProcessTask(ctx context.Con
 		KnowledgeBaseID: payload.KnowledgeBaseID,
 		Language:        payload.Language,
 	}
+	langfuse.InjectTracing(ctx, &taskPayload)
 	payloadBytes, err := json.Marshal(taskPayload)
 	if err != nil {
 		logger.Warnf(ctx, "[ImageMultimodal] Failed to marshal post process payload: %v", err)

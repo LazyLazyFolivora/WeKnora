@@ -1,5 +1,5 @@
 <template>
-    <div class="bot_msg">
+    <div class="bot_msg" :class="{ 'is-embedded': embeddedMode }">
         <div style="display: flex;flex-direction: column; gap:8px">
             <!-- 显示@的知识库和文件（非 Agent 模式下显示） -->
             <div v-if="!session.isAgentMode && mentionedItems && mentionedItems.length > 0" class="mentioned_items">
@@ -62,6 +62,8 @@
 <script setup>
 import { onMounted, onBeforeUnmount, watch, computed, ref, reactive, defineProps, nextTick, onUpdated } from 'vue';
 import { marked } from 'marked';
+import markedKatex from 'marked-katex-extension';
+import 'katex/dist/katex.min.css';
 import docInfo from './docInfo.vue';
 import deepThink from './deepThink.vue';
 import AgentStreamDisplay from './AgentStreamDisplay.vue';
@@ -85,6 +87,17 @@ import {
 marked.use({
     breaks: true,  // 全局启用单个换行支持
 });
+
+marked.use(markedKatex({ throwOnError: false }));
+
+const preprocessMathDelimiters = (rawText) => {
+    if (!rawText || typeof rawText !== 'string') {
+        return '';
+    }
+    return rawText
+        .replace(/\\\[([\s\S]*?)\\\]/g, '$$$$$1$$$$')
+        .replace(/\\\(([\s\S]*?)\\\)/g, '$$$1$$');
+};
 
 ensureMermaidInitialized();
 
@@ -114,6 +127,10 @@ const props = defineProps({
     isFirstEnter: {
         type: Boolean,
         required: false
+    },
+    embeddedMode: {
+        type: Boolean,
+        default: false
     }
 });
 
@@ -154,9 +171,10 @@ const markdownTokens = computed(() => {
     }
 
     const processed = replaceIncompleteImageWithPlaceholder(text);
+    const safeText = preprocessMathDelimiters(processed);
     
     // 首先对 Markdown 内容进行安全处理
-    const safeMarkdown = safeMarkdownToHTML(processed);
+    const safeMarkdown = safeMarkdownToHTML(safeText);
     
     // 使用 marked.lexer 分词
     return marked.lexer(safeMarkdown);
@@ -283,6 +301,16 @@ onBeforeUnmount(() => {
 <style lang="less" scoped>
 @import '../../../components/css/markdown.less';
 @import '../../../components/css/chat-message-shared.less';
+
+.bot_msg {
+    &.is-embedded {
+        width: 100%;
+        
+        :deep(.agent-stream-display) {
+            width: 100%;
+        }
+    }
+}
 
 // 内容包装器 - 与 Agent 模式的 answer 样式一致
 .content-wrapper {
