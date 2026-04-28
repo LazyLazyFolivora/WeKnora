@@ -205,6 +205,15 @@ func (h *ModelHandler) GetModel(c *gin.Context) {
 		return
 	}
 
+	// Non-admin users can only access global default models via this endpoint
+	userVal, _ := c.Get(types.UserContextKey.String())
+	if callerUser, ok := userVal.(*types.User); ok && callerUser != nil && !callerUser.IsAdmin {
+		if !model.IsGlobalDefault {
+			c.Error(errors.NewNotFoundError("Model not found"))
+			return
+		}
+	}
+
 	logger.Infof(ctx, "Retrieved model successfully, ID: %s, Name: %s", model.ID, model.Name)
 
 	// Hide sensitive information for builtin models

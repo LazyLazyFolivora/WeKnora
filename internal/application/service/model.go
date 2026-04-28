@@ -155,25 +155,6 @@ func (s *modelService) GetModelByID(ctx context.Context, id string) (*types.Mode
 		return nil, errors.New("model ID cannot be empty")
 	}
 
-	// Non-admin users: only allow access to global default models
-	callerUser, _ := ctx.Value(types.UserContextKey).(*types.User)
-	if callerUser != nil && !callerUser.IsAdmin {
-		defaults, err := s.repo.ListGlobalDefaults(ctx)
-		if err != nil {
-			logger.ErrorWithFields(ctx, err, map[string]interface{}{"model_id": id})
-			return nil, err
-		}
-		for _, m := range defaults {
-			if m.ID == id {
-				if m.Status == types.ModelStatusActive {
-					return m, nil
-				}
-				return nil, globalDefaultStatusError(m.Status)
-			}
-		}
-		return nil, ErrModelNotFound
-	}
-
 	tenantID := types.MustTenantIDFromContext(ctx)
 
 	// Fetch model from repository
