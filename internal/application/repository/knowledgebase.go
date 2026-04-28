@@ -72,12 +72,17 @@ func (r *knowledgeBaseRepository) ListKnowledgeBases(ctx context.Context) ([]*ty
 	return kbs, nil
 }
 
-// ListKnowledgeBasesByTenantID lists all knowledge bases by tenant id
+// ListKnowledgeBasesByTenantID lists all knowledge bases by tenant id,
+// including public knowledge bases created by admin users (is_public = true).
 func (r *knowledgeBaseRepository) ListKnowledgeBasesByTenantID(
 	ctx context.Context, tenantID uint64,
 ) ([]*types.KnowledgeBase, error) {
 	var kbs []*types.KnowledgeBase
-	if err := r.db.WithContext(ctx).Where("tenant_id = ? AND is_temporary = ?", tenantID, false).
+	if err := r.db.WithContext(ctx).
+		Where(
+			"(tenant_id = ? AND is_temporary = ?) OR (is_public = ? AND is_temporary = ?)",
+			tenantID, false, true, false,
+		).
 		Order("is_pinned DESC, pinned_at DESC, created_at DESC").Find(&kbs).Error; err != nil {
 		return nil, err
 	}

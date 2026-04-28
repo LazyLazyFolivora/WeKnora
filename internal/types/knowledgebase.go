@@ -47,6 +47,9 @@ type KnowledgeBase struct {
 	Type string `yaml:"type"                    json:"type"                    gorm:"type:varchar(32);default:'document'"`
 	// Whether this knowledge base is temporary (ephemeral) and should be hidden from UI
 	IsTemporary bool `yaml:"is_temporary"            json:"is_temporary"            gorm:"default:false"`
+	// IsPublic indicates whether this knowledge base is visible to all tenant members.
+	// Public knowledge bases are created by admin users and are read-only for non-owners.
+	IsPublic bool `yaml:"is_public"               json:"is_public"               gorm:"default:false"`
 	// Description of the knowledge base
 	Description string `yaml:"description"             json:"description"`
 	// Tenant ID

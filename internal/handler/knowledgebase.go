@@ -131,6 +131,19 @@ func (h *KnowledgeBaseHandler) CreateKnowledgeBase(c *gin.Context) {
 		return
 	}
 
+	// Set is_public based on caller's admin status: admin users create public KBs,
+	// regular users always create private KBs regardless of client-supplied value.
+	userVal, userExists := c.Get(types.UserContextKey.String())
+	if !userExists {
+		c.Error(apperrors.NewUnauthorizedError("Unauthorized"))
+		return
+	}
+	if callerUser, ok := userVal.(*types.User); ok && callerUser != nil {
+		req.IsPublic = callerUser.IsAdmin
+	} else {
+		req.IsPublic = false
+	}
+
 	logger.Infof(ctx, "Creating knowledge base, name: %s", secutils.SanitizeForLog(req.Name))
 	// Create knowledge base using the service
 	kb, err := h.service.CreateKnowledgeBase(ctx, &req)
@@ -182,6 +195,11 @@ func (h *KnowledgeBaseHandler) validateAndGetKnowledgeBase(c *gin.Context) (*typ
 	// Check 1: Verify tenant ownership (owner has full access)
 	if kb.TenantID == tenantID.(uint64) {
 		return kb, id, tenantID.(uint64), types.OrgRoleAdmin, nil
+	}
+
+	// Check 1.5: Public KB — grant read-only access to any authenticated user
+	if kb.IsPublic {
+		return kb, id, kb.TenantID, types.OrgRoleViewer, nil
 	}
 
 	// Check 2: If not owner, check organization shared access
@@ -432,6 +450,23 @@ func (h *KnowledgeBaseHandler) TogglePinKnowledgeBase(c *gin.Context) {
 		return
 	}
 
+	// Check if KB is public and caller is not the owner
+	existingKB, err := h.service.GetKnowledgeBaseByID(ctx, id)
+	if err != nil {
+		if stderrors.Is(err, repository.ErrKnowledgeBaseNotFound) {
+			c.Error(apperrors.NewNotFoundError("knowledge base not found"))
+			return
+		}
+		logger.ErrorWithFields(ctx, err, nil)
+		c.Error(apperrors.NewInternalServerError(err.Error()))
+		return
+	}
+	callerTenantID := c.GetUint64(types.TenantIDContextKey.String())
+	if existingKB.IsPublic && existingKB.TenantID != callerTenantID {
+		c.Error(apperrors.NewForbiddenError("Only the owner can pin/unpin a public knowledge base"))
+		return
+	}
+
 	kb, err := h.service.TogglePinKnowledgeBase(ctx, id)
 	if err != nil {
 		if stderrors.Is(err, repository.ErrKnowledgeBaseNotFound) {
@@ -474,9 +509,16 @@ func (h *KnowledgeBaseHandler) UpdateKnowledgeBase(c *gin.Context) {
 	logger.Info(ctx, "Start updating knowledge base")
 
 	// Validate and get the knowledge base
-	_, id, _, permission, err := h.validateAndGetKnowledgeBase(c)
+	kb, id, _, permission, err := h.validateAndGetKnowledgeBase(c)
 	if err != nil {
 		c.Error(err)
+		return
+	}
+
+	// Public KB: only owner can modify
+	callerTenantID := c.GetUint64(types.TenantIDContextKey.String())
+	if kb.IsPublic && kb.TenantID != callerTenantID {
+		c.Error(apperrors.NewForbiddenError("Only the owner can modify a public knowledge base"))
 		return
 	}
 
