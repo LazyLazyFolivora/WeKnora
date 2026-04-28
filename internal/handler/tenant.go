@@ -949,22 +949,38 @@ func (h *TenantHandler) GetTenantConversationConfig(c *gin.Context) {
 	// For non-admin users, fill in global default model IDs so the frontend
 	// can correctly determine agent readiness without requiring per-tenant model config.
 	callerUser, _ := ctx.Value(types.UserContextKey).(*types.User)
+	logger.Infof(ctx, "[ConversationConfig] callerUser=%v, modelService=%v",
+		callerUser != nil, h.modelService != nil)
+	if callerUser != nil {
+		logger.Infof(ctx, "[ConversationConfig] user.ID=%s, user.IsAdmin=%v", callerUser.ID, callerUser.IsAdmin)
+	}
+
 	if callerUser != nil && !callerUser.IsAdmin && h.modelService != nil {
-		if defaults, err := h.modelService.ListGlobalDefaults(ctx); err == nil {
+		defaults, err := h.modelService.ListGlobalDefaults(ctx)
+		if err != nil {
+			logger.Warnf(ctx, "[ConversationConfig] ListGlobalDefaults error: %v", err)
+		} else {
+			logger.Infof(ctx, "[ConversationConfig] ListGlobalDefaults returned %d models", len(defaults))
 			for _, m := range defaults {
+				logger.Infof(ctx, "[ConversationConfig] global default model: id=%s type=%s", m.ID, m.Type)
 				switch m.Type {
 				case types.ModelTypeKnowledgeQA:
 					if response.SummaryModelID == "" {
 						response.SummaryModelID = m.ID
+						logger.Infof(ctx, "[ConversationConfig] set SummaryModelID=%s", m.ID)
 					}
 				case types.ModelTypeRerank:
 					if response.RerankModelID == "" {
 						response.RerankModelID = m.ID
+						logger.Infof(ctx, "[ConversationConfig] set RerankModelID=%s", m.ID)
 					}
 				}
 			}
 		}
 	}
+
+	logger.Infof(ctx, "[ConversationConfig] response: summary_model_id=%s, rerank_model_id=%s",
+		response.SummaryModelID, response.RerankModelID)
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
