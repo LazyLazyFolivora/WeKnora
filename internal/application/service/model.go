@@ -194,9 +194,40 @@ func (s *modelService) GetModelByID(ctx context.Context, id string) (*types.Mode
 	return nil, errors.New("abnormal model status")
 }
 
-// ListModels returns all models belonging to the tenant
+// globalDefaultStatusError converts a non-active model status to an error for the global default path.
+func globalDefaultStatusError(status types.ModelStatus) error {
+	switch status {
+	case types.ModelStatusDownloading:
+		return errors.New("model is currently downloading")
+	case types.ModelStatusDownloadFailed:
+		return errors.New("model download failed")
+	default:
+		return errors.New("abnormal model status")
+	}
+}
+
+// ListGlobalDefaults returns all models marked as global default (is_global_default=true).
+func (s *modelService) ListGlobalDefaults(ctx context.Context) ([]*types.Model, error) {
+	return s.repo.ListGlobalDefaults(ctx)
+}
+
+// ListModels returns all models belonging to the tenant.
+// For non-admin users, returns global default models instead of tenant-specific models.
 func (s *modelService) ListModels(ctx context.Context) ([]*types.Model, error) {
 	logger.Info(ctx, "Start listing models")
+
+	// Non-admin users: return global default models transparently
+	callerUser, _ := ctx.Value(types.UserContextKey).(*types.User)
+	if callerUser != nil && !callerUser.IsAdmin {
+		logger.Infof(ctx, "Non-admin user, returning global default models")
+		models, err := s.repo.ListGlobalDefaults(ctx)
+		if err != nil {
+			logger.ErrorWithFields(ctx, err, nil)
+			return nil, err
+		}
+		logger.Infof(ctx, "Retrieved %d global default models", len(models))
+		return models, nil
+	}
 
 	tenantID := types.MustTenantIDFromContext(ctx)
 	logger.Infof(ctx, "Listing models for tenant ID: %d", tenantID)
@@ -231,6 +262,20 @@ func (s *modelService) UpdateModel(ctx context.Context, model *types.Model) erro
 	if existingModel != nil && existingModel.IsBuiltin {
 		logger.Warnf(ctx, "Attempted to update builtin model: %s", model.ID)
 		return errors.New("builtin models cannot be updated")
+	}
+
+	// If setting as global default, clear other global defaults of the same type in a transaction
+	if model.IsGlobalDefault {
+		return s.repo.WithTransaction(ctx, func(txCtx context.Context) error {
+			if err := s.repo.ClearGlobalDefaultByType(txCtx, model.Type, model.ID); err != nil {
+				logger.ErrorWithFields(txCtx, err, map[string]interface{}{
+					"model_id":   model.ID,
+					"model_type": model.Type,
+				})
+				return err
+			}
+			return s.repo.Update(txCtx, model)
+		})
 	}
 
 	// Update model in repository

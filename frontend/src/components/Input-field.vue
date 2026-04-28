@@ -1831,13 +1831,16 @@ const getCustomAgentNotReadyReasons = (agent: CustomAgent): string[] => {
   const config = agent.config || {}
   
   // 检查对话模型（Summary Model）
-  if (!config.model_id || config.model_id.trim() === '') {
+  // 如果 agent 自身没有配置 model_id，fallback 到全局默认模型（非 admin 用户使用全局默认）
+  const effectiveSummaryModelId = config.model_id?.trim() || settingsStore.conversationModels.summaryModelId?.trim()
+  if (!effectiveSummaryModelId) {
     reasons.push(t('input.customAgentMissingSummaryModel'))
   }
   // 检查重排模型（Rerank Model）- 仅当允许使用 knowledge_search 工具时需要
   const hasKnowledgeSearchTool = config.allowed_tools && config.allowed_tools.includes('knowledge_search')
   if (hasKnowledgeSearchTool) {
-    if (!config.rerank_model_id || config.rerank_model_id.trim() === '') {
+    const effectiveRerankModelId = config.rerank_model_id?.trim() || settingsStore.conversationModels.rerankModelId?.trim()
+    if (!effectiveRerankModelId) {
       reasons.push(t('input.customAgentMissingRerankModel'))
     }
   }

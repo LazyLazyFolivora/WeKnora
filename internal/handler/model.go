@@ -30,6 +30,26 @@ func NewModelHandler(service interfaces.ModelService) *ModelHandler {
 	return &ModelHandler{service: service}
 }
 
+// requireAdmin checks that the caller is an admin user.
+// Returns true if the check passes; false if an error response has already been written.
+func requireAdmin(c *gin.Context) bool {
+	userVal, exists := c.Get(types.UserContextKey.String())
+	if !exists {
+		c.Error(errors.NewUnauthorizedError("Unauthorized"))
+		return false
+	}
+	callerUser, ok := userVal.(*types.User)
+	if !ok || callerUser == nil {
+		c.Error(errors.NewUnauthorizedError("Unauthorized"))
+		return false
+	}
+	if !callerUser.IsAdmin {
+		c.Error(errors.NewForbiddenError("Only admin users can perform this operation"))
+		return false
+	}
+	return true
+}
+
 // hideSensitiveInfo hides sensitive information (APIKey, BaseURL) for builtin models
 // Returns a copy of the model with sensitive fields cleared if it's a builtin model
 func hideSensitiveInfo(model *types.Model) *types.Model {
@@ -86,6 +106,11 @@ func (h *ModelHandler) CreateModel(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	logger.Info(ctx, "Start creating model")
+
+	// Only admin users can create models
+	if !requireAdmin(c) {
+		return
+	}
 
 	var req CreateModelRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -180,6 +205,15 @@ func (h *ModelHandler) GetModel(c *gin.Context) {
 		return
 	}
 
+	// Non-admin users can only access global default models via this endpoint
+	userVal, _ := c.Get(types.UserContextKey.String())
+	if callerUser, ok := userVal.(*types.User); ok && callerUser != nil && !callerUser.IsAdmin {
+		if !model.IsGlobalDefault {
+			c.Error(errors.NewNotFoundError("Model not found"))
+			return
+		}
+	}
+
 	logger.Infof(ctx, "Retrieved model successfully, ID: %s, Name: %s", model.ID, model.Name)
 
 	// Hide sensitive information for builtin models
@@ -244,11 +278,12 @@ func (h *ModelHandler) ListModels(c *gin.Context) {
 // UpdateModelRequest defines the structure for model update requests
 // Contains fields that can be updated for an existing model
 type UpdateModelRequest struct {
-	Name        string                `json:"name"`
-	Description string                `json:"description"`
-	Parameters  types.ModelParameters `json:"parameters"`
-	Source      types.ModelSource     `json:"source"`
-	Type        types.ModelType       `json:"type"`
+	Name            string                `json:"name"`
+	Description     string                `json:"description"`
+	Parameters      types.ModelParameters `json:"parameters"`
+	Source          types.ModelSource     `json:"source"`
+	Type            types.ModelType       `json:"type"`
+	IsGlobalDefault *bool                 `json:"is_global_default"` // nil = no change; true/false = explicit set
 }
 
 // UpdateModel godoc
@@ -268,6 +303,11 @@ func (h *ModelHandler) UpdateModel(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	logger.Info(ctx, "Start updating model")
+
+	// Only admin users can update models
+	if !requireAdmin(c) {
+		return
+	}
 
 	id := secutils.SanitizeForLog(c.Param("id"))
 	if id == "" {
@@ -320,6 +360,11 @@ func (h *ModelHandler) UpdateModel(c *gin.Context) {
 	model.Source = req.Source
 	model.Type = req.Type
 
+	// Apply is_global_default if explicitly provided
+	if req.IsGlobalDefault != nil {
+		model.IsGlobalDefault = *req.IsGlobalDefault
+	}
+
 	logger.Infof(ctx, "Updating model, ID: %s, Name: %s", id, model.Name)
 	if err := h.service.UpdateModel(ctx, model); err != nil {
 		logger.ErrorWithFields(ctx, err, nil)
@@ -354,6 +399,11 @@ func (h *ModelHandler) DeleteModel(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	logger.Info(ctx, "Start deleting model")
+
+	// Only admin users can delete models
+	if !requireAdmin(c) {
+		return
+	}
 
 	id := secutils.SanitizeForLog(c.Param("id"))
 	if id == "" {
