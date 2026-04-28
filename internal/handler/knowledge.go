@@ -13,10 +13,12 @@ import (
 
 	goerrors "errors"
 
+	"github.com/Tencent/WeKnora/internal/agent/tools"
 	"github.com/Tencent/WeKnora/internal/application/repository"
 	"github.com/Tencent/WeKnora/internal/application/service"
 	"github.com/Tencent/WeKnora/internal/errors"
 	"github.com/Tencent/WeKnora/internal/logger"
+	"github.com/Tencent/WeKnora/internal/tracing/langfuse"
 	"github.com/Tencent/WeKnora/internal/types"
 	"github.com/Tencent/WeKnora/internal/types/interfaces"
 	"github.com/Tencent/WeKnora/internal/utils"
@@ -685,6 +687,7 @@ func (h *KnowledgeHandler) ClearKnowledgeBaseContents(c *gin.Context) {
 		TenantID:     effectiveTenantID,
 		KnowledgeIDs: knowledgeIDs,
 	}
+	langfuse.InjectTracing(ctx, &payload)
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
 		logger.Errorf(ctx, "Failed to marshal knowledge list delete payload: %v", err)
@@ -1397,10 +1400,25 @@ func (h *KnowledgeHandler) SearchKnowledge(c *gin.Context) {
 				c.Error(errors.NewInternalServerError("Failed to list knowledge bases").WithDetails(err.Error()))
 				return
 			}
+			// `all` mode: authoritative server-side capability filter. Mirrors the
+			// logic in ListKnowledgeBases so @file search, KB listing, and runtime
+			// all agree on what "mode=all" actually means for this agent.
+			filter := tools.DeriveKBFilterFromTools(agent.Config.AllowedTools)
+			removed := 0
 			for _, kb := range kbs {
-				if kb != nil && kb.Type == types.KnowledgeBaseTypeDocument {
-					scopes = append(scopes, types.KnowledgeSearchScope{TenantID: sourceTenantID, KBID: kb.ID})
+				if kb == nil || kb.Type != types.KnowledgeBaseTypeDocument {
+					continue
 				}
+				if !filter.IsEmpty() && !tools.KBSatisfiesToolRequirements(kb.Capabilities(), agent.Config.AllowedTools) {
+					removed++
+					continue
+				}
+				scopes = append(scopes, types.KnowledgeSearchScope{TenantID: sourceTenantID, KBID: kb.ID})
+			}
+			if removed > 0 {
+				logger.Infof(ctx,
+					"SearchKnowledge(agent=%s, mode=all): tool-capability filter removed %d KBs",
+					agentID, removed)
 			}
 		}
 		knowledges, hasMore, err := h.kgService.SearchKnowledgeForScopes(ctx, scopes, keyword, offset, limit, fileTypes)
@@ -1543,6 +1561,7 @@ func (h *KnowledgeHandler) MoveKnowledge(c *gin.Context) {
 		TargetKBID:   req.TargetKBID,
 		Mode:         req.Mode,
 	}
+	langfuse.InjectTracing(ctx, &payload)
 
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {

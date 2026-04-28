@@ -2,7 +2,9 @@ package chat
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"runtime"
 	"strings"
 
 	"github.com/Tencent/WeKnora/internal/logger"
@@ -109,32 +111,15 @@ type ThinkingChatCompletionRequest struct {
 
 // --- Customizer functions ---
 
-type weKnoraCloudChatRequest struct {
-	Model       string             `json:"model"`
-	Messages    []weKnoraCloudMessage `json:"messages"`
-	Stream      bool               `json:"stream"`
-	MaxTokens   int                `json:"max_tokens,omitempty"`
-	Temperature float64            `json:"temperature,omitempty"`
-	TopP        float64            `json:"top_p,omitempty"`
-}
-
-type weKnoraCloudMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
-}
-
-func weKnoraCloudRequestCustomizer(req *openai.ChatCompletionRequest, opts *ChatOptions, isStream bool) (any, bool) {
-	weKnoraCloudReq := weKnoraCloudChatRequest{
-		Model:    req.Model,
-		Messages: convertToWeKnoraCloudMessagesFromOpenAI(req.Messages),
-		Stream:   isStream,
-	}
-	if opts != nil {
-		weKnoraCloudReq.Temperature = opts.Temperature
-		weKnoraCloudReq.TopP = opts.TopP
-		weKnoraCloudReq.MaxTokens = opts.MaxTokens
-	}
-	return weKnoraCloudReq, true
+// weKnoraCloudRequestCustomizer 构造 WeKnoraCloud 请求。
+// WeKnoraCloud 走 OpenAI 兼容格式，除了 MultiContent 需要降级为纯文本 Content 之外，
+// 其他字段（tools / tool_choice / parallel_tool_calls / response_format / stream_options 等）直接透传，
+// 以保证 function calling 等能力可用。
+func weKnoraCloudRequestCustomizer(req *openai.ChatCompletionRequest, _ *ChatOptions, isStream bool) (any, bool) {
+	cloudReq := *req
+	cloudReq.Stream = isStream
+	cloudReq.Messages = convertToWeKnoraCloudMessagesFromOpenAI(req.Messages)
+	return cloudReq, true
 }
 
 func weKnoraCloudHeaderCustomizer(chat *RemoteAPIChat, req *http.Request, body []byte) error {
@@ -146,20 +131,23 @@ func weKnoraCloudHeaderCustomizer(chat *RemoteAPIChat, req *http.Request, body [
 	return nil
 }
 
-func convertToWeKnoraCloudMessagesFromOpenAI(messages []openai.ChatCompletionMessage) []weKnoraCloudMessage {
-	result := make([]weKnoraCloudMessage, 0, len(messages))
+// convertToWeKnoraCloudMessagesFromOpenAI 将 MultiContent 降级为纯文本，
+// 其它字段（tool_calls / tool_call_id / name 等）完全保留，保证 tool 协议正常。
+func convertToWeKnoraCloudMessagesFromOpenAI(messages []openai.ChatCompletionMessage) []openai.ChatCompletionMessage {
+	result := make([]openai.ChatCompletionMessage, 0, len(messages))
 	for _, m := range messages {
-		content := m.Content
-		if content == "" && len(m.MultiContent) > 0 {
+		msg := m
+		if msg.Content == "" && len(msg.MultiContent) > 0 {
 			var textParts []string
-			for _, part := range m.MultiContent {
+			for _, part := range msg.MultiContent {
 				if part.Type == openai.ChatMessagePartTypeText && part.Text != "" {
 					textParts = append(textParts, part.Text)
 				}
 			}
-			content = strings.Join(textParts, "\n")
+			msg.Content = strings.Join(textParts, "\n")
+			msg.MultiContent = nil
 		}
-		result = append(result, weKnoraCloudMessage{Role: m.Role, Content: content})
+		result = append(result, msg)
 	}
 	return result
 }
@@ -237,6 +225,27 @@ func genericRequestCustomizer(
 	if opts != nil && opts.Thinking != nil {
 		thinking = *opts.Thinking
 	}
+	logger.Infof(context.Background(), "[generic] model=%s thinking_opt=%v enable_thinking=%v caller=%s",
+		req.Model,
+		func() string {
+			if opts == nil || opts.Thinking == nil {
+				return "nil"
+			}
+			return fmt.Sprintf("%v", *opts.Thinking)
+		}(),
+		thinking,
+		func() string {
+			_, file, line, ok := runtime.Caller(2)
+			if !ok {
+				return "unknown"
+			}
+			parts := strings.Split(file, "/")
+			if len(parts) > 2 {
+				return fmt.Sprintf("%s:%d", strings.Join(parts[len(parts)-2:], "/"), line)
+			}
+			return fmt.Sprintf("%s:%d", file, line)
+		}(),
+	)
 	req.ChatTemplateKwargs = map[string]interface{}{
 		"enable_thinking": thinking,
 	}
