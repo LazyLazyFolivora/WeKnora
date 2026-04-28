@@ -34,22 +34,22 @@ const (
 type ModelSource string
 
 const (
-	ModelSourceLocal       ModelSource = "local"       // Local model
-	ModelSourceRemote      ModelSource = "remote"      // Remote model
-	ModelSourceAliyun      ModelSource = "aliyun"      // Aliyun DashScope model
-	ModelSourceZhipu       ModelSource = "zhipu"       // Zhipu model
-	ModelSourceVolcengine  ModelSource = "volcengine"  // Volcengine model
-	ModelSourceDeepseek    ModelSource = "deepseek"    // Deepseek model
-	ModelSourceHunyuan     ModelSource = "hunyuan"     // Hunyuan model
-	ModelSourceMinimax     ModelSource = "minimax"     // Minimax mode
-	ModelSourceOpenAI      ModelSource = "openai"      // OpenAI model
-	ModelSourceGemini      ModelSource = "gemini"      // Gemini model
-	ModelSourceMimo        ModelSource = "mimo"        // Mimo model
-	ModelSourceSiliconFlow ModelSource = "siliconflow" // SiliconFlow model
-	ModelSourceJina        ModelSource = "jina"        // Jina AI model
-	ModelSourceOpenRouter  ModelSource = "openrouter"  // OpenRouter model
-	ModelSourceNvidia      ModelSource = "nvidia"      // NVIDIA model
-	ModelSourceNovita      ModelSource = "novita"      // Novita AI model
+	ModelSourceLocal       ModelSource = "local"        // Local model
+	ModelSourceRemote      ModelSource = "remote"       // Remote model
+	ModelSourceAliyun      ModelSource = "aliyun"       // Aliyun DashScope model
+	ModelSourceZhipu       ModelSource = "zhipu"        // Zhipu model
+	ModelSourceVolcengine  ModelSource = "volcengine"   // Volcengine model
+	ModelSourceDeepseek    ModelSource = "deepseek"     // Deepseek model
+	ModelSourceHunyuan     ModelSource = "hunyuan"      // Hunyuan model
+	ModelSourceMinimax     ModelSource = "minimax"      // Minimax mode
+	ModelSourceOpenAI      ModelSource = "openai"       // OpenAI model
+	ModelSourceGemini      ModelSource = "gemini"       // Gemini model
+	ModelSourceMimo        ModelSource = "mimo"         // Mimo model
+	ModelSourceSiliconFlow ModelSource = "siliconflow"  // SiliconFlow model
+	ModelSourceJina        ModelSource = "jina"         // Jina AI model
+	ModelSourceOpenRouter  ModelSource = "openrouter"   // OpenRouter model
+	ModelSourceNvidia      ModelSource = "nvidia"       // NVIDIA model
+	ModelSourceNovita      ModelSource = "novita"       // Novita AI model
 	ModelSourceAzureOpenAI ModelSource = "azure_openai" // Azure OpenAI model
 )
 
@@ -64,9 +64,9 @@ type ModelParameters struct {
 	APIKey              string              `yaml:"api_key"              json:"api_key"`
 	InterfaceType       string              `yaml:"interface_type"       json:"interface_type"`
 	EmbeddingParameters EmbeddingParameters `yaml:"embedding_parameters" json:"embedding_parameters"`
-	ParameterSize       string              `yaml:"parameter_size"       json:"parameter_size"`  // Ollama model parameter size (e.g., "7B", "13B", "70B")
-	Provider            string              `yaml:"provider"             json:"provider"`        // Provider identifier: openai, aliyun, zhipu, generic
-	ExtraConfig         map[string]string   `yaml:"extra_config"         json:"extra_config"`    // Provider-specific configuration
+	ParameterSize       string              `yaml:"parameter_size"       json:"parameter_size"` // Ollama model parameter size (e.g., "7B", "13B", "70B")
+	Provider            string              `yaml:"provider"             json:"provider"`       // Provider identifier: openai, aliyun, zhipu, generic
+	ExtraConfig         map[string]string   `yaml:"extra_config"         json:"extra_config"`   // Provider-specific configuration
 	// CustomHeaders 允许在调用远程模型 API 时附加自定义 HTTP 请求头，
 	// 用途类似 Python OpenAI SDK 的 extra_headers 参数，
 	// 常见场景包括透传企业网关鉴权信息、追踪 ID、路由标识等。
@@ -95,7 +95,10 @@ type Model struct {
 	// Model parameters in JSON format
 	Parameters ModelParameters `yaml:"parameters"  json:"parameters"  gorm:"type:json"`
 	// Whether the model is the default model
-	IsDefault bool `yaml:"is_default"  json:"is_default"`
+	IsDefault bool `yaml:"is_default"        json:"is_default"`
+	// IsGlobalDefault indicates whether this model is the global default for its type,
+	// visible to all non-admin users transparently. Distinct from IsDefault (per-tenant).
+	IsGlobalDefault bool `yaml:"is_global_default" json:"is_global_default" gorm:"default:false"`
 	// Whether the model is a builtin model (visible to all tenants)
 	IsBuiltin bool `yaml:"is_builtin"  json:"is_builtin"  gorm:"default:false"`
 	// Model status, default: active, possible: downloading, download_failed

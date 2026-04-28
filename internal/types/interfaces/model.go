@@ -3,10 +3,10 @@ package interfaces
 import (
 	"context"
 
+	"github.com/Tencent/WeKnora/internal/models/asr"
 	"github.com/Tencent/WeKnora/internal/models/chat"
 	"github.com/Tencent/WeKnora/internal/models/embedding"
 	"github.com/Tencent/WeKnora/internal/models/rerank"
-	"github.com/Tencent/WeKnora/internal/models/asr"
 	"github.com/Tencent/WeKnora/internal/models/vlm"
 	"github.com/Tencent/WeKnora/internal/types"
 )
@@ -57,4 +57,15 @@ type ModelRepository interface {
 	// ClearDefaultByType clears the default flag for all models of a specific type
 	// optionally excluding a specific model ID.
 	ClearDefaultByType(ctx context.Context, tenantID uint, modelType types.ModelType, excludeID string) error
+
+	// ListGlobalDefaults returns all models where is_global_default=true and deleted_at IS NULL.
+	// Does NOT filter by tenant_id — global default models are cross-tenant.
+	ListGlobalDefaults(ctx context.Context) ([]*types.Model, error)
+
+	// ClearGlobalDefaultByType clears is_global_default for all models of a given type,
+	// optionally excluding a specific model ID. Does NOT filter by tenant_id.
+	ClearGlobalDefaultByType(ctx context.Context, modelType types.ModelType, excludeID string) error
+
+	// WithTransaction executes fn within a database transaction.
+	WithTransaction(ctx context.Context, fn func(ctx context.Context) error) error
 }
