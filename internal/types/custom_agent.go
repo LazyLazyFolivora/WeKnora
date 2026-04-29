@@ -329,9 +329,7 @@ var BuiltinAgentRegistry = map[string]func(uint64) *CustomAgent{}
 var builtinAgentIDsOrdered = []string{
 	BuiltinQuickAnswerID,
 	BuiltinSmartReasoningID,
-	BuiltinWikiResearcherID,
 	BuiltinDeepResearcherID,
-	BuiltinDataAnalystID,
 	BuiltinKnowledgeGraphExpertID,
 	BuiltinDocumentAssistantID,
 }
