@@ -82,6 +82,11 @@ func (h *KnowledgeHandler) validateKnowledgeBaseAccessWithKBID(c *gin.Context, k
 	if kb.TenantID == tenantID {
 		return kb, kbID, tenantID, types.OrgRoleAdmin, nil
 	}
+	// Public KB: non-owner users get read-only (viewer) access
+	if kb.IsPublic {
+		logger.Infof(ctx, "User accessing public KB %s with viewer permission", kbID)
+		return kb, kbID, kb.TenantID, types.OrgRoleViewer, nil
+	}
 	if userExists && h.kbShareService != nil {
 		permission, isShared, permErr := h.kbShareService.CheckUserKBPermission(ctx, kbID, userID.(string))
 		if permErr == nil && isShared {
@@ -122,6 +127,15 @@ func (h *KnowledgeHandler) resolveKnowledgeAndValidateKBAccess(c *gin.Context, k
 	// Owner: knowledge belongs to caller's tenant
 	if knowledge.TenantID == tenantID {
 		return knowledge, context.WithValue(ctx, types.TenantIDContextKey, tenantID), nil
+	}
+
+	// Public KB: allow read-only access for any authenticated user
+	if requiredPermission == types.OrgRoleViewer {
+		kb, kbErr := h.kbService.GetKnowledgeBaseByID(ctx, knowledge.KnowledgeBaseID)
+		if kbErr == nil && kb.IsPublic {
+			logger.Infof(ctx, "User accessing knowledge %s in public KB %s with viewer permission", knowledgeID, knowledge.KnowledgeBaseID)
+			return knowledge, context.WithValue(ctx, types.TenantIDContextKey, knowledge.TenantID), nil
+		}
 	}
 
 	// Shared KB: check organization permission
