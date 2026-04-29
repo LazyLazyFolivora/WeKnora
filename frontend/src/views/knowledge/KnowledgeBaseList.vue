@@ -186,7 +186,11 @@
               </div>
             </div>
             <div v-if="!authStore.isLiteMode" class="bottom-right">
-              <div class="personal-source">
+              <div v-if="kb.is_public && kb.tenant_id !== authStore.effectiveTenantId" class="personal-source public-source">
+                <t-icon name="earth" size="14px" />
+                <span>公共</span>
+              </div>
+              <div v-else class="personal-source">
                 <t-icon name="user" size="14px" />
                 <span>{{ $t('knowledgeList.myLabel') }}</span>
               </div>
@@ -360,7 +364,11 @@
             </div>
           </div>
           <div v-if="!authStore.isLiteMode" class="bottom-right">
-            <div class="personal-source">
+            <div v-if="kb.is_public && kb.tenant_id !== authStore.effectiveTenantId" class="personal-source public-source">
+              <t-icon name="earth" size="14px" />
+              <span>公共</span>
+            </div>
+            <div v-else class="personal-source">
               <t-icon name="user" size="14px" />
               <span>{{ $t('knowledgeList.myLabel') }}</span>
             </div>
@@ -1449,6 +1457,22 @@ const handleUploadFinishedEvent = (event: Event) => {
 
   .t-icon {
     color: #0060AA;
+    flex-shrink: 0;
+  }
+}
+
+// 「公共」知识库标签
+.public-source {
+  background: rgba(230, 234, 245, 0.15) !important;
+  color: #E6EAF5 !important;
+
+  span {
+    font-weight: 500;
+    color: #E6EAF5 !important;
+  }
+
+  .t-icon {
+    color: #E6EAF5 !important;
     flex-shrink: 0;
   }
 }
