@@ -239,30 +239,99 @@ const handleKBEditorSuccess = (kbId: string) => {
     display: flex;
     justify-content: center;
     align-items: center;
-    // position: relative;
 }
 
 .dialogue-answers {
+    position: absolute;
     display: flex;
     flex-flow: column;
     align-items: center;
-    width: 100%;
-    max-width: 800px;
 
     :deep(.answers-input) {
         position: static;
         transform: translateX(0);
     }
-}
+
+    :deep(.rich-input-container) {
+        border-radius: 16px;
+        box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.08), 0 2px 8px 0 rgba(0, 0, 0, 0.06);
+        // 对应设计稿边框颜色
+        border: 1px solid rgba(106, 131, 188, 0.6);
+
+        &:focus-within {
+            border-color: rgba(106, 131, 188, 1) !important;
+        }
+    }
+
+    // 工具栏按钮（快速问答、网络搜索、图片、附件、@）图标颜色
+    :deep(.control-btn) {
+        color: #6A83BC;
+
+        &:hover {
+            background: rgba(106, 131, 188, 0.1);
+            color: #007FCC;
+        }
+    }
+
+    // 快速问答按钮文字
+    :deep(.agent-mode-text),
+    :deep(.kb-btn-text) {
+        color: #6A83BC;
+    }
+
+    // 模型选择器边框和文字
+    :deep(.model-selector-trigger) {
+        border-color: rgba(106, 131, 188, 0.4);
+        color: #6A83BC;
+
+        &:hover {
+            background: rgba(106, 131, 188, 0.08);
+        }
+    }
+
+    // 发送按钮：用设计稿蓝色
+    :deep(.send-btn) {
+        background-color: #007FCC;
+
+        &:hover:not(.disabled) {
+            background-color: #0070b8;
+        }
+
+        &.disabled {
+            background-color: rgba(0, 127, 204, 0.25);
+        }
+    }
+
+    // placeholder 文字颜色
+    :deep(.t-textarea__inner::placeholder) {
+        color: #B3C1DC;
+    }
+
+    // 发送按钮图标颜色 #007FCC
+    :deep(.send-btn),
+    :deep(.t-button--primary) {
+        color: #007FCC;
+    }
+
+    // 工具栏图标颜色
+    :deep(.toolbar-icon),
+    :deep(.input-toolbar .t-icon) {
+        color: #007FCC;
+    }}
 
 .dialogue-title {
     display: flex;
-    color: var(--td-text-color-primary);
     font-family: "PingFang SC";
-    font-size: 28px;
+    font-size: 32px;
     font-weight: 600;
     align-items: center;
-    margin-bottom: 30px;
+    margin-bottom: 36px;
+    letter-spacing: -0.5px;
+    // 对应设计稿渐变标题：#1D2089 → #007FCC
+    background: linear-gradient(90deg, #1D2089 0%, #007FCC 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 
     .icon {
         display: flex;
@@ -325,7 +394,8 @@ const handleKBEditorSuccess = (kbId: string) => {
 
 .suggested-questions-title {
     font-size: 14px;
-    color: var(--td-text-color-secondary);
+    // 对应设计稿次要文字颜色 #B3C1DC
+    color: #B3C1DC;
     margin-bottom: 12px;
     font-weight: 500;
 }
@@ -344,7 +414,8 @@ const handleKBEditorSuccess = (kbId: string) => {
     gap: 6px;
     padding: 10px 16px;
     border-radius: 20px;
-    border: 1px solid var(--td-component-stroke);
+    // 对应设计稿卡片边框颜色
+    border: 1px solid rgba(106, 131, 188, 0.4);
     background: var(--td-bg-color-container);
     cursor: pointer;
     max-width: 100%;
@@ -368,15 +439,17 @@ const handleKBEditorSuccess = (kbId: string) => {
     }
 
     &:hover {
-        border-color: var(--td-brand-color);
-        background: var(--td-brand-color-light);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        // hover 时用设计稿主色 #007FCC
+        border-color: #007FCC;
+        background: rgba(0, 127, 204, 0.06);
+        box-shadow: 0 2px 8px rgba(0, 127, 204, 0.12);
     }
 }
 
 .suggested-question-text {
     font-size: 13px;
-    color: var(--td-text-color-primary);
+    // 对应设计稿文字颜色 #007FCC（蓝色）
+    color: #007FCC;
     line-height: 1.4;
     overflow: hidden;
     text-overflow: ellipsis;

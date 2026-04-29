@@ -1,5 +1,5 @@
 <template>
-    <div class="bot_msg" :class="{ 'is-embedded': embeddedMode }">
+    <div class="bot_msg">
         <div style="display: flex;flex-direction: column; gap:8px">
             <!-- 显示@的知识库和文件（非 Agent 模式下显示） -->
             <div v-if="!session.isAgentMode && mentionedItems && mentionedItems.length > 0" class="mentioned_items">
@@ -62,8 +62,6 @@
 <script setup>
 import { onMounted, onBeforeUnmount, watch, computed, ref, reactive, defineProps, nextTick, onUpdated } from 'vue';
 import { marked } from 'marked';
-import markedKatex from 'marked-katex-extension';
-import 'katex/dist/katex.min.css';
 import docInfo from './docInfo.vue';
 import deepThink from './deepThink.vue';
 import AgentStreamDisplay from './AgentStreamDisplay.vue';
@@ -87,17 +85,6 @@ import {
 marked.use({
     breaks: true,  // 全局启用单个换行支持
 });
-
-marked.use(markedKatex({ throwOnError: false }));
-
-const preprocessMathDelimiters = (rawText) => {
-    if (!rawText || typeof rawText !== 'string') {
-        return '';
-    }
-    return rawText
-        .replace(/\\\[([\s\S]*?)\\\]/g, '$$$$$1$$$$')
-        .replace(/\\\(([\s\S]*?)\\\)/g, '$$$1$$');
-};
 
 ensureMermaidInitialized();
 
@@ -127,10 +114,6 @@ const props = defineProps({
     isFirstEnter: {
         type: Boolean,
         required: false
-    },
-    embeddedMode: {
-        type: Boolean,
-        default: false
     }
 });
 
@@ -171,10 +154,9 @@ const markdownTokens = computed(() => {
     }
 
     const processed = replaceIncompleteImageWithPlaceholder(text);
-    const safeText = preprocessMathDelimiters(processed);
     
     // 首先对 Markdown 内容进行安全处理
-    const safeMarkdown = safeMarkdownToHTML(safeText);
+    const safeMarkdown = safeMarkdownToHTML(processed);
     
     // 使用 marked.lexer 分词
     return marked.lexer(safeMarkdown);
@@ -302,22 +284,38 @@ onBeforeUnmount(() => {
 @import '../../../components/css/markdown.less';
 @import '../../../components/css/chat-message-shared.less';
 
-.bot_msg {
-    &.is-embedded {
-        width: 100%;
-        
-        :deep(.agent-stream-display) {
-            width: 100%;
-        }
-    }
-}
-
-// 内容包装器 - 与 Agent 模式的 answer 样式一致
+// 内容包装器 - 对照 reply_card.svg 设计稿
 .content-wrapper {
-    background: var(--td-bg-color-container);
-    border-radius: 6px;
-    padding: 8px 0px;
+    // 渐变背景：#007FCC 36% 透明 → #FFFFFF 7% 透明
+    background: linear-gradient(
+        135deg,
+        rgba(0, 127, 204, 0.08) 0%,
+        rgba(255, 255, 255, 0.04) 100%
+    );
+    border-radius: 12px;
+    padding: 14px 16px;
     transition: all 0.2s ease;
+    // 顶部亮蓝色渐变边框
+    border: 1px solid transparent;
+    background-clip: padding-box;
+    position: relative;
+
+    // 用伪元素实现渐变边框
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 12px;
+        padding: 1px;
+        background: linear-gradient(135deg, #04C1FC 0%, rgba(4, 193, 252, 0) 100%);
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        pointer-events: none;
+    }
+
+    // 蓝色发光阴影
+    box-shadow: 0 2px 12px rgba(4, 193, 252, 0.18), 0 1px 4px rgba(0, 127, 204, 0.1);
 }
 
 .mentioned_items {

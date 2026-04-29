@@ -1,5 +1,5 @@
 <template>
-    <div class="user_msg_container" ref="containerRef" :class="{ 'is-embedded': embeddedMode }">
+    <div class="user_msg_container" ref="containerRef">
         <!-- 显示@的知识库和文件 -->
         <div v-if="mentioned_items && mentioned_items.length > 0" class="mentioned_items">
             <span 
@@ -84,10 +84,6 @@ const props = defineProps({
         type: String,
         required: false,
         default: ''
-    },
-    embeddedMode: {
-        type: Boolean,
-        default: false
     }
 });
 
@@ -220,14 +216,6 @@ const closePreImg = () => {
     }
 }
 
-.user_msg_container {
-    &.is-embedded {
-        .user_msg {
-            max-width: 100%;
-        }
-    }
-}
-
 .user_msg {
     width: max-content;
     max-width: 776px;
@@ -238,13 +226,16 @@ const closePreImg = () => {
     align-items: center;
     gap: 4px;
     flex: 1 0 0;
-    border-radius: 4px;
-    background: #8CE97F;
+    border-radius: 6px;
+    // 对应 question.svg 气泡背景色 #CED6E9
+    background: #CED6E9;
     margin-left: auto;
+    // 对应 question.svg 文字颜色 #000000
     color: #000000e6;
     font-size: 15px;
     text-align: justify;
     word-break: break-all;
+    max-width: 100%;
     box-sizing: border-box;
 }
 
@@ -356,7 +347,8 @@ const closePreImg = () => {
 
 html[theme-mode="dark"] {
     .user_msg {
-        background: var(--td-brand-color-3);
+        // 深色模式下用稍深的蓝灰色
+        background: #6A83BC;
         color: rgba(255, 255, 255, 0.9);
     }
 }
