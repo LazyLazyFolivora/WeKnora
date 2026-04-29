@@ -10,7 +10,7 @@
                     <span class="thinking-text">{{ $t('chat.thinking') }}</span>
                 </span>
                 <span v-else class="done-status">
-                    <img class="done-icon" src="@/assets/img/Frame3718.svg" :alt="$t('chat.deepThoughtAlt')">
+                    <img class="done-icon" src="@/assets/img/Frame3718-blue.svg" :alt="$t('chat.deepThoughtAlt')">
                     <span class="done-text">{{ $t('chat.deepThoughtCompleted') }}</span>
                 </span>
             </div>
@@ -85,10 +85,12 @@ const toggleFold = () => {
     flex-direction: column;
     font-size: 12px;
     width: 100%;
-    border-radius: 8px;
-    background-color: var(--td-bg-color-container);
-    border: .5px solid var(--td-component-stroke);
-    box-shadow: 0 2px 4px rgba(7, 192, 95, 0.08);
+    border-radius: 6px;
+    // 对应 think_card.svg 背景透明
+    background-color: transparent;
+    // 对应 think_card.svg 边框颜色 rgba(106, 131, 188, 1)
+    border: 1px solid rgba(106, 131, 188, 0.6);
+    box-shadow: 0 2px 8px rgba(106, 131, 188, 0.12);
     overflow: hidden;
     box-sizing: border-box;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -99,13 +101,14 @@ const toggleFold = () => {
         justify-content: space-between;
         align-items: center;
         padding: 6px 14px;
-        color: var(--td-text-color-primary);
+        // 对应 think_card.svg 文字颜色 #6A83BC
+        color: #6A83BC;
         font-weight: 500;
         cursor: pointer;
         user-select: none;
 
         &:hover {
-            background-color: rgba(7, 192, 95, 0.04);
+            background-color: rgba(106, 131, 188, 0.08);
         }
 
         .think-title {
@@ -130,7 +133,8 @@ const toggleFold = () => {
                     width: 6px;
                     height: 6px;
                     border-radius: 50%;
-                    background: var(--td-brand-color);
+                    // 对应 #6A83BC
+                    background: #6A83BC;
                     animation: pulse-dot 1.8s ease-in-out infinite;
                 }
 
@@ -138,7 +142,7 @@ const toggleFold = () => {
                     position: absolute;
                     inset: 0;
                     border-radius: 50%;
-                    border: 1.5px solid var(--td-brand-color);
+                    border: 1.5px solid #6A83BC;
                     opacity: 0;
                     animation: pulse-ring 1.8s ease-out infinite;
                 }
@@ -146,7 +150,7 @@ const toggleFold = () => {
 
             .thinking-text {
                 font-size: 12px;
-                color: var(--td-text-color-primary);
+                color: #6A83BC;
                 white-space: nowrap;
             }
         }
@@ -163,7 +167,7 @@ const toggleFold = () => {
 
             .done-text {
                 font-size: 12px;
-                color: var(--td-text-color-primary);
+                color: #6A83BC;
                 white-space: nowrap;
             }
         }
@@ -171,7 +175,8 @@ const toggleFold = () => {
         .toggle-icon-wrapper {
             font-size: 14px;
             padding: 0 2px 1px 2px;
-            color: var(--td-brand-color);
+            // 对应 think_card.svg 箭头颜色 #6A83BC
+            color: #6A83BC;
 
             .toggle-icon {
                 transition: transform 0.2s;
@@ -180,7 +185,7 @@ const toggleFold = () => {
     }
 
     .think-content {
-        border-top: 1px solid var(--td-bg-color-secondarycontainer);
+        border-top: 1px solid rgba(106, 131, 188, 0.2);
 
         .content-inner {
             padding: 8px 14px;
@@ -197,7 +202,7 @@ const toggleFold = () => {
             }
 
             &::-webkit-scrollbar-thumb {
-                background: rgba(0, 0, 0, 0.1);
+                background: rgba(106, 131, 188, 0.2);
                 border-radius: 2px;
             }
         }
