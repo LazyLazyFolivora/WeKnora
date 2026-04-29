@@ -17,13 +17,14 @@ import (
 type ChunkHandler struct {
 	service           interfaces.ChunkService
 	kgService         interfaces.KnowledgeService
+	kbService         interfaces.KnowledgeBaseService
 	kbShareService    interfaces.KBShareService
 	agentShareService interfaces.AgentShareService
 }
 
 // NewChunkHandler creates a new chunk handler
-func NewChunkHandler(service interfaces.ChunkService, kgService interfaces.KnowledgeService, kbShareService interfaces.KBShareService, agentShareService interfaces.AgentShareService) *ChunkHandler {
-	return &ChunkHandler{service: service, kgService: kgService, kbShareService: kbShareService, agentShareService: agentShareService}
+func NewChunkHandler(service interfaces.ChunkService, kgService interfaces.KnowledgeService, kbService interfaces.KnowledgeBaseService, kbShareService interfaces.KBShareService, agentShareService interfaces.AgentShareService) *ChunkHandler {
+	return &ChunkHandler{service: service, kgService: kgService, kbService: kbService, kbShareService: kbShareService, agentShareService: agentShareService}
 }
 
 // effectiveCtxForKnowledge resolves knowledge by ID, validates KB access (owner or shared with required role), and returns context with effectiveTenantID for downstream service calls.
@@ -42,6 +43,16 @@ func (h *ChunkHandler) effectiveCtxForKnowledge(c *gin.Context, knowledgeID stri
 	if knowledge.TenantID == tenantID {
 		return context.WithValue(ctx, types.TenantIDContextKey, tenantID), nil
 	}
+
+	// Public KB: allow read-only access for any authenticated user
+	if requiredPermission == types.OrgRoleViewer && h.kbService != nil {
+		kb, kbErr := h.kbService.GetKnowledgeBaseByIDOnly(ctx, knowledge.KnowledgeBaseID)
+		if kbErr == nil && kb.IsPublic {
+			logger.Infof(ctx, "User accessing knowledge %s in public KB %s with viewer permission", knowledgeID, knowledge.KnowledgeBaseID)
+			return context.WithValue(ctx, types.TenantIDContextKey, knowledge.TenantID), nil
+		}
+	}
+
 	if !userExists {
 		return nil, errors.NewForbiddenError("Permission denied to access this knowledge")
 	}

@@ -131,7 +131,7 @@ func (h *KnowledgeHandler) resolveKnowledgeAndValidateKBAccess(c *gin.Context, k
 
 	// Public KB: allow read-only access for any authenticated user
 	if requiredPermission == types.OrgRoleViewer {
-		kb, kbErr := h.kbService.GetKnowledgeBaseByID(ctx, knowledge.KnowledgeBaseID)
+		kb, kbErr := h.kbService.GetKnowledgeBaseByIDOnly(ctx, knowledge.KnowledgeBaseID)
 		if kbErr == nil && kb.IsPublic {
 			logger.Infof(ctx, "User accessing knowledge %s in public KB %s with viewer permission", knowledgeID, knowledge.KnowledgeBaseID)
 			return knowledge, context.WithValue(ctx, types.TenantIDContextKey, knowledge.TenantID), nil
