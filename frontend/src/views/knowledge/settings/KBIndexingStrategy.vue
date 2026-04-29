@@ -21,8 +21,8 @@
         </div>
       </div>
 
-      <!-- Wiki -->
-      <div class="setting-row">
+      <!-- Wiki (hidden) -->
+      <!-- <div class="setting-row">
         <div class="setting-info">
           <label>{{ $t('knowledgeEditor.indexing.wikiTitle') }}</label>
           <p class="desc">{{ $t('knowledgeEditor.indexing.wikiDesc') }}</p>
@@ -34,7 +34,7 @@
             size="medium"
           />
         </div>
-      </div>
+      </div> -->
 
       <!-- Wiki sub-settings (inline when enabled) -->
       <template v-if="modelValue.wikiEnabled">
