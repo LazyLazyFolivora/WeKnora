@@ -1958,47 +1958,47 @@ const handleUploadFinishedEvent = (event: Event) => {
 
   &.type-document {
     background: #0060AA;
-    color: #8398C7;
+    color: #E6EAF5;
     width: auto;
     padding: 0 6px;
     gap: 3px;
     &:hover { background: #0070c0; }
-    .badge-count { font-size: 11px; font-weight: 500; }
+    .badge-count { font-size: 11px; font-weight: 500; color: #E6EAF5; }
     .processing-icon { animation: spin 1s linear infinite; }
   }
 
   &.type-faq {
     background: #063190;
-    color: #8398C7;
+    color: #E6EAF5;
     width: auto;
     padding: 0 6px;
     gap: 3px;
     &:hover { background: #0a3fa8; }
-    .badge-count { font-size: 11px; font-weight: 500; }
+    .badge-count { font-size: 11px; font-weight: 500; color: #E6EAF5; }
     .processing-icon { animation: spin 1s linear infinite; }
   }
 
   &.kg {
     background: #0060AA;
-    color: #8398C7;
+    color: #E6EAF5;
     &:hover { background: #0070c0; }
   }
 
   &.multimodal {
     background: #0060AA;
-    color: #8398C7;
+    color: #E6EAF5;
     &:hover { background: #0070c0; }
   }
 
   &.question {
     background: #0060AA;
-    color: #8398C7;
+    color: #E6EAF5;
     &:hover { background: #0070c0; }
   }
 
   &.shared {
     background: #0060AA;
-    color: #8398C7;
+    color: #E6EAF5;
     &:hover { background: #0070c0; }
   }
 
