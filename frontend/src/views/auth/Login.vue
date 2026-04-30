@@ -8,7 +8,7 @@
         <div class="bg-header-left">
           <img :src="bgImg1" class="bg-logo-cpu" alt="中国药科大学" />
           <div class="bg-divider"></div>
-          <img :src="bgImg2" class="bg-logo-drug" alt="药枢" />
+          <img :src="bgImg2" class="bg-logo-drug" alt="智药" />
           <span class="bg-brand-text">智能药学知识库</span>
         </div>
         <span class="bg-version">CPU·Brain v1.0</span>
@@ -28,7 +28,7 @@
         <!-- Blue panel: left on login, right on register -->
         <div class="card-blue">
           <template v-if="!isRegisterMode">
-            <h2 class="welcome-title">欢迎使用药枢！</h2>
+            <h2 class="welcome-title">欢迎使用智药！</h2>
             <p class="panel-sub-text">还没有账户？</p>
             <button class="panel-btn" @click="switchToRegister">注 册</button>
           </template>
