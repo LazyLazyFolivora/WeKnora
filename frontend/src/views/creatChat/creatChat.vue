@@ -236,16 +236,17 @@ const handleKBEditorSuccess = (kbId: string) => {
 <style lang="less" scoped>
 .dialogue-wrap {
     flex: 1;
+    height: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
 .dialogue-answers {
-    position: absolute;
     display: flex;
     flex-flow: column;
     align-items: center;
+    width: min(800px, calc(100% - 48px));
 
     :deep(.answers-input) {
         position: static;

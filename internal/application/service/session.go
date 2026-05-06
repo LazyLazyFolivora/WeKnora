@@ -390,6 +390,19 @@ func (s *sessionService) GenerateTitle(ctx context.Context,
 				break
 			}
 		}
+		// Fallback to global default KnowledgeQA model when tenant has no models configured
+		if modelID == "" {
+			globalDefaults, defErr := s.modelService.ListGlobalDefaults(ctx)
+			if defErr == nil {
+				for _, m := range globalDefaults {
+					if m != nil && m.Type == types.ModelTypeKnowledgeQA {
+						modelID = m.ID
+						logger.Infof(ctx, "Using global default KnowledgeQA model for title: %s", modelID)
+						break
+					}
+				}
+			}
+		}
 		if modelID == "" {
 			logger.Error(ctx, "No KnowledgeQA model found")
 			return "", errors.New("no KnowledgeQA model available for title generation")

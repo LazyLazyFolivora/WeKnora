@@ -2011,6 +2011,7 @@ export default {
     sharedToOrgs: "已共享给 {count} 个空间",
     sharedLabel: "共享",
     myLabel: "我的",
+    publicLabel: "公共",
     fromAgent: "来自智能体 {name}",
     fromAgentShort: "智能体: {name}",
     tabs: {

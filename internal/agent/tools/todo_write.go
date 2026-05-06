@@ -147,6 +147,42 @@ type TodoWriteInput struct {
 	Steps []PlanStep `json:"steps" jsonschema:"Array of research plan steps with status tracking"`
 }
 
+// UnmarshalJSON implements custom JSON unmarshaling for TodoWriteInput.
+// It handles the case where LLM returns steps as a JSON-encoded string
+// instead of a proper array (e.g. "steps": "[{...}]" vs "steps": [{...}]).
+func (t *TodoWriteInput) UnmarshalJSON(data []byte) error {
+	// Use an alias to avoid infinite recursion
+	type Alias TodoWriteInput
+	aux := &struct {
+		Steps json.RawMessage `json:"steps"`
+		*Alias
+	}{
+		Alias: (*Alias)(t),
+	}
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+	if len(aux.Steps) == 0 {
+		return nil
+	}
+	// Try to unmarshal steps as []PlanStep directly
+	var steps []PlanStep
+	if err := json.Unmarshal(aux.Steps, &steps); err == nil {
+		t.Steps = steps
+		return nil
+	}
+	// Fallback: steps may be a JSON-encoded string (LLM wraps array in quotes)
+	var stepsStr string
+	if err := json.Unmarshal(aux.Steps, &stepsStr); err == nil {
+		if err2 := json.Unmarshal([]byte(stepsStr), &steps); err2 == nil {
+			t.Steps = steps
+			return nil
+		}
+	}
+	// If all else fails, leave Steps empty rather than returning an error
+	return nil
+}
+
 // PlanStep represents a single step in the research plan
 type PlanStep struct {
 	ID          string `json:"id" jsonschema:"Unique identifier for this step (e.g., 'step1', 'step2')"`

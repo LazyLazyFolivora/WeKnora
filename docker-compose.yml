@@ -40,6 +40,8 @@ services:
       - data-files:/data/files
       - docreader-tmp:/tmp/docreader:ro
       - ./config/config.yaml:/app/config/config.yaml
+      - ./config/prompt_templates:/app/config/prompt_templates
+      - ./config/builtin_agents.yaml:/app/config/builtin_agents.yaml
       # Optional: mount custom skills directory (allows adding skills without rebuilding image)
       - ./skills/preloaded:/app/skills/preloaded
     healthcheck:
