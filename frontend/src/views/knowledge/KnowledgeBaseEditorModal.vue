@@ -70,8 +70,8 @@
                             >{{ $t('knowledgeEditor.indexing.searchTitle') }}</t-checkbox>
                             <p class="indexing-check-desc">{{ $t('knowledgeEditor.indexing.searchDesc') }}</p>
                           </div>
-                          <!-- Wiki indexing option hidden -->
-                          <!-- <div
+                          <!-- Wiki indexing option -->
+                          <div
                             class="indexing-check-item"
                             :class="{ 'is-checked': formData.indexingStrategy.wikiEnabled, 'is-disabled': isIndexingLocked }"
                             @click="toggleWikiIndexing"
@@ -87,7 +87,7 @@
                               </span>
                             </t-checkbox>
                             <p class="indexing-check-desc">{{ $t('knowledgeEditor.indexing.wikiDesc') }}</p>
-                          </div> -->
+                          </div>
                         </div>
                         <p v-if="isIndexingLocked" class="form-tip locked-tip">
                           {{ $t('knowledgeEditor.indexing.lockedTip') }}
