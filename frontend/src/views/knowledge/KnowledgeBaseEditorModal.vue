@@ -76,16 +76,14 @@
                             :class="{ 'is-checked': formData.indexingStrategy.wikiEnabled, 'is-disabled': isIndexingLocked }"
                             @click="toggleWikiIndexing"
                           >
-                            <t-checkbox
-                              :checked="formData.indexingStrategy.wikiEnabled"
-                              :disabled="isIndexingLocked"
-                              class="indexing-check-box"
-                            >
-                              <span class="indexing-check-title">
-                                {{ $t('knowledgeEditor.indexing.wikiTitle') }}
-                                <span class="indexing-new-badge">NEW</span>
-                              </span>
-                            </t-checkbox>
+                            <div class="indexing-check-label-row">
+                              <t-checkbox
+                                :checked="formData.indexingStrategy.wikiEnabled"
+                                :disabled="isIndexingLocked"
+                                class="indexing-check-box"
+                              >{{ $t('knowledgeEditor.indexing.wikiTitle') }}</t-checkbox>
+                              <span class="indexing-new-badge">NEW</span>
+                            </div>
                             <p class="indexing-check-desc">{{ $t('knowledgeEditor.indexing.wikiDesc') }}</p>
                           </div>
                         </div>
@@ -1446,6 +1444,12 @@ watch(
 
 .indexing-check-title {
   display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.indexing-check-label-row {
+  display: flex;
   align-items: center;
   gap: 6px;
 }
