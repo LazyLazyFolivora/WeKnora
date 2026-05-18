@@ -32,6 +32,7 @@ services:
       dockerfile: docker/Dockerfile.app
       args:
         - APK_MIRROR_ARG=${APK_MIRROR_ARG:-}
+        - GOPROXY_ARG=${GOPROXY_ARG:-}
     container_name: WeKnora-app
     ports:
       - "${APP_PORT:-8080}:8080"
@@ -187,6 +188,7 @@ services:
       dockerfile: docker/Dockerfile.docreader
       args:
         - APT_MIRROR=${APT_MIRROR:-}
+        - PIP_MIRROR=${PIP_MIRROR_ARG:-}
     container_name: WeKnora-docreader
     ports:
       - "${DOCREADER_PORT:-50051}:50051"

@@ -4,6 +4,7 @@
 FROM python:3.10.18-bookworm AS builder
 
 ARG APT_MIRROR=""
+ARG PIP_MIRROR=""
 RUN if [ -n "$APT_MIRROR" ]; then \
         sed -i "s@http://deb.debian.org@${APT_MIRROR}@g" /etc/apt/sources.list.d/debian.sources && \
         sed -i "s@http://security.debian.org@${APT_MIRROR}@g" /etc/apt/sources.list.d/debian.sources; \
@@ -65,8 +66,10 @@ RUN if [ -z "$TARGETARCH" ]; then \
 
 # 复制依赖文件
 COPY docreader/pyproject.toml docreader/uv.lock ./
-RUN pip install uv --break-system-packages && \
-    python -m uv sync --locked --no-dev
+RUN pip install uv --break-system-packages \
+        $([ -n "$PIP_MIRROR" ] && echo "-i $PIP_MIRROR") && \
+    python -m uv sync --no-dev \
+        $([ -n "$PIP_MIRROR" ] && echo "--index-url $PIP_MIRROR")
 
 # 复制源代码和生成脚本
 COPY docreader docreader
