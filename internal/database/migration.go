@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 
@@ -252,6 +254,83 @@ func RunMigrationsWithOptions(dsn string, opts MigrationOptions) error {
 
 	if dirty {
 		logger.Warnf(ctx, "Database is in dirty state! Manual intervention may be required.")
+	}
+
+	// Run custom (fork-specific) migrations after upstream migrations.
+	// Custom migrations are idempotent (IF NOT EXISTS) and are not version-tracked.
+	customPath := "migrations/custom/versioned"
+	if strings.HasPrefix(dsn, "sqlite3://") {
+		customPath = "migrations/custom/sqlite"
+	}
+	if err := runCustomMigrations(ctx, dsn, opts, customPath); err != nil {
+		logger.Errorf(ctx, "Custom migration failed: %v", err)
+		return captureMigrationFailure(m, fmt.Errorf("custom migration failed: %w", err))
+	}
+
+	return nil
+}
+
+// runCustomMigrations reads .up.sql files from the given directory and executes
+// them directly against the database. There is no version tracking — all custom
+// migrations must be idempotent (use IF NOT EXISTS / IF EXISTS).
+func runCustomMigrations(
+	ctx context.Context,
+	dsn string,
+	opts MigrationOptions,
+	customDir string,
+) error {
+	entries, err := os.ReadDir(customDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			logger.Infof(ctx, "No custom migration directory (%s), skipping", customDir)
+			return nil
+		}
+		return fmt.Errorf("read custom migration dir %s: %w", customDir, err)
+	}
+
+	// Collect .up.sql files and sort
+	var upFiles []string
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		if strings.HasSuffix(e.Name(), ".up.sql") {
+			upFiles = append(upFiles, e.Name())
+		}
+	}
+	if len(upFiles) == 0 {
+		logger.Infof(ctx, "No custom migrations found in %s", customDir)
+		return nil
+	}
+	sort.Strings(upFiles)
+
+	// Open a database connection for executing raw SQL
+	var db *sql.DB
+	if opts.SQLiteDBPath != "" {
+		db, err = sql.Open("sqlite3", opts.SQLiteDBPath)
+	} else {
+		db, err = sql.Open("postgres", dsn)
+	}
+	if err != nil {
+		return fmt.Errorf("open db for custom migrations: %w", err)
+	}
+	defer db.Close()
+
+	for _, fname := range upFiles {
+		fullPath := filepath.Join(customDir, fname)
+		sqlBytes, err := os.ReadFile(fullPath)
+		if err != nil {
+			return fmt.Errorf("read %s: %w", fname, err)
+		}
+		sqlStr := string(sqlBytes)
+		if strings.TrimSpace(sqlStr) == "" {
+			continue
+		}
+		logger.Infof(ctx, "Running custom migration: %s", fname)
+		if _, err := db.ExecContext(ctx, sqlStr); err != nil {
+			return fmt.Errorf("execute %s: %w", fname, err)
+		}
+		logger.Infof(ctx, "Custom migration %s applied successfully", fname)
 	}
 
 	return nil
