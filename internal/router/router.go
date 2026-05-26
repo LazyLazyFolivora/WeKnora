@@ -81,6 +81,9 @@ type RouterParams struct {
 	DataSourceCredentialsHandler *handler.DataSourceCredentialsHandler
 	WeKnoraCloudHandler          *handler.WeKnoraCloudHandler
 	WikiPageHandler              *handler.WikiPageHandler
+	GraphImportHandler           *handler.GraphImportHandler
+	GraphSyncHandler             *handler.GraphSyncHandler
+	EntityDictHandler            *handler.EntityDictHandler
 }
 
 // NewRouter 创建新的路由
@@ -202,6 +205,9 @@ func NewRouter(params RouterParams) *gin.Engine {
 		RegisterDataSourceRoutes(v1, params.DataSourceHandler, params.DataSourceCredentialsHandler, rbacGuards)
 		RegisterWeKnoraCloudRoutes(v1, params.WeKnoraCloudHandler, rbacGuards)
 		RegisterWikiPageRoutes(v1, params.WikiPageHandler, rbacGuards)
+		RegisterGraphImportRoutes(v1, params.GraphImportHandler, rbacGuards)
+		RegisterGraphSyncRoutes(v1, params.GraphSyncHandler, rbacGuards)
+		RegisterEntityDictRoutes(v1, params.EntityDictHandler, rbacGuards)
 		RegisterChunkerDebugRoutes(v1, rbacGuards)
 	}
 

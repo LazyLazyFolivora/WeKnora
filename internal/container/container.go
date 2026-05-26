@@ -166,6 +166,8 @@ func BuildContainer(container *dig.Container) *dig.Container {
 	must(container.Provide(repository.NewWikiLogEntryRepository))
 	must(container.Provide(repository.NewTaskPendingOpsRepository))
 	must(container.Provide(repository.NewTaskDeadLetterRepository))
+	must(container.Provide(repository.NewGraphEntityRepository))
+	must(container.Provide(repository.NewGraphRelationRepository))
 
 	// MCP manager for managing MCP client connections
 	logger.Debugf(ctx, "[Container] Registering MCP manager...")
@@ -210,6 +212,10 @@ func BuildContainer(container *dig.Container) *dig.Container {
 	must(container.Provide(service.NewWikiLogEntryService))
 	must(container.Provide(service.NewWikiIngestService, dig.Name("wikiIngest")))
 	must(container.Provide(service.NewWikiLintService))
+	must(container.Provide(service.NewGraphSyncService))
+	must(container.Provide(service.NewGraphImportService))
+	must(container.Provide(service.NewGraphProjectionService))
+	must(container.Provide(service.NewEntityDictService))
 
 	// Web search service (needed by AgentService)
 	logger.Debugf(ctx, "[Container] Registering web search registry and providers...")
@@ -339,6 +345,11 @@ func BuildContainer(container *dig.Container) *dig.Container {
 	must(container.Provide(handler.NewDataSourceHandler))
 	// Wiki page handler
 	must(container.Provide(handler.NewWikiPageHandler))
+	// 手动导入知识图谱数据的 handler（旧版兼容）
+	must(container.Provide(handler.NewGraphImportHandler))
+	// 批量实体 / 关系导入 handler（新版 DB-backed）
+	must(container.Provide(handler.NewGraphSyncHandler))
+	must(container.Provide(handler.NewEntityDictHandler))
 	// IM integration
 	logger.Debugf(ctx, "[Container] Registering IM integration...")
 	must(container.Provide(imPkg.NewService))
