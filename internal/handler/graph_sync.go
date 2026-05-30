@@ -32,7 +32,7 @@ func NewGraphSyncHandler(service interfaces.GraphSyncService) *GraphSyncHandler 
 // @Failure      404      {object}  map[string]interface{}            "知识库不存在"
 // @Security     Bearer
 // @Security     ApiKeyAuth
-// @Router       /knowledge-bases/{id}/graph/entities:batch-upsert [post]
+// @Router       /knowledge-bases/{id}/graph/entities/batch-upsert [post]
 func (h *GraphSyncHandler) BatchUpsertEntities(c *gin.Context) {
 	var req types.GraphEntityBatchUpsertRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -65,7 +65,7 @@ func (h *GraphSyncHandler) BatchUpsertEntities(c *gin.Context) {
 // @Failure      404      {object}  map[string]interface{}               "知识库不存在"
 // @Security     Bearer
 // @Security     ApiKeyAuth
-// @Router       /knowledge-bases/{id}/graph/relations:batch-upsert [post]
+// @Router       /knowledge-bases/{id}/graph/relations/batch-upsert [post]
 func (h *GraphSyncHandler) BatchUpsertRelations(c *gin.Context) {
 	var req types.GraphRelationBatchUpsertRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

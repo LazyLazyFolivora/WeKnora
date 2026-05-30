@@ -29,7 +29,7 @@ func NewEntityDictHandler(svc interfaces.EntityDictService) *EntityDictHandler {
 // @Success      200      {object}  map[string]interface{}              "同步成功"
 // @Security     Bearer
 // @Security     ApiKeyAuth
-// @Router       /entity-dict:batch-upsert [post]
+// @Router       /entity-dict/batch-upsert [post]
 func (h *EntityDictHandler) BatchUpsert(c *gin.Context) {
 	var req types.EntityDictBatchUpsertRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

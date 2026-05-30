@@ -18,12 +18,12 @@ func RegisterGraphSyncRoutes(r *gin.RouterGroup, h *handler.GraphSyncHandler, g 
 	if h == nil {
 		return
 	}
-	r.POST("/knowledge-bases/:id/graph/entities:batch-upsert",
+	r.POST("/knowledge-bases/:id/graph/entities/batch-upsert",
 		g.OwnedKBOrAdmin(),
 		g.KBAccessWrite("id"),
 		h.BatchUpsertEntities,
 	)
-	r.POST("/knowledge-bases/:id/graph/relations:batch-upsert",
+	r.POST("/knowledge-bases/:id/graph/relations/batch-upsert",
 		g.OwnedKBOrAdmin(),
 		g.KBAccessWrite("id"),
 		h.BatchUpsertRelations,
