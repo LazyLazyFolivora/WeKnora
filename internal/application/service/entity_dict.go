@@ -77,16 +77,12 @@ func (s *entityDictService) InitCopies(ctx context.Context, kbID string, tenantI
 		if !ok {
 			continue
 		}
-		// Parse canonical_data for entity_name and include external_ids.
+		// Parse canonical_data for entity_name.
 		data := jsonToMap(r.CanonicalData)
 		name := ""
 		if n, ok := data["name"]; ok {
 			name = fmt.Sprintf("%v", n)
 		}
-		// Merge external_ids into entity_data so projection can create REFERENCES edges.
-		extIDs := jsonToMap(r.ExternalIDs)
-		data["external_ids"] = extIDs
-
 		inputs = append(inputs, &types.GraphEntityInput{
 			SourceEntityID: fmt.Sprintf("dict:%d", r.ID),
 			EntityType:     wkType,

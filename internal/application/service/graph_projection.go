@@ -4,12 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Tencent/WeKnora/internal/logger"
 	"github.com/Tencent/WeKnora/internal/types"
 	"github.com/Tencent/WeKnora/internal/types/interfaces"
 	"github.com/neo4j/neo4j-go-driver/v6/neo4j"
+	"gorm.io/gorm"
 )
 
 // Source → external_id key mapping (consistent with ZK import_primekg_to_db.py).
@@ -21,6 +24,7 @@ var sourceToIDKey = map[string]string{
 }
 
 type graphProjectionService struct {
+	db           *gorm.DB
 	entityRepo   interfaces.GraphEntityRepository
 	relationRepo interfaces.GraphRelationRepository
 	neo4j        neo4j.Driver
@@ -28,11 +32,13 @@ type graphProjectionService struct {
 
 // NewGraphProjectionService creates a new DB→Neo4j projection service.
 func NewGraphProjectionService(
+	db *gorm.DB,
 	entityRepo interfaces.GraphEntityRepository,
 	relationRepo interfaces.GraphRelationRepository,
 	neo4j neo4j.Driver,
 ) interfaces.GraphProjectionService {
 	return &graphProjectionService{
+		db:           db,
 		entityRepo:   entityRepo,
 		relationRepo: relationRepo,
 		neo4j:        neo4j,
@@ -136,16 +142,17 @@ func (s *graphProjectionService) deleteEntityInNeo4j(
 }
 
 // createReferencesEdge connects a ZK entity copy to its PrimeKG original node in Neo4j.
-// It tries all known source→ID key mappings against the entity's external_ids.
+// Looks up entity_dict by parsing source_entity_id (format: "dict:<id>") and reads
+// the external_ids column directly — no need to inject external_ids into entity_data.
 func (s *graphProjectionService) createReferencesEdge(
 	ctx context.Context, session neo4j.Session, entity *types.GraphEntity,
 ) error {
-	primekgNodeID := resolvePrimeKGNodeID(entity.EntityData)
-	if primekgNodeID == "" {
-		return nil // No external IDs to match — nothing to link.
+	sourceNode := resolvePrimeKGNodeID(s.db, entity.SourceEntityID)
+	if sourceNode == "" {
+		return nil
 	}
 
-	parts := split2(primekgNodeID, ':')
+	parts := split2(sourceNode, ':')
 	if parts[0] == "" || parts[1] == "" {
 		return nil
 	}
@@ -167,24 +174,28 @@ func (s *graphProjectionService) createReferencesEdge(
 	return err
 }
 
-// resolvePrimeKGNodeID extracts a PrimeKG Neo4j node identifier from entity_data.
-// Format: {Source}:{ID}, e.g. "NCBI:9796" or "DrugBank:DB0001".
-func resolvePrimeKGNodeID(entityData types.JSON) string {
-	var data map[string]interface{}
-	if err := json.Unmarshal(json.RawMessage(entityData), &data); err != nil {
+// resolvePrimeKGNodeID reads entity_dict.external_ids for a given source_entity_id
+// and returns a "Source:ID" string for matching PrimeKG Neo4j nodes.
+// sourceEntityID format: "dict:<entity_dict.id>".
+func resolvePrimeKGNodeID(db *gorm.DB, sourceEntityID string) string {
+	if !strings.HasPrefix(sourceEntityID, "dict:") {
+		return ""
+	}
+	dictID, err := strconv.ParseInt(sourceEntityID[5:], 10, 64)
+	if err != nil {
 		return ""
 	}
 
-	rawIDs, ok := data["external_ids"]
-	if !ok {
-		return ""
-	}
-	extIDs, ok := rawIDs.(map[string]interface{})
-	if !ok {
+	var row types.EntityDictRecord
+	if err := db.Where("id = ?", dictID).First(&row).Error; err != nil {
 		return ""
 	}
 
-	// Try known source→key mappings first.
+	var extIDs map[string]interface{}
+	if err := json.Unmarshal(json.RawMessage(row.ExternalIDs), &extIDs); err != nil {
+		return ""
+	}
+
 	for src, key := range sourceToIDKey {
 		if v, ok := extIDs[key]; ok {
 			if s, ok := v.(string); ok && s != "" {
