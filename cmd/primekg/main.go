@@ -30,12 +30,12 @@ var sourceToIDKey = map[string]string{
 	"Reactome": "reactome",
 }
 
-// PrimeKG entity type → Neo4j label.
+// WeKnora entity type → Neo4j label (matching entity_dict.entity_type values).
 var typeToLabel = map[string]string{
-	"drug":         "Drug",
-	"disease":      "Indication",
-	"gene/protein": "Target",
-	"pathway":      "Pathway",
+	"Drug":       "Drug",
+	"Indication": "Indication",
+	"Target":     "Target",
+	"Pathway":    "Pathway",
 }
 
 func main() {
