@@ -210,6 +210,7 @@ func BuildContainer(container *dig.Container) *dig.Container {
 	must(container.Provide(service.NewWikiLintService))
 	must(container.Provide(service.NewGraphSyncService))
 	must(container.Provide(service.NewGraphImportService))
+	must(container.Provide(service.NewGraphProjectionService))
 
 	// Web search service (needed by AgentService)
 	logger.Debugf(ctx, "[Container] Registering web search registry and providers...")

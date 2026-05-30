@@ -33,3 +33,11 @@ type GraphSyncService interface {
 	BatchUpsertEntities(ctx context.Context, kbID string, req *types.GraphEntityBatchUpsertRequest) (*types.GraphBatchUpsertResult, error)
 	BatchUpsertRelations(ctx context.Context, kbID string, req *types.GraphRelationBatchUpsertRequest) (*types.GraphBatchUpsertResult, error)
 }
+
+// GraphProjectionService projects graph_entities/graph_relations rows to Neo4j.
+// Reads rows where sync_status IN (pending, failed), writes to Neo4j,
+// then updates sync_status accordingly.
+type GraphProjectionService interface {
+	ProjectEntities(ctx context.Context, tenantID uint64, kbID string, limit int) (synced int, err error)
+	ProjectRelations(ctx context.Context, tenantID uint64, kbID string, limit int) (synced int, err error)
+}
