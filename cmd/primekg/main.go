@@ -46,6 +46,9 @@ func main() {
 	c := container.BuildContainer(runtime.GetContainer())
 
 	err := c.Invoke(func(db *gorm.DB, driver neo4j.Driver) error {
+		if driver == nil {
+			return fmt.Errorf("Neo4j 未启用: 请设置环境变量 NEO4J_ENABLE=true 并确保 Neo4j 连接配置正确")
+		}
 		// 1. 读 entity_dict primekg 行
 		var rows []types.EntityDictRecord
 		if err := db.WithContext(ctx).
@@ -69,9 +72,15 @@ func main() {
 
 		created := 0
 		linked := 0
+		noType := 0
+		noID := 0
 		for _, r := range rows {
 			label, ok := typeToLabel[r.EntityType]
 			if !ok {
+				noType++
+				if noType <= 3 {
+					fmt.Printf("  [跳过] 未知类型 dict:%d entity_type=%q\n", r.ID, r.EntityType)
+				}
 				continue
 			}
 
@@ -82,6 +91,10 @@ func main() {
 
 			nodeSource, primekgID := resolveID(r.ExternalIDs)
 			if nodeSource == "" || primekgID == "" {
+				noID++
+				if noID <= 3 {
+					fmt.Printf("  [跳过] 无法解析ID dict:%d entity_type=%q external_ids=%s\n", r.ID, r.EntityType, string(r.ExternalIDs))
+				}
 				continue
 			}
 
@@ -121,7 +134,7 @@ func main() {
 				fmt.Printf("  已处理 %d/%d\n", created, len(rows))
 			}
 		}
-		fmt.Printf("完成: 创建 %d 个节点, %d 条 REFERENCES 边\n", created, linked)
+		fmt.Printf("完成: 创建 %d 个节点, %d 条 REFERENCES 边 (跳过: 未知类型=%d 无ID=%d)\n", created, linked, noType, noID)
 		return nil
 	})
 	if err != nil {
