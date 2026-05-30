@@ -83,6 +83,7 @@ type RouterParams struct {
 	WikiPageHandler              *handler.WikiPageHandler
 	GraphImportHandler           *handler.GraphImportHandler
 	GraphSyncHandler             *handler.GraphSyncHandler
+	EntityDictHandler            *handler.EntityDictHandler
 }
 
 // NewRouter 创建新的路由
@@ -205,6 +206,7 @@ func NewRouter(params RouterParams) *gin.Engine {
 		RegisterWikiPageRoutes(v1, params.WikiPageHandler, rbacGuards)
 		RegisterGraphImportRoutes(v1, params.GraphImportHandler, rbacGuards)
 		RegisterGraphSyncRoutes(v1, params.GraphSyncHandler, rbacGuards)
+		RegisterEntityDictRoutes(v1, params.EntityDictHandler, rbacGuards)
 		RegisterChunkerDebugRoutes(v1, rbacGuards)
 	}
 
