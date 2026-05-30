@@ -54,17 +54,13 @@ func (h *EntityDictHandler) BatchUpsert(c *gin.Context) {
 // @Description  从 entity_dict 读取 canonical_source=primekg 的行，写入 graph_entities 并设 source_site=primekg
 // @Tags         知识图谱
 // @Produce      json
-// @Param        kb_id  query     string  true  "目标知识库 ID"
+// @Param        kbId  path      string  true  "目标知识库 ID"
 // @Success      200    {object}  map[string]interface{}  "初始化完成"
 // @Security     Bearer
 // @Security     ApiKeyAuth
-// @Router       /entity-dict/init-copies [post]
+// @Router       /entity-dict/{kbId}/init-copies [post]
 func (h *EntityDictHandler) InitCopies(c *gin.Context) {
-	kbID := c.Query("kb_id")
-	if kbID == "" {
-		c.Error(apperrors.NewBadRequestError("kb_id 不能为空"))
-		return
-	}
+	kbID := c.Param("kbId")
 	tenantID := c.GetUint64("tenant_id")
 
 	n, err := h.svc.InitCopies(c.Request.Context(), kbID, tenantID)
