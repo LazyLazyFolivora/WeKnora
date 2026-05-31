@@ -22,12 +22,13 @@ import (
 	"gorm.io/gorm"
 )
 
-// Source → external_id key mapping (consistent with import_primekg_to_db.py).
-var sourceToIDKey = map[string]string{
-	"DrugBank": "drugbank",
-	"MONDO":    "mondo",
-	"NCBI":     "ncbi_gene",
-	"Reactome": "reactome",
+// external_id key → possible Neo4j node_source values (order matters: primary first).
+var keyToSources = map[string][]string{
+	"drugbank":  {"DrugBank"},
+	"mondo":     {"MONDO", "MONDO_grouped"},
+	"ncbi_gene": {"NCBI"},
+	"reactome":  {"Reactome"},
+	"id":        {"MONDO_grouped"},
 }
 
 // WeKnora entity type → Neo4j label (matching entity_dict.entity_type values).
@@ -60,8 +61,12 @@ func main() {
 
 		if *dryRun {
 			for _, r := range rows {
-				src, id := resolveID(r.ExternalIDs)
-				fmt.Printf("  dict:%d  %s  %s:%s\n", r.ID, r.EntityType, src, id)
+				src, id, alt := resolveID(r.ExternalIDs)
+				if alt != "" {
+					fmt.Printf("  dict:%d  %s  %s|%s:%s\n", r.ID, r.EntityType, src, alt, id)
+				} else {
+					fmt.Printf("  dict:%d  %s  %s:%s\n", r.ID, r.EntityType, src, id)
+				}
 			}
 			return nil
 		}
@@ -89,7 +94,7 @@ func main() {
 				name = fmt.Sprintf("%v", n)
 			}
 
-			nodeSource, primekgID := resolveID(r.ExternalIDs)
+			nodeSource, primekgID, altSource := resolveID(r.ExternalIDs)
 			if nodeSource == "" || primekgID == "" {
 				noID++
 				if noID <= 3 {
@@ -112,16 +117,30 @@ func main() {
 					return nil, err
 				}
 
-				// REFERENCES 边连到 PrimeKG 原节点
-				_, err = tx.Run(ctx, `
-					MATCH (n:GraphEntity {source_entity_id: $seid})
-					MATCH (p {primekg_id: $pid, node_source: $src})
-					MERGE (n)-[:REFERENCES]->(p)
-				`, map[string]any{
-					"seid": fmt.Sprintf("dict:%d", r.ID),
-					"pid":  primekgID,
-					"src":  nodeSource,
-				})
+				// REFERENCES 边连到 PrimeKG 原节点; altSource 处理 MONDO/MONDO_grouped
+				if altSource != "" {
+					_, err = tx.Run(ctx, `
+						MATCH (n:GraphEntity {source_entity_id: $seid})
+						MATCH (p)
+						WHERE p.primekg_id = $pid AND (p.node_source = $src OR p.node_source = $alt)
+						MERGE (n)-[:REFERENCES]->(p)
+					`, map[string]any{
+						"seid": fmt.Sprintf("dict:%d", r.ID),
+						"pid":  primekgID,
+						"src":  nodeSource,
+						"alt":  altSource,
+					})
+				} else {
+					_, err = tx.Run(ctx, `
+						MATCH (n:GraphEntity {source_entity_id: $seid})
+						MATCH (p {primekg_id: $pid, node_source: $src})
+						MERGE (n)-[:REFERENCES]->(p)
+					`, map[string]any{
+						"seid": fmt.Sprintf("dict:%d", r.ID),
+						"pid":  primekgID,
+						"src":  nodeSource,
+					})
+				}
 				return nil, err
 			})
 			if err != nil {
@@ -143,23 +162,24 @@ func main() {
 	}
 }
 
-type idPair struct{ source, id string }
-
-func resolveID(externalIDs types.JSON) (source, id string) {
+func resolveID(externalIDs types.JSON) (source, id, altSource string) {
 	var extIDs map[string]any
 	if err := json.Unmarshal(json.RawMessage(externalIDs), &extIDs); err != nil {
 		return
 	}
-	for src, key := range sourceToIDKey {
+	for key, sources := range keyToSources {
 		if v, ok := extIDs[key]; ok {
 			if s, ok := v.(string); ok && s != "" {
-				return src, s
+				if len(sources) >= 2 {
+					return sources[0], s, sources[1]
+				}
+				return sources[0], s, ""
 			}
 		}
 	}
 	for k, v := range extIDs {
 		if s, ok := v.(string); ok && s != "" {
-			return k, s
+			return k, s, ""
 		}
 	}
 	return
