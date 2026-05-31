@@ -71,14 +71,75 @@ func main() {
 			return nil
 		}
 
-		// 2. 直接写 Neo4j
+		// 2. 直接写 Neo4j（批量：每批 N 条在一个事务内执行）
 		session := driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
 		defer session.Close(ctx)
 
-		created := 0
-		linked := 0
-		noType := 0
-		noID := 0
+		const batchSize = 500
+		type nodeRow struct {
+			seid, label, name string
+		}
+		type edgeRow struct {
+			seid, pid, src, alt string
+		}
+
+		var (
+			nodes   []nodeRow
+			edges   []edgeRow
+			edgesAlt []edgeRow
+			created, noType, noID int
+		)
+		flush := func() {
+			if len(nodes) == 0 {
+				return
+			}
+			_, err := session.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
+				// 批量 MERGE 节点
+				_, err := tx.Run(ctx, `
+					UNWIND $rows AS row
+					MERGE (n:GraphEntity {source_entity_id: row.seid})
+					SET n.entity_type = row.label, n.entity_name = row.name
+				`, map[string]any{"rows": nodes})
+				if err != nil {
+					return nil, err
+				}
+
+				// 批量 MERGE 边（无 alt）
+				if len(edges) > 0 {
+					_, err = tx.Run(ctx, `
+						UNWIND $rows AS row
+						MATCH (n:GraphEntity {source_entity_id: row.seid})
+						MATCH (p {primekg_id: row.pid, node_source: row.src})
+						MERGE (n)-[:REFERENCES]->(p)
+					`, map[string]any{"rows": edges})
+					if err != nil {
+						return nil, err
+					}
+				}
+
+				// 批量 MERGE 边（有 alt，如 MONDO/MONDO_grouped）
+				if len(edgesAlt) > 0 {
+					_, err = tx.Run(ctx, `
+						UNWIND $rows AS row
+						MATCH (n:GraphEntity {source_entity_id: row.seid})
+						MATCH (p)
+						WHERE p.primekg_id = row.pid AND (p.node_source = row.src OR p.node_source = row.alt)
+						MERGE (n)-[:REFERENCES]->(p)
+					`, map[string]any{"rows": edgesAlt})
+					if err != nil {
+						return nil, err
+					}
+				}
+				return nil, nil
+			})
+			if err != nil {
+				fmt.Printf("  批量写入失败: %v\n", err)
+			}
+			nodes = nodes[:0]
+			edges = edges[:0]
+			edgesAlt = edgesAlt[:0]
+		}
+
 		for _, r := range rows {
 			label, ok := typeToLabel[r.EntityType]
 			if !ok {
@@ -103,57 +164,21 @@ func main() {
 				continue
 			}
 
-			_, err := session.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
-				// 创建实体副本节点
-				_, err := tx.Run(ctx, `
-					MERGE (n:GraphEntity {source_entity_id: $seid})
-					SET n.entity_type = $type, n.entity_name = $name
-				`, map[string]any{
-					"seid": fmt.Sprintf("dict:%d", r.ID),
-					"type": label,
-					"name": name,
-				})
-				if err != nil {
-					return nil, err
-				}
-
-				// REFERENCES 边连到 PrimeKG 原节点; altSource 处理 MONDO/MONDO_grouped
-				if altSource != "" {
-					_, err = tx.Run(ctx, `
-						MATCH (n:GraphEntity {source_entity_id: $seid})
-						MATCH (p)
-						WHERE p.primekg_id = $pid AND (p.node_source = $src OR p.node_source = $alt)
-						MERGE (n)-[:REFERENCES]->(p)
-					`, map[string]any{
-						"seid": fmt.Sprintf("dict:%d", r.ID),
-						"pid":  primekgID,
-						"src":  nodeSource,
-						"alt":  altSource,
-					})
-				} else {
-					_, err = tx.Run(ctx, `
-						MATCH (n:GraphEntity {source_entity_id: $seid})
-						MATCH (p {primekg_id: $pid, node_source: $src})
-						MERGE (n)-[:REFERENCES]->(p)
-					`, map[string]any{
-						"seid": fmt.Sprintf("dict:%d", r.ID),
-						"pid":  primekgID,
-						"src":  nodeSource,
-					})
-				}
-				return nil, err
-			})
-			if err != nil {
-				fmt.Printf("  失败 dict:%d %s: %v\n", r.ID, name, err)
-				continue
+			seid := fmt.Sprintf("dict:%d", r.ID)
+			nodes = append(nodes, nodeRow{seid: seid, label: label, name: name})
+			if altSource != "" {
+				edgesAlt = append(edgesAlt, edgeRow{seid: seid, pid: primekgID, src: nodeSource, alt: altSource})
+			} else {
+				edges = append(edges, edgeRow{seid: seid, pid: primekgID, src: nodeSource})
 			}
 			created++
-			linked++
-			if created%500 == 0 {
+			if len(nodes) >= batchSize {
+				flush()
 				fmt.Printf("  已处理 %d/%d\n", created, len(rows))
 			}
 		}
-		fmt.Printf("完成: 创建 %d 个节点, %d 条 REFERENCES 边 (跳过: 未知类型=%d 无ID=%d)\n", created, linked, noType, noID)
+		flush()
+		fmt.Printf("完成: 创建 %d 个节点, %d 条 REFERENCES 边 (跳过: 未知类型=%d 无ID=%d)\n", created, len(edges)+len(edgesAlt), noType, noID)
 		return nil
 	})
 	if err != nil {
