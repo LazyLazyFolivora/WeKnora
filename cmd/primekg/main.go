@@ -27,8 +27,8 @@ var keyToSources = map[string][]string{
 	"drugbank":  {"DrugBank"},
 	"mondo":     {"MONDO", "MONDO_grouped"},
 	"ncbi_gene": {"NCBI"},
-	"reactome":  {"Reactome"},
-	"id":        {"MONDO_grouped"},
+	"reactome":  {"REACTOME"},
+	"id":        {"MONDO_grouped", "REACTOME"},
 }
 
 // WeKnora entity type → Neo4j label (matching entity_dict.entity_type values).
