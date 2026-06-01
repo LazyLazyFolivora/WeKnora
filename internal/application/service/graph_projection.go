@@ -337,7 +337,7 @@ func parseJSONToMap(raw types.JSON) map[string]interface{} {
 		return map[string]interface{}{}
 	}
 	var m map[string]interface{}
-	if err := json.Unmarshal([]byte(raw), &m); err != nil {
+	if err := json.Unmarshal(json.RawMessage(raw), &m); err != nil {
 		return map[string]interface{}{}
 	}
 	if m == nil {
