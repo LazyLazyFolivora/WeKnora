@@ -330,14 +330,14 @@ func (s *graphProjectionService) deleteRelationInNeo4j(
 	return err
 }
 
-// parseJSONToMap converts json.RawMessage to map[string]interface{} for Neo4j props.
+// parseJSONToMap converts types.JSON to map[string]interface{} for Neo4j props.
 // Returns empty map when input is nil or empty to avoid storing nulls in Neo4j.
-func parseJSONToMap(raw json.RawMessage) map[string]interface{} {
+func parseJSONToMap(raw types.JSON) map[string]interface{} {
 	if len(raw) == 0 {
 		return map[string]interface{}{}
 	}
 	var m map[string]interface{}
-	if err := json.Unmarshal(raw, &m); err != nil {
+	if err := json.Unmarshal([]byte(raw), &m); err != nil {
 		return map[string]interface{}{}
 	}
 	if m == nil {
