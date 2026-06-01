@@ -50,22 +50,38 @@ func main() {
 	err := c.Invoke(func(svc interfaces.GraphProjectionService) {
 		if runEntities {
 			fmt.Println("开始投影实体...")
-			n, err := svc.ProjectEntities(ctx, *tenantID, *kbID, *batchSize)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "实体投影失败: %v\n", err)
-				os.Exit(1)
+			total := 0
+			for {
+				n, err := svc.ProjectEntities(ctx, *tenantID, *kbID, *batchSize)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "实体投影失败: %v\n", err)
+					os.Exit(1)
+				}
+				total += n
+				fmt.Printf("本批投影实体: %d 个 (累计: %d)\n", n, total)
+				if n == 0 {
+					break
+				}
 			}
-			fmt.Printf("实体投影完成: %d 个\n", n)
+			fmt.Printf("实体投影全部完成: %d 个\n", total)
 		}
 
 		if runRelations {
 			fmt.Println("开始投影关系...")
-			n, err := svc.ProjectRelations(ctx, *tenantID, *kbID, *batchSize)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "关系投影失败: %v\n", err)
-				os.Exit(1)
+			total := 0
+			for {
+				n, err := svc.ProjectRelations(ctx, *tenantID, *kbID, *batchSize)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "关系投影失败: %v\n", err)
+					os.Exit(1)
+				}
+				total += n
+				fmt.Printf("本批投影关系: %d 个 (累计: %d)\n", n, total)
+				if n == 0 {
+					break
+				}
 			}
-			fmt.Printf("关系投影完成: %d 个\n", n)
+			fmt.Printf("关系投影全部完成: %d 个\n", total)
 		}
 	})
 	if err != nil {
