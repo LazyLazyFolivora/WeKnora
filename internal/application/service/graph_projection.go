@@ -106,13 +106,18 @@ func (s *graphProjectionService) ProjectEntities(
 func (s *graphProjectionService) mergeEntityInNeo4j(
 	ctx context.Context, session neo4j.Session, entity *types.GraphEntity,
 ) error {
+	entityData := parseJSONToMap(entity.EntityData)
+
 	_, err := session.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
 		query := `
 			MERGE (n:GraphEntity {source_entity_id: $source_entity_id})
 			SET n.entity_type = $entity_type,
 			    n.entity_name = $entity_name,
 			    n.tenant_id = $tenant_id,
-			    n.knowledge_base_id = $knowledge_base_id
+			    n.knowledge_base_id = $knowledge_base_id,
+			    n.entity_data = $entity_data,
+			    n.source_site = $source_site,
+			    n.confidence_score = $confidence_score
 		`
 		params := map[string]interface{}{
 			"source_entity_id":  entity.SourceEntityID,
@@ -120,6 +125,9 @@ func (s *graphProjectionService) mergeEntityInNeo4j(
 			"entity_name":       entity.EntityName,
 			"tenant_id":         entity.TenantID,
 			"knowledge_base_id": entity.KnowledgeBaseID,
+			"entity_data":       entityData,
+			"source_site":       entity.SourceSite,
+			"confidence_score":  entity.ConfidenceScore,
 		}
 		_, err := tx.Run(ctx, query, params)
 		return nil, err
@@ -277,17 +285,25 @@ func (s *graphProjectionService) ProjectRelations(
 func (s *graphProjectionService) mergeRelationInNeo4j(
 	ctx context.Context, session neo4j.Session, rel *types.GraphRelationRecord,
 ) error {
+	relationProps := parseJSONToMap(rel.RelationProps)
+
 	_, err := session.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
 		// Relation type is safe to interpolate — validated by SanitizeRelationType.
 		query := fmt.Sprintf(`
 			MATCH (from:GraphEntity {source_entity_id: $from_seid})
 			MATCH (to:GraphEntity {source_entity_id: $to_seid})
 			MERGE (from)-[r:%s {source_relation_id: $srid}]->(to)
+			SET r.relation_props = $relation_props,
+			    r.source_site = $source_site,
+			    r.confidence_score = $confidence_score
 		`, rel.RelationType)
 		_, err := tx.Run(ctx, query, map[string]interface{}{
-			"from_seid": rel.FromEntityID,
-			"to_seid":   rel.ToEntityID,
-			"srid":      rel.SourceRelationID,
+			"from_seid":       rel.FromEntityID,
+			"to_seid":         rel.ToEntityID,
+			"srid":            rel.SourceRelationID,
+			"relation_props":  relationProps,
+			"source_site":     rel.SourceSite,
+			"confidence_score": rel.ConfidenceScore,
 		})
 		return nil, err
 	})
@@ -312,6 +328,22 @@ func (s *graphProjectionService) deleteRelationInNeo4j(
 		return nil, err
 	})
 	return err
+}
+
+// parseJSONToMap converts json.RawMessage to map[string]interface{} for Neo4j props.
+// Returns empty map when input is nil or empty to avoid storing nulls in Neo4j.
+func parseJSONToMap(raw json.RawMessage) map[string]interface{} {
+	if len(raw) == 0 {
+		return map[string]interface{}{}
+	}
+	var m map[string]interface{}
+	if err := json.Unmarshal(raw, &m); err != nil {
+		return map[string]interface{}{}
+	}
+	if m == nil {
+		return map[string]interface{}{}
+	}
+	return m
 }
 
 func split2(s string, sep byte) [2]string {
