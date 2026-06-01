@@ -45,9 +45,7 @@ func NewGraphProjectionService(
 	}
 }
 
-// ProjectEntities reads pending entities, writes them to Neo4j, and updates sync_status.
-// For primekg entities (source_site=primekg), also creates a REFERENCES edge to the
-// corresponding PrimeKG original node in Neo4j.
+// ProjectEntities reads pending entities, writes them to Neo4j in batches, and updates sync_status.
 func (s *graphProjectionService) ProjectEntities(
 	ctx context.Context, tenantID uint64, kbID string, limit int,
 ) (int, error) {
@@ -69,29 +67,50 @@ func (s *graphProjectionService) ProjectEntities(
 	session := s.neo4j.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
 	defer session.Close(ctx)
 
-	var synced int
-	for _, entity := range rows {
-		if entity.IsDeleted {
-			if err := s.deleteEntityInNeo4j(ctx, session, entity); err != nil {
-				logger.Warnf(ctx, "[GraphProjection] 删除实体失败 %s: %v", entity.ID, err)
-				s.entityRepo.MarkFailed(ctx, entity.ID, fmt.Sprintf("Neo4j 删除失败: %v", err))
-				continue
+	var (
+		toDelete  []*types.GraphEntity
+		toUpsert  []*types.GraphEntity
+		primekg   []*types.GraphEntity
+		toDeleteIDs []string
+		toUpsertIDs []string
+	)
+
+	for _, e := range rows {
+		if e.IsDeleted {
+			toDelete = append(toDelete, e)
+			toDeleteIDs = append(toDeleteIDs, e.ID)
+		} else {
+			toUpsert = append(toUpsert, e)
+			toUpsertIDs = append(toUpsertIDs, e.ID)
+			if e.SourceSite == "primekg" {
+				primekg = append(primekg, e)
 			}
-			s.entityRepo.MarkDeleted(ctx, entity.ID, time.Now())
-			synced++
-			continue
 		}
+	}
 
-		if err := s.mergeEntityInNeo4j(ctx, session, entity); err != nil {
-			logger.Warnf(ctx, "[GraphProjection] 同步实体失败 %s (%s): %v", entity.ID, entity.EntityName, err)
-			s.entityRepo.MarkFailed(ctx, entity.ID, fmt.Sprintf("Neo4j MERGE 失败: %v", err))
-			continue
+	var synced int
+
+	// Batch delete
+	if len(toDelete) > 0 {
+		count, errs := s.batchDeleteEntities(ctx, session, toDelete)
+		synced += count
+		for id, e := range errs {
+			s.entityRepo.MarkFailed(ctx, id, e)
 		}
-		s.entityRepo.MarkSynced(ctx, entity.ID, "", time.Now())
-		synced++
+	}
 
-		// For primekg entities, create REFERENCES edge to PrimeKG original node.
-		if entity.SourceSite == "primekg" {
+	// Batch upsert
+	if len(toUpsert) > 0 {
+		count, errs := s.batchMergeEntities(ctx, session, toUpsert)
+		synced += count
+		for id, e := range errs {
+			s.entityRepo.MarkFailed(ctx, id, e)
+		}
+	}
+
+	// Batch REFERENCES edges for primekg entities
+	if len(primekg) > 0 {
+		for _, entity := range primekg {
 			if err := s.createReferencesEdge(ctx, session, entity); err != nil {
 				logger.Warnf(ctx, "[GraphProjection] REFERENCES 边创建失败 %s: %v", entity.ID, err)
 			}
@@ -102,49 +121,85 @@ func (s *graphProjectionService) ProjectEntities(
 	return synced, nil
 }
 
-// mergeEntityInNeo4j creates or updates a GraphEntity node in Neo4j.
-func (s *graphProjectionService) mergeEntityInNeo4j(
-	ctx context.Context, session neo4j.Session, entity *types.GraphEntity,
-) error {
+// batchMergeEntities uses UNWIND to MERGE multiple entities in one Cypher call.
+func (s *graphProjectionService) batchMergeEntities(
+	ctx context.Context, session neo4j.Session, entities []*types.GraphEntity,
+) (synced int, errs map[string]string) {
+	rows := make([]map[string]interface{}, 0, len(entities))
+	for _, e := range entities {
+		rows = append(rows, map[string]interface{}{
+			"source_entity_id":  e.SourceEntityID,
+			"entity_type":       e.EntityType,
+			"entity_name":       e.EntityName,
+			"tenant_id":         e.TenantID,
+			"knowledge_base_id": e.KnowledgeBaseID,
+			"entity_data":       jsonToString(e.EntityData),
+			"source_site":       e.SourceSite,
+			"confidence_score":  e.ConfidenceScore,
+		})
+	}
+
 	_, err := session.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
 		query := `
-			MERGE (n:GraphEntity {source_entity_id: $source_entity_id})
-			SET n.entity_type = $entity_type,
-			    n.entity_name = $entity_name,
-			    n.tenant_id = $tenant_id,
-			    n.knowledge_base_id = $knowledge_base_id,
-			    n.entity_data = $entity_data,
-			    n.source_site = $source_site,
-			    n.confidence_score = $confidence_score
+			UNWIND $rows AS row
+			MERGE (n:GraphEntity {source_entity_id: row.source_entity_id})
+			SET n.entity_type = row.entity_type,
+			    n.entity_name = row.entity_name,
+			    n.tenant_id = row.tenant_id,
+			    n.knowledge_base_id = row.knowledge_base_id,
+			    n.entity_data = row.entity_data,
+			    n.source_site = row.source_site,
+			    n.confidence_score = row.confidence_score
 		`
-		params := map[string]interface{}{
-			"source_entity_id":  entity.SourceEntityID,
-			"entity_type":       entity.EntityType,
-			"entity_name":       entity.EntityName,
-			"tenant_id":         entity.TenantID,
-			"knowledge_base_id": entity.KnowledgeBaseID,
-			"entity_data":       jsonToString(entity.EntityData),
-			"source_site":       entity.SourceSite,
-			"confidence_score":  entity.ConfidenceScore,
-		}
-		_, err := tx.Run(ctx, query, params)
+		_, err := tx.Run(ctx, query, map[string]interface{}{"rows": rows})
 		return nil, err
 	})
-	return err
+	if err != nil {
+		errs = make(map[string]string)
+		for _, e := range entities {
+			errs[e.ID] = fmt.Sprintf("Neo4j 批量MERGE失败: %v", err)
+		}
+		return 0, errs
+	}
+
+	now := time.Now()
+	for _, e := range entities {
+		s.entityRepo.MarkSynced(ctx, e.ID, "", now)
+	}
+	return len(entities), nil
 }
 
-// deleteEntityInNeo4j removes a GraphEntity node and its relationships from Neo4j.
-func (s *graphProjectionService) deleteEntityInNeo4j(
-	ctx context.Context, session neo4j.Session, entity *types.GraphEntity,
-) error {
+// batchDeleteEntities uses UNWIND to DETACH DELETE multiple entities in one Cypher call.
+func (s *graphProjectionService) batchDeleteEntities(
+	ctx context.Context, session neo4j.Session, entities []*types.GraphEntity,
+) (deleted int, errs map[string]string) {
+	sourceIDs := make([]string, len(entities))
+	for i, e := range entities {
+		sourceIDs[i] = e.SourceEntityID
+	}
+
 	_, err := session.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
-		query := `MATCH (n:GraphEntity {source_entity_id: $source_entity_id}) DETACH DELETE n`
-		_, err := tx.Run(ctx, query, map[string]interface{}{
-			"source_entity_id": entity.SourceEntityID,
-		})
+		query := `
+			UNWIND $ids AS id
+			MATCH (n:GraphEntity {source_entity_id: id})
+			DETACH DELETE n
+		`
+		_, err := tx.Run(ctx, query, map[string]interface{}{"ids": sourceIDs})
 		return nil, err
 	})
-	return err
+	if err != nil {
+		errs = make(map[string]string)
+		for _, e := range entities {
+			errs[e.ID] = fmt.Sprintf("Neo4j 批量删除失败: %v", err)
+		}
+		return 0, errs
+	}
+
+	now := time.Now()
+	for _, e := range entities {
+		s.entityRepo.MarkDeleted(ctx, e.ID, now)
+	}
+	return len(entities), nil
 }
 
 // createReferencesEdge connects a ZK entity copy to its PrimeKG original node in Neo4j.
@@ -221,8 +276,7 @@ func resolvePrimeKGNodeID(db *gorm.DB, sourceEntityID string) string {
 
 // ── Relation projection ──
 
-// ProjectRelations reads pending relations, writes them to Neo4j, and updates sync_status.
-// It validates relation types through the whitelist before constructing Cypher.
+// ProjectRelations reads pending relations, writes them to Neo4j in batches, and updates sync_status.
 func (s *graphProjectionService) ProjectRelations(
 	ctx context.Context, tenantID uint64, kbID string, limit int,
 ) (int, error) {
@@ -241,89 +295,139 @@ func (s *graphProjectionService) ProjectRelations(
 		return 0, nil
 	}
 
-	session := s.neo4j.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
-	defer session.Close(ctx)
-
-	var synced int
+	// Validate relation types first
+	valid := make([]*types.GraphRelationRecord, 0, len(rows))
 	for _, rel := range rows {
-		// Validate relation type before any Cypher that interpolates it.
 		if err := SanitizeRelationType(rel.RelationType); err != nil {
 			s.relationRepo.MarkFailed(ctx, rel.ID, fmt.Sprintf("关系类型校验失败: %v", err))
 			continue
 		}
+		valid = append(valid, rel)
+	}
+	if len(valid) == 0 {
+		return 0, nil
+	}
 
-		if rel.IsDeleted {
-			if err := s.deleteRelationInNeo4j(ctx, session, rel); err != nil {
-				logger.Warnf(ctx, "[GraphProjection] 删除关系失败 %s: %v", rel.ID, err)
-				s.relationRepo.MarkFailed(ctx, rel.ID, fmt.Sprintf("Neo4j 删除失败: %v", err))
-				continue
+	session := s.neo4j.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
+	defer session.Close(ctx)
+
+	// Group by relation_type (Cypher requires literal type, can't be parameterized)
+	byType := make(map[string][]*types.GraphRelationRecord)
+	for _, rel := range valid {
+		byType[rel.RelationType] = append(byType[rel.RelationType], rel)
+	}
+
+	var synced int
+	for relType, group := range byType {
+		var toUpsert, toDelete []*types.GraphRelationRecord
+		for _, rel := range group {
+			if rel.IsDeleted {
+				toDelete = append(toDelete, rel)
+			} else {
+				toUpsert = append(toUpsert, rel)
 			}
-			if err := s.relationRepo.MarkSynced(ctx, rel.ID, "", time.Now()); err != nil {
-				logger.Warnf(ctx, "[GraphProjection] 标记关系已删除失败 %s: %v", rel.ID, err)
-			}
-			synced++
-			continue
 		}
 
-		if err := s.mergeRelationInNeo4j(ctx, session, rel); err != nil {
-			logger.Warnf(ctx, "[GraphProjection] 同步关系失败 %s: %v", rel.ID, err)
-			s.relationRepo.MarkFailed(ctx, rel.ID, fmt.Sprintf("Neo4j MERGE 失败: %v", err))
-			continue
+		if len(toDelete) > 0 {
+			n, errs := s.batchDeleteRelations(ctx, session, relType, toDelete)
+			synced += n
+			for id, e := range errs {
+				s.relationRepo.MarkFailed(ctx, id, e)
+			}
 		}
-		s.relationRepo.MarkSynced(ctx, rel.ID, "", time.Now())
-		synced++
+		if len(toUpsert) > 0 {
+			n, errs := s.batchMergeRelations(ctx, session, relType, toUpsert)
+			synced += n
+			for id, e := range errs {
+				s.relationRepo.MarkFailed(ctx, id, e)
+			}
+		}
 	}
 
 	logger.Infof(ctx, "[GraphProjection] 关系同步完成: synced=%d total=%d kb=%s", synced, len(rows), kbID)
 	return synced, nil
 }
 
-// mergeRelationInNeo4j creates or updates a relationship in Neo4j.
-// The relation type has already been validated by the whitelist.
-func (s *graphProjectionService) mergeRelationInNeo4j(
-	ctx context.Context, session neo4j.Session, rel *types.GraphRelationRecord,
-) error {
+// batchMergeRelations uses UNWIND to MERGE multiple relations of the same type in one Cypher call.
+func (s *graphProjectionService) batchMergeRelations(
+	ctx context.Context, session neo4j.Session, relType string, relations []*types.GraphRelationRecord,
+) (synced int, errs map[string]string) {
+	rows := make([]map[string]interface{}, 0, len(relations))
+	for _, r := range relations {
+		rows = append(rows, map[string]interface{}{
+			"source_relation_id": r.SourceRelationID,
+			"from_entity_id":     r.FromEntityID,
+			"to_entity_id":       r.ToEntityID,
+			"relation_props":     jsonToString(r.RelationProps),
+			"source_site":        r.SourceSite,
+			"confidence_score":   r.ConfidenceScore,
+		})
+	}
+
 	_, err := session.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
 		// Relation type is safe to interpolate — validated by SanitizeRelationType.
 		query := fmt.Sprintf(`
-			MATCH (from:GraphEntity {source_entity_id: $from_seid})
-			MATCH (to:GraphEntity {source_entity_id: $to_seid})
-			MERGE (from)-[r:%s {source_relation_id: $srid}]->(to)
-			SET r.relation_props = $relation_props,
-			    r.source_site = $source_site,
-			    r.confidence_score = $confidence_score
-		`, rel.RelationType)
-		_, err := tx.Run(ctx, query, map[string]interface{}{
-			"from_seid":        rel.FromEntityID,
-			"to_seid":          rel.ToEntityID,
-			"srid":             rel.SourceRelationID,
-			"relation_props":   jsonToString(rel.RelationProps),
-			"source_site":      rel.SourceSite,
-			"confidence_score": rel.ConfidenceScore,
-		})
+			UNWIND $rows AS row
+			MATCH (from:GraphEntity {source_entity_id: row.from_entity_id})
+			MATCH (to:GraphEntity {source_entity_id: row.to_entity_id})
+			MERGE (from)-[r:%s {source_relation_id: row.source_relation_id}]->(to)
+			SET r.relation_props = row.relation_props,
+			    r.source_site = row.source_site,
+			    r.confidence_score = row.confidence_score
+		`, relType)
+		_, err := tx.Run(ctx, query, map[string]interface{}{"rows": rows})
 		return nil, err
 	})
-	return err
+	if err != nil {
+		errs = make(map[string]string)
+		for _, r := range relations {
+			errs[r.ID] = fmt.Sprintf("Neo4j 批量MERGE失败: %v", err)
+		}
+		return 0, errs
+	}
+
+	now := time.Now()
+	for _, r := range relations {
+		s.relationRepo.MarkSynced(ctx, r.ID, "", now)
+	}
+	return len(relations), nil
 }
 
-// deleteRelationInNeo4j removes a relationship from Neo4j.
-func (s *graphProjectionService) deleteRelationInNeo4j(
-	ctx context.Context, session neo4j.Session, rel *types.GraphRelationRecord,
-) error {
-	_, err := session.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
-		// SanitizeRelationType already validated the type is safe to interpolate.
-		query := fmt.Sprintf(`
-			MATCH (:GraphEntity {source_entity_id: $from_seid})-[r:%s {source_relation_id: $srid}]->(:GraphEntity {source_entity_id: $to_seid})
-			DELETE r
-		`, rel.RelationType)
-		_, err := tx.Run(ctx, query, map[string]interface{}{
-			"from_seid": rel.FromEntityID,
-			"to_seid":   rel.ToEntityID,
-			"srid":      rel.SourceRelationID,
+// batchDeleteRelations uses UNWIND to DELETE multiple relations of the same type in one Cypher call.
+func (s *graphProjectionService) batchDeleteRelations(
+	ctx context.Context, session neo4j.Session, relType string, relations []*types.GraphRelationRecord,
+) (deleted int, errs map[string]string) {
+	rows := make([]map[string]interface{}, 0, len(relations))
+	for _, r := range relations {
+		rows = append(rows, map[string]interface{}{
+			"source_relation_id": r.SourceRelationID,
+			"from_entity_id":     r.FromEntityID,
+			"to_entity_id":       r.ToEntityID,
 		})
+	}
+
+	_, err := session.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
+		query := fmt.Sprintf(`
+			UNWIND $rows AS row
+			MATCH (from:GraphEntity {source_entity_id: row.from_entity_id})-[r:%s {source_relation_id: row.source_relation_id}]->(to:GraphEntity {source_entity_id: row.to_entity_id})
+			DELETE r
+		`, relType)
+		_, err := tx.Run(ctx, query, map[string]interface{}{"rows": rows})
 		return nil, err
 	})
-	return err
+	if err != nil {
+		errs = make(map[string]string)
+		for _, r := range relations {
+			errs[r.ID] = fmt.Sprintf("Neo4j 批量删除失败: %v", err)
+		}
+		return 0, errs
+	}
+
+	now := time.Now()
+	for _, r := range relations {
+		s.relationRepo.MarkSynced(ctx, r.ID, "", now)
+	}
+	return len(relations), nil
 }
 
 // jsonToString converts types.JSON to a JSON string for Neo4j storage.
