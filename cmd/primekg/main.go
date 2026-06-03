@@ -77,10 +77,10 @@ func main() {
 
 		const batchSize = 500
 		type nodeRow struct {
-			seid, label, name string
+			Seid, Label, Name string
 		}
 		type edgeRow struct {
-			seid, pid, src, alt string
+			Seid, Pid, Src, Alt string
 		}
 
 		var (
@@ -97,8 +97,8 @@ func main() {
 				// 批量 MERGE 节点
 				_, err := tx.Run(ctx, `
 					UNWIND $rows AS row
-					MERGE (n:GraphEntity {source_entity_id: row.seid})
-					SET n.entity_type = row.label, n.entity_name = row.name
+					MERGE (n:GraphEntity {source_entity_id: row.Seid})
+					SET n.entity_type = row.Label, n.entity_name = row.Name
 				`, map[string]any{"rows": nodes})
 				if err != nil {
 					return nil, err
@@ -108,8 +108,8 @@ func main() {
 				if len(edges) > 0 {
 					_, err = tx.Run(ctx, `
 						UNWIND $rows AS row
-						MATCH (n:GraphEntity {source_entity_id: row.seid})
-						MATCH (p {primekg_id: row.pid, node_source: row.src})
+						MATCH (n:GraphEntity {source_entity_id: row.Seid})
+						MATCH (p {primekg_id: row.Pid, node_source: row.Src})
 						MERGE (n)-[:REFERENCES]->(p)
 					`, map[string]any{"rows": edges})
 					if err != nil {
@@ -121,9 +121,9 @@ func main() {
 				if len(edgesAlt) > 0 {
 					_, err = tx.Run(ctx, `
 						UNWIND $rows AS row
-						MATCH (n:GraphEntity {source_entity_id: row.seid})
+						MATCH (n:GraphEntity {source_entity_id: row.Seid})
 						MATCH (p)
-						WHERE p.primekg_id = row.pid AND (p.node_source = row.src OR p.node_source = row.alt)
+						WHERE p.primekg_id = row.Pid AND (p.node_source = row.Src OR p.node_source = row.Alt)
 						MERGE (n)-[:REFERENCES]->(p)
 					`, map[string]any{"rows": edgesAlt})
 					if err != nil {
@@ -165,11 +165,11 @@ func main() {
 			}
 
 			seid := fmt.Sprintf("dict:%d", r.ID)
-			nodes = append(nodes, nodeRow{seid: seid, label: label, name: name})
+			nodes = append(nodes, nodeRow{Seid: seid, Label: label, Name: name})
 			if altSource != "" {
-				edgesAlt = append(edgesAlt, edgeRow{seid: seid, pid: primekgID, src: nodeSource, alt: altSource})
+				edgesAlt = append(edgesAlt, edgeRow{Seid: seid, Pid: primekgID, Src: nodeSource, Alt: altSource})
 			} else {
-				edges = append(edges, edgeRow{seid: seid, pid: primekgID, src: nodeSource})
+				edges = append(edges, edgeRow{Seid: seid, Pid: primekgID, Src: nodeSource})
 			}
 			created++
 			if len(nodes) >= batchSize {
