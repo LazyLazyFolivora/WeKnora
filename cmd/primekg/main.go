@@ -76,17 +76,11 @@ func main() {
 		defer session.Close(ctx)
 
 		const batchSize = 500
-		type nodeRow struct {
-			Seid, Label, Name string
-		}
-		type edgeRow struct {
-			Seid, Pid, Src, Alt string
-		}
 
 		var (
-			nodes   []nodeRow
-			edges   []edgeRow
-			edgesAlt []edgeRow
+			nodes    []map[string]any
+			edges    []map[string]any
+			edgesAlt []map[string]any
 			created, noType, noID int
 		)
 		flush := func() {
@@ -96,10 +90,10 @@ func main() {
 			_, err := session.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
 				// 批量 MERGE 节点
 				_, err := tx.Run(ctx, `
-					UNWIND $rows AS row
-					MERGE (n:GraphEntity {source_entity_id: row.Seid})
-					SET n.entity_type = row.Label, n.entity_name = row.Name
-				`, map[string]any{"rows": nodes})
+						UNWIND $rows AS row
+						MERGE (n:GraphEntity {source_entity_id: row.seid})
+						SET n.entity_type = row.label, n.entity_name = row.name
+					`, map[string]any{"rows": nodes})
 				if err != nil {
 					return nil, err
 				}
@@ -107,11 +101,11 @@ func main() {
 				// 批量 MERGE 边（无 alt）
 				if len(edges) > 0 {
 					_, err = tx.Run(ctx, `
-						UNWIND $rows AS row
-						MATCH (n:GraphEntity {source_entity_id: row.Seid})
-						MATCH (p {primekg_id: row.Pid, node_source: row.Src})
-						MERGE (n)-[:REFERENCES]->(p)
-					`, map[string]any{"rows": edges})
+							UNWIND $rows AS row
+							MATCH (n:GraphEntity {source_entity_id: row.seid})
+							MATCH (p {primekg_id: row.pid, node_source: row.src})
+							MERGE (n)-[:REFERENCES]->(p)
+						`, map[string]any{"rows": edges})
 					if err != nil {
 						return nil, err
 					}
@@ -120,12 +114,12 @@ func main() {
 				// 批量 MERGE 边（有 alt，如 MONDO/MONDO_grouped）
 				if len(edgesAlt) > 0 {
 					_, err = tx.Run(ctx, `
-						UNWIND $rows AS row
-						MATCH (n:GraphEntity {source_entity_id: row.Seid})
-						MATCH (p)
-						WHERE p.primekg_id = row.Pid AND (p.node_source = row.Src OR p.node_source = row.Alt)
-						MERGE (n)-[:REFERENCES]->(p)
-					`, map[string]any{"rows": edgesAlt})
+							UNWIND $rows AS row
+							MATCH (n:GraphEntity {source_entity_id: row.seid})
+							MATCH (p)
+							WHERE p.primekg_id = row.pid AND (p.node_source = row.src OR p.node_source = row.alt)
+							MERGE (n)-[:REFERENCES]->(p)
+						`, map[string]any{"rows": edgesAlt})
 					if err != nil {
 						return nil, err
 					}
@@ -165,11 +159,11 @@ func main() {
 			}
 
 			seid := fmt.Sprintf("dict:%d", r.ID)
-			nodes = append(nodes, nodeRow{Seid: seid, Label: label, Name: name})
+			nodes = append(nodes, map[string]any{"seid": seid, "label": label, "name": name})
 			if altSource != "" {
-				edgesAlt = append(edgesAlt, edgeRow{Seid: seid, Pid: primekgID, Src: nodeSource, Alt: altSource})
+				edgesAlt = append(edgesAlt, map[string]any{"seid": seid, "pid": primekgID, "src": nodeSource, "alt": altSource})
 			} else {
-				edges = append(edges, edgeRow{Seid: seid, Pid: primekgID, Src: nodeSource})
+				edges = append(edges, map[string]any{"seid": seid, "pid": primekgID, "src": nodeSource})
 			}
 			created++
 			if len(nodes) >= batchSize {
