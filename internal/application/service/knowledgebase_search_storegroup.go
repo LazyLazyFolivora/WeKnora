@@ -181,6 +181,7 @@ func (s *knowledgeBaseService) authorizeKBAccess(
 	callerTenantRole := types.TenantRoleFromContext(ctx)
 
 	systemDefaultKBIDs, _ := ctx.Value(types.SystemDefaultKBIDsContextKey).([]string)
+	logger.Infof(ctx, "[AuthDebug] ctx has SystemDefaultKBIDs=%v, checking kbs with requestTenantID=%d", systemDefaultKBIDs, requestTenantID)
 	for _, kb := range kbs {
 		if kb.TenantID == requestTenantID {
 			continue
