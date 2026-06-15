@@ -180,8 +180,12 @@ func (s *knowledgeBaseService) authorizeKBAccess(
 
 	callerTenantRole := types.TenantRoleFromContext(ctx)
 
+	systemDefaultKBIDs, _ := ctx.Value(types.SystemDefaultKBIDsContextKey).([]string)
 	for _, kb := range kbs {
 		if kb.TenantID == requestTenantID {
+			continue
+		}
+		if isSystemDefaultKB(kb.ID, systemDefaultKBIDs) {
 			continue
 		}
 		hasPermission, permErr := s.kbShareService.HasTenantKBPermission(
@@ -206,6 +210,15 @@ func (s *knowledgeBaseService) authorizeKBAccess(
 		}
 	}
 	return nil
+}
+
+func isSystemDefaultKB(kbID string, ids []string) bool {
+	for _, id := range ids {
+		if id == kbID {
+			return true
+		}
+	}
+	return false
 }
 
 // validateSameEmbeddingModel rejects multi-KB searches that span more than
