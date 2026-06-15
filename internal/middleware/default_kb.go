@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -64,8 +63,6 @@ func SystemDefaultKB(db *gorm.DB) gin.HandlerFunc {
 		merged := dedup(append(existing, ids...))
 		body["knowledge_base_ids"] = merged
 		logger.Infof(c.Request.Context(), "[SystemDefaultKB] Injected KBs: existing=%v, default=%v, merged=%v", existing, ids, merged)
-		ctx := context.WithValue(c.Request.Context(), types.SystemDefaultKBIDsContextKey, ids)
-		c.Request = c.Request.WithContext(ctx)
 		newRaw, _ := json.Marshal(body)
 
 		c.Request.Body = io.NopCloser(bytes.NewBuffer(newRaw))
@@ -117,4 +114,3 @@ func dedup(slice []string) []string {
 	}
 	return out
 }
-

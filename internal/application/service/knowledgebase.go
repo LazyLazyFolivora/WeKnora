@@ -18,6 +18,7 @@ import (
 	secutils "github.com/Tencent/WeKnora/internal/utils"
 	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
+	"gorm.io/gorm"
 )
 
 // ErrInvalidTenantID represents an error for invalid tenant ID
@@ -37,6 +38,7 @@ type knowledgeBaseService struct {
 	fileSvc        interfaces.FileService
 	graphEngine    interfaces.RetrieveGraphRepository
 	asynqClient    interfaces.TaskEnqueuer
+	db             *gorm.DB
 }
 
 // NewKnowledgeBaseService creates a new knowledge base service
@@ -52,6 +54,7 @@ func NewKnowledgeBaseService(repo interfaces.KnowledgeBaseRepository,
 	fileSvc interfaces.FileService,
 	graphEngine interfaces.RetrieveGraphRepository,
 	asynqClient interfaces.TaskEnqueuer,
+	db *gorm.DB,
 ) interfaces.KnowledgeBaseService {
 	return &knowledgeBaseService{
 		repo:           repo,
@@ -66,6 +69,7 @@ func NewKnowledgeBaseService(repo interfaces.KnowledgeBaseRepository,
 		fileSvc:        fileSvc,
 		graphEngine:    graphEngine,
 		asynqClient:    asynqClient,
+		db:             db,
 	}
 }
 

@@ -33,8 +33,6 @@ const (
 	LangfuseTraceContextKey ContextKey = "LangfuseTrace"
 	// SystemAdminContextKey is the context key indicating whether the user is a system administrator
 	SystemAdminContextKey ContextKey = "SystemAdmin"
-	// SystemDefaultKBIDsContextKey carries system default KB ID list
-	SystemDefaultKBIDsContextKey ContextKey = "SystemDefaultKBIDs"
 )
 
 // String returns the string representation of the context key

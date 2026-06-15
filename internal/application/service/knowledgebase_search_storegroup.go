@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -180,8 +181,7 @@ func (s *knowledgeBaseService) authorizeKBAccess(
 
 	callerTenantRole := types.TenantRoleFromContext(ctx)
 
-	systemDefaultKBIDs, _ := ctx.Value(types.SystemDefaultKBIDsContextKey).([]string)
-	logger.Infof(ctx, "[AuthDebug] ctx has SystemDefaultKBIDs=%v, checking kbs with requestTenantID=%d", systemDefaultKBIDs, requestTenantID)
+	systemDefaultKBIDs := s.getSystemDefaultKBIDs(ctx)
 	for _, kb := range kbs {
 		if kb.TenantID == requestTenantID {
 			continue
@@ -211,6 +211,20 @@ func (s *knowledgeBaseService) authorizeKBAccess(
 		}
 	}
 	return nil
+}
+
+const systemDefaultKBKey = "system_default_kb_ids"
+
+func (s *knowledgeBaseService) getSystemDefaultKBIDs(ctx context.Context) []string {
+	var setting types.SystemSetting
+	if err := s.db.Where("key = ?", systemDefaultKBKey).First(&setting).Error; err != nil {
+		return nil
+	}
+	var ids []string
+	if err := json.Unmarshal(json.RawMessage(setting.Value), &ids); err != nil {
+		return nil
+	}
+	return ids
 }
 
 func isSystemDefaultKB(kbID string, ids []string) bool {

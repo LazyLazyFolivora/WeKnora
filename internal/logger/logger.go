@@ -516,7 +516,6 @@ func CloneContext(ctx context.Context) context.Context {
 		// to the same trace opened by GinMiddleware, instead of each call
 		// auto-creating its own orphan trace.
 		types.LangfuseTraceContextKey,
-		types.SystemDefaultKBIDsContextKey,
 	} {
 		if v := ctx.Value(k); v != nil {
 			newCtx = context.WithValue(newCtx, k, v)
