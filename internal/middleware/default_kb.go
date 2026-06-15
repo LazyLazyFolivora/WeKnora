@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Tencent/WeKnora/internal/logger"
 	"github.com/Tencent/WeKnora/internal/types"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -59,7 +60,9 @@ func SystemDefaultKB(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		existing := toStringSlice(body["knowledge_base_ids"])
-		body["knowledge_base_ids"] = dedup(append(existing, ids...))
+		merged := dedup(append(existing, ids...))
+		body["knowledge_base_ids"] = merged
+		logger.Infof(c.Request.Context(), "[SystemDefaultKB] Injected KBs: existing=%v, default=%v, merged=%v", existing, ids, merged)
 		newRaw, _ := json.Marshal(body)
 
 		c.Request.Body = io.NopCloser(bytes.NewBuffer(newRaw))
