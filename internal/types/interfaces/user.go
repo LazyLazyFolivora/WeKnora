@@ -16,6 +16,8 @@ type UserService interface {
 	GetOIDCAuthorizationURL(ctx context.Context, redirectURI string) (*types.OIDCAuthURLResponse, error)
 	// LoginWithOIDC exchanges the callback code, auto-provisions users if needed, and completes login
 	LoginWithOIDC(ctx context.Context, code, redirectURI string) (*types.OIDCCallbackResponse, error)
+	// LoginWithCAS validates a CAS ticket, auto-provisions users if needed, and completes login
+	LoginWithCAS(ctx context.Context, ticket, redirectURI string) (*types.OIDCCallbackResponse, error)
 	// GetUserByID gets a user by ID
 	GetUserByID(ctx context.Context, id string) (*types.User, error)
 	// GetUsersByIDs batch-fetches users by id, returning a map keyed by
