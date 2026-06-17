@@ -75,7 +75,10 @@ func (a *casAttrs) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 // ParseCASServiceResponse parses raw CAS XML and returns user info or an
 // auth-failure description. When the ticket is invalid CASUserInfo is nil
 // and the string contains the CAS error message.
-func ParseCASServiceResponse(raw []byte) (*CASUserInfo, string) {
+// Attribute names are configurable via CAS settings; pass empty strings to
+// use sensible defaults (displayName / email / mail for name and email, and
+// the <cas:user> element for username).
+func ParseCASServiceResponse(raw []byte, usernameAttr, displayNameAttr, emailAttr string) (*CASUserInfo, string) {
 	var resp casServiceResponse
 	if err := xml.Unmarshal(raw, &resp); err != nil {
 		return nil, "failed to parse CAS response"
@@ -85,10 +88,30 @@ func ParseCASServiceResponse(raw []byte) (*CASUserInfo, string) {
 			Username: resp.AuthenticationSuccess.User,
 		}
 		if resp.AuthenticationSuccess.Attributes != nil {
-			info.DisplayName = resp.AuthenticationSuccess.Attributes["displayName"]
-			info.Email = resp.AuthenticationSuccess.Attributes["email"]
+			attrs := resp.AuthenticationSuccess.Attributes
+			if usernameAttr != "" {
+				if v := attrs[usernameAttr]; v != "" {
+					info.Username = v
+				}
+			}
+			if displayNameAttr != "" {
+				if v := attrs[displayNameAttr]; v != "" {
+					info.DisplayName = v
+				}
+			}
+			if info.DisplayName == "" {
+				info.DisplayName = attrs["displayName"]
+			}
+			if emailAttr != "" {
+				if v := attrs[emailAttr]; v != "" {
+					info.Email = v
+				}
+			}
 			if info.Email == "" {
-				info.Email = resp.AuthenticationSuccess.Attributes["mail"]
+				info.Email = attrs["email"]
+				if info.Email == "" {
+					info.Email = attrs["mail"]
+				}
 			}
 		}
 		return info, ""

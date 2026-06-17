@@ -65,13 +65,6 @@ func (s *userService) LoginWithCAS(ctx context.Context, ticket, redirectURI stri
 		return nil, fmt.Errorf("CAS provider did not return a username")
 	}
 
-	// Map display name from configured attribute if present.
-	if settings.DisplayNameAttribute != "" {
-		// Already resolved during validateCASTicket via ParseCASServiceResponse
-		// which uses the "displayName" attribute by default. The settings allow
-		// overriding this, which we apply below in the provision step.
-	}
-
 	user, err := s.userRepo.GetUserByUsername(ctx, info.Username)
 	if err != nil && !isUserLookupNotFound(err) {
 		return nil, fmt.Errorf("failed to query user by username: %w", err)
@@ -142,20 +135,13 @@ func (s *userService) validateCASTicket(ctx context.Context, settings *types.CAS
 		return nil, fmt.Errorf("failed to read CAS response: %w", err)
 	}
 
-	info, failure := types.ParseCASServiceResponse(body)
+	info, failure := types.ParseCASServiceResponse(body,
+		settings.UsernameAttribute,
+		settings.DisplayNameAttribute,
+		settings.EmailAttribute,
+	)
 	if info == nil {
 		return nil, fmt.Errorf("CAS authentication failed: %s", failure)
-	}
-
-	// Apply attribute mapping from settings.
-	if settings.UsernameAttribute != "" {
-		// The XML parser puts all attributes into the Attributes map.
-		// We need to re-parse to get custom attribute mapping. For now,
-		// the default <cas:user> element is used for username. Admin can
-		// set CAS_AUTH_USERNAME_ATTRIBUTE to override.
-	}
-	if settings.EmailAttribute != "" && info.Email == "" {
-		// parse again for custom email attribute
 	}
 
 	return info, nil

@@ -75,7 +75,13 @@ func (h *AuthHandler) GetCASLoginURL(c *gin.Context) {
 		displayName = "CAS"
 	}
 
-	loginURL := fmt.Sprintf("%s/login?service=%s", serverURL, urlQueryEscape(redirectURI))
+	// Prefer the configured callback URL over the frontend-supplied redirect_uri.
+	serviceURL := redirectURI
+	if cfg.CallbackURL != "" {
+		serviceURL = cfg.CallbackURL
+	}
+
+	loginURL := fmt.Sprintf("%s/login?service=%s", serverURL, urlQueryEscape(serviceURL))
 
 	logger.Infof(ctx, "[CAS] Built login URL: %s", loginURL)
 
@@ -105,14 +111,17 @@ func (h *AuthHandler) CASCallback(c *gin.Context) {
 		return
 	}
 
-	// Build the service URL that CAS validated against — this is the
-	// callback URL as the CAS server sees it (the same URL minus the
-	// ticket parameter).
-	callbackURL := c.Request.URL
-	callbackURL.RawQuery = ""
-	serviceURL := callbackURL.String()
+	// Build the service URL — prefer the configured callback URL so the
+	// service parameter matches what was sent to CAS during login, regardless
+	// of how the current request reached this server (IP vs domain).
+	serviceURL := c.Request.URL
+	serviceURL.RawQuery = ""
+	serviceURLStr := serviceURL.String()
+	if cfg := h.configInfo.CASAuth; cfg != nil && cfg.CallbackURL != "" {
+		serviceURLStr = cfg.CallbackURL
+	}
 
-	resp, err := h.userService.LoginWithCAS(ctx, ticket, serviceURL)
+	resp, err := h.userService.LoginWithCAS(ctx, ticket, serviceURLStr)
 	if err != nil {
 		logger.Errorf(ctx, "Failed to complete CAS login via callback: %v", err)
 		c.Redirect(http.StatusFound, frontendRedirectURI+"#oidc_error="+urlQueryEscape("login_failed")+"&oidc_error_description="+urlQueryEscape(err.Error()))
