@@ -36,6 +36,9 @@ var noAuthAPI = map[string][]string{
 	"/api/v1/auth/oidc/config":        {"GET"},
 	"/api/v1/auth/oidc/url":           {"GET"},
 	"/api/v1/auth/oidc/callback":      {"GET"},
+	"/api/v1/auth/cas/config":         {"GET"},
+	"/api/v1/auth/cas/url":            {"GET"},
+	"/api/v1/auth/cas/callback":       {"GET"},
 	"/api/v1/auth/refresh":            {"POST"},
 	// IM platforms (Feishu, Slack, etc.) commonly issue a HEAD request
 	// before GET to validate Content-Type / Content-Length when rendering
