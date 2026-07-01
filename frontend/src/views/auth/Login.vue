@@ -217,6 +217,15 @@
                 class="oidc-button" @click="handleOIDCLogin">
                 {{ oidcLoading ? $t('auth.redirectingToOIDC') : oidcLoginText }}
               </t-button>
+
+              <div v-if="casEnabled" class="oidc-divider">
+                <span>{{ $t('auth.orContinueWith') }}</span>
+              </div>
+
+              <t-button v-if="casEnabled" theme="default" size="large" block :loading="casLoading" :disabled="loading"
+                class="oidc-button" @click="handleCASLogin">
+                {{ casLoading ? $t('auth.redirectingToCAS') : casLoginText }}
+              </t-button>
             </t-form>
 
             <!-- Features list -->
@@ -338,6 +347,8 @@ import {
   register,
   getOIDCAuthorizationURL,
   getOIDCConfig,
+  getCASLoginURL,
+  getCASConfig,
   autoSetup,
   getAuthConfig,
   userInfoFromApi,
@@ -394,10 +405,13 @@ const registerFormRef = ref()
 // State management
 const loading = ref(false)
 const oidcLoading = ref(false)
+const casLoading = ref(false)
 const isRegisterMode = ref(false)
 const showLanguageMenu = ref(false)
 const oidcEnabled = ref(false)
 const oidcProviderName = ref('')
+const casEnabled = ref(false)
+const casProviderName = ref('')
 // registrationEnabled defaults to true so that on first paint the Register
 // link is visible; the actual mode is fetched from /auth/config in onMounted.
 // In invite_only mode the link/card are hidden.
@@ -428,6 +442,12 @@ const oidcLoginText = computed(() => {
     return t('auth.oidcLoginWithProvider', { provider: oidcProviderName.value })
   }
   return t('auth.oidcLogin')
+})
+const casLoginText = computed(() => {
+  if (casProviderName.value) {
+    return t('auth.casLoginWithProvider', { provider: casProviderName.value })
+  }
+  return t('auth.casLogin')
 })
 const currentLangOption = computed(() => languageOptions.find(l => l.value === currentLanguage.value))
 
@@ -587,6 +607,7 @@ const persistLoginResponse = async (response: any) => {
 }
 
 const getBackendOIDCRedirectURI = () => `${window.location.origin}/api/v1/auth/oidc/callback`
+const getBackendCASRedirectURI = () => `${window.location.origin}/api/v1/auth/cas/callback`
 
 const loadOIDCConfig = async () => {
   try {
@@ -596,6 +617,17 @@ const loadOIDCConfig = async () => {
   } catch {
     oidcEnabled.value = false
     oidcProviderName.value = ''
+  }
+}
+
+const loadCASConfig = async () => {
+  try {
+    const response = await getCASConfig()
+    casEnabled.value = !!response.success && !!response.enabled
+    casProviderName.value = response.provider_display_name || ''
+  } catch {
+    casEnabled.value = false
+    casProviderName.value = ''
   }
 }
 
@@ -628,6 +660,26 @@ const handleOIDCLogin = async () => {
     MessagePlugin.error(error.message || t('auth.oidcLoginFailed'))
   } finally {
     oidcLoading.value = false
+  }
+}
+
+const handleCASLogin = async () => {
+  try {
+    casLoading.value = true
+    const response = await getCASLoginURL(getBackendCASRedirectURI())
+    const authorizationURL = response.authorization_url
+
+    if (!response.success || !authorizationURL) {
+      MessagePlugin.error(response.message || t('auth.casLoginFailed'))
+      return
+    }
+
+    window.location.href = authorizationURL
+  } catch (error: any) {
+    console.error('CAS 登录跳转失败:', error)
+    MessagePlugin.error(error.message || t('auth.casLoginFailed'))
+  } finally {
+    casLoading.value = false
   }
 }
 
@@ -750,6 +802,7 @@ onMounted(async () => {
     // they're explicitly trying to register, not bootstrap a Lite
     // single-user instance.
     loadOIDCConfig()
+    loadCASConfig()
     return
   }
 
@@ -775,6 +828,7 @@ onMounted(async () => {
   }
 
   loadOIDCConfig()
+  loadCASConfig()
   loadAuthConfig()
 })
 </script>
