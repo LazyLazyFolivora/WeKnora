@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -180,8 +181,12 @@ func (s *knowledgeBaseService) authorizeKBAccess(
 
 	callerTenantRole := types.TenantRoleFromContext(ctx)
 
+	systemDefaultKBIDs := s.getSystemDefaultKBIDs(ctx)
 	for _, kb := range kbs {
 		if kb.TenantID == requestTenantID {
+			continue
+		}
+		if isSystemDefaultKB(kb.ID, systemDefaultKBIDs) {
 			continue
 		}
 		hasPermission, permErr := s.kbShareService.HasTenantKBPermission(
@@ -206,6 +211,29 @@ func (s *knowledgeBaseService) authorizeKBAccess(
 		}
 	}
 	return nil
+}
+
+const systemDefaultKBKey = "system_default_kb_ids"
+
+func (s *knowledgeBaseService) getSystemDefaultKBIDs(ctx context.Context) []string {
+	var setting types.SystemSetting
+	if err := s.db.Where("key = ?", systemDefaultKBKey).First(&setting).Error; err != nil {
+		return nil
+	}
+	var ids []string
+	if err := json.Unmarshal(json.RawMessage(setting.Value), &ids); err != nil {
+		return nil
+	}
+	return ids
+}
+
+func isSystemDefaultKB(kbID string, ids []string) bool {
+	for _, id := range ids {
+		if id == kbID {
+			return true
+		}
+	}
+	return false
 }
 
 // validateSameEmbeddingModel rejects multi-KB searches that span more than

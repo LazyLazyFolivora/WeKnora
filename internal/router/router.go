@@ -15,6 +15,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	swaggerFiles "github.com/swaggo/files"
+	"gorm.io/gorm"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"go.uber.org/dig"
 
@@ -36,6 +37,7 @@ type RouterParams struct {
 	dig.In
 
 	Config                       *config.Config
+	DB                           *gorm.DB
 	FileService                  interfaces.FileService
 	UserService                  interfaces.UserService
 	KBService                    interfaces.KnowledgeBaseService
@@ -161,6 +163,7 @@ func NewRouter(params RouterParams) *gin.Engine {
 
 	// 认证中间件
 	r.Use(middleware.Auth(params.TenantService, params.UserService, params.TenantMemberService, params.Config))
+	r.Use(middleware.SystemDefaultKB(params.DB))
 
 	// 文件服务：统一代理本地/MinIO/COS/TOS存储后端（需要认证）
 	serveFiles(r, params.FileService)
