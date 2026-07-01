@@ -20,6 +20,7 @@ import (
 	secutils "github.com/Tencent/WeKnora/internal/utils"
 	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
+	"gorm.io/gorm"
 )
 
 // ErrInvalidTenantID represents an error for invalid tenant ID
@@ -27,22 +28,22 @@ var ErrInvalidTenantID = errors.New("invalid tenant ID")
 
 // knowledgeBaseService implements the knowledge base service interface
 type knowledgeBaseService struct {
-	repo            interfaces.KnowledgeBaseRepository
-	kgRepo          interfaces.KnowledgeRepository
-	chunkRepo       interfaces.ChunkRepository
-	shareRepo       interfaces.KBShareRepository
-	kbShareService  interfaces.KBShareService
-	modelService    interfaces.ModelService
-	retrieveEngine  interfaces.RetrieveEngineRegistry
-	ownership       retriever.TenantStoreOwnership
-	tenantRepo      interfaces.TenantRepository
-	fileSvc         interfaces.FileService
-	storageResolver interfaces.StorageBackendResolver
-	graphEngine     interfaces.RetrieveGraphRepository
-	asynqClient     interfaces.TaskEnqueuer
-	dsRepo          interfaces.DataSourceRepository
-	syncLogRepo     interfaces.SyncLogRepository
-	dsScheduler     *datasource.Scheduler
+	repo           interfaces.KnowledgeBaseRepository
+	kgRepo         interfaces.KnowledgeRepository
+	chunkRepo      interfaces.ChunkRepository
+	shareRepo      interfaces.KBShareRepository
+	kbShareService interfaces.KBShareService
+	modelService   interfaces.ModelService
+	retrieveEngine interfaces.RetrieveEngineRegistry
+	ownership      retriever.TenantStoreOwnership
+	tenantRepo     interfaces.TenantRepository
+	fileSvc        interfaces.FileService
+	graphEngine    interfaces.RetrieveGraphRepository
+	asynqClient    interfaces.TaskEnqueuer
+	dsRepo         interfaces.DataSourceRepository
+	syncLogRepo    interfaces.SyncLogRepository
+	dsScheduler    *datasource.Scheduler
+	db             *gorm.DB
 }
 
 // NewKnowledgeBaseService creates a new knowledge base service
@@ -62,24 +63,25 @@ func NewKnowledgeBaseService(repo interfaces.KnowledgeBaseRepository,
 	dsRepo interfaces.DataSourceRepository,
 	syncLogRepo interfaces.SyncLogRepository,
 	dsScheduler *datasource.Scheduler,
+	db *gorm.DB,
 ) interfaces.KnowledgeBaseService {
 	return &knowledgeBaseService{
-		repo:            repo,
-		kgRepo:          kgRepo,
-		chunkRepo:       chunkRepo,
-		shareRepo:       shareRepo,
-		kbShareService:  kbShareService,
-		modelService:    modelService,
-		retrieveEngine:  retrieveEngine,
-		ownership:       ownership,
-		tenantRepo:      tenantRepo,
-		fileSvc:         fileSvc,
-		storageResolver: storageResolver,
-		graphEngine:     graphEngine,
-		asynqClient:     asynqClient,
-		dsRepo:          dsRepo,
-		syncLogRepo:     syncLogRepo,
-		dsScheduler:     dsScheduler,
+		repo:           repo,
+		kgRepo:         kgRepo,
+		chunkRepo:      chunkRepo,
+		shareRepo:      shareRepo,
+		kbShareService: kbShareService,
+		modelService:   modelService,
+		retrieveEngine: retrieveEngine,
+		ownership:      ownership,
+		tenantRepo:     tenantRepo,
+		fileSvc:        fileSvc,
+		graphEngine:    graphEngine,
+		asynqClient:    asynqClient,
+		dsRepo:         dsRepo,
+		syncLogRepo:    syncLogRepo,
+		dsScheduler:    dsScheduler,
+		db:             db,
 	}
 }
 
