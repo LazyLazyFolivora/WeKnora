@@ -4755,6 +4755,8 @@ export default {
       listChunksDesc: 'Получение полного содержимого фрагментов документа',
       queryGraph: 'Запрос графа знаний',
       queryGraphDesc: 'Запрос связей из графа знаний',
+      neo4jHybridSearch: 'Graph Hybrid Search',
+      neo4jHybridSearchDesc: 'Combined Neo4j knowledge graph traversal with vector/keyword hybrid search',
       getDocInfo: 'Информация о документе',
       getDocInfoDesc: 'Просмотр метаданных документа',
       dbQuery: 'Запрос к базе данных',

@@ -5244,6 +5244,8 @@ export default {
       listChunksDesc: 'Get complete chunk content of a document',
       queryGraph: 'Query Knowledge Graph',
       queryGraphDesc: 'Query relationships from knowledge graph',
+      neo4jHybridSearch: 'Graph Hybrid Search',
+      neo4jHybridSearchDesc: 'Combined Neo4j knowledge graph traversal with vector/keyword hybrid search',
       getDocInfo: 'Get Document Info',
       getDocInfoDesc: 'View document metadata',
       dbQuery: 'Query Database',

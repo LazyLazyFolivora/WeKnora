@@ -5332,6 +5332,8 @@ export default {
       listChunksDesc: '문서의 전체 청크 내용 조회',
       queryGraph: '지식 그래프 쿼리',
       queryGraphDesc: '지식 그래프에서 관계 조회',
+      neo4jHybridSearch: 'Graph Hybrid Search',
+      neo4jHybridSearchDesc: 'Combined Neo4j knowledge graph traversal with vector/keyword hybrid search',
       getDocInfo: '문서 정보 조회',
       getDocInfoDesc: '문서 메타데이터 보기',
       dbQuery: '데이터베이스 쿼리',
