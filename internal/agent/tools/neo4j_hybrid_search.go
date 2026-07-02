@@ -178,43 +178,42 @@ func (t *Neo4jHybridSearchTool) Execute(ctx context.Context, args json.RawMessag
 			mu.Unlock()
 
 			chunkIDs := extractChunkIDs(graphData.Node)
-			if len(chunkIDs) == 0 {
-				return nil
-			}
-
-			chunks, err := t.chunkRepo.ListChunksByIDOnly(gCtx, chunkIDs)
-			if err != nil {
-				mu.Lock()
-				errors = append(errors, fmt.Sprintf("failed to load graph chunks: %v", err))
-				mu.Unlock()
-				return nil
-			}
-
-			knowledgeIDs := make([]string, 0, len(chunks))
-			for _, c := range chunks {
-				knowledgeIDs = append(knowledgeIDs, c.KnowledgeID)
-			}
-
-			knowledges, err := t.knowledgeRepo.GetKnowledgeBatch(gCtx, tenantID, knowledgeIDs)
-			if err != nil {
-				mu.Lock()
-				errors = append(errors, fmt.Sprintf("failed to load knowledge: %v", err))
-				mu.Unlock()
-				return nil
-			}
-
-			knowledgeMap := make(map[string]*types.Knowledge, len(knowledges))
-			for _, k := range knowledges {
-				knowledgeMap[k.ID] = k
-			}
-
-			mu.Lock()
-			for _, chunk := range chunks {
-				if k, ok := knowledgeMap[chunk.KnowledgeID]; ok {
-					allResults = append(allResults, graphChunkToSearchResult(chunk, k))
+			chunkIDs := extractChunkIDs(graphData.Node)
+			if len(chunkIDs) > 0 {
+				chunks, err := t.chunkRepo.ListChunksByIDOnly(gCtx, chunkIDs)
+				if err != nil {
+					mu.Lock()
+					errors = append(errors, fmt.Sprintf("failed to load graph chunks: %v", err))
+					mu.Unlock()
+					return nil
 				}
+
+				knowledgeIDs := make([]string, 0, len(chunks))
+				for _, c := range chunks {
+					knowledgeIDs = append(knowledgeIDs, c.KnowledgeID)
+				}
+
+				knowledges, err := t.knowledgeRepo.GetKnowledgeBatch(gCtx, tenantID, knowledgeIDs)
+				if err != nil {
+					mu.Lock()
+					errors = append(errors, fmt.Sprintf("failed to load knowledge: %v", err))
+					mu.Unlock()
+					return nil
+				}
+
+				knowledgeMap := make(map[string]*types.Knowledge, len(knowledges))
+				for _, k := range knowledges {
+					knowledgeMap[k.ID] = k
+				}
+
+				mu.Lock()
+				for _, chunk := range chunks {
+					if k, ok := knowledgeMap[chunk.KnowledgeID]; ok {
+						allResults = append(allResults, graphChunkToSearchResult(chunk, k))
+					}
+				}
+				mu.Unlock()
 			}
-			mu.Unlock()
 			return nil
 		})
 	}
@@ -274,7 +273,7 @@ func (t *Neo4jHybridSearchTool) Execute(ctx context.Context, args json.RawMessag
 		return deduped[i].Score > deduped[j].Score
 	})
 
-	if len(deduped) == 0 {
+	if len(deduped) == 0 && len(allNodes) == 0 {
 		return &types.ToolResult{
 			Success: true,
 			Output:  "No relevant results found from graph or chunk search.",
@@ -295,6 +294,27 @@ func (t *Neo4jHybridSearchTool) Execute(ctx context.Context, args json.RawMessag
 	output += fmt.Sprintf("Knowledge Bases: %v\n", kbIDs)
 	output += fmt.Sprintf("Results: %d chunks (deduplicated)\n", len(deduped))
 	output += fmt.Sprintf("Graph: %d nodes, %d relations\n\n", len(allNodes), len(allRelations))
+
+	// Include graph node/relation details as text so the LLM can read them
+	// even when nodes have no associated chunks
+	if len(allNodes) > 0 {
+		output += "=== Graph Nodes ===\n"
+		for _, node := range allNodes {
+			output += fmt.Sprintf("  - %s", node.Name)
+			if len(node.Attributes) > 0 {
+				output += fmt.Sprintf(" [%s]", strings.Join(node.Attributes, ", "))
+			}
+			output += "\n"
+		}
+		output += "\n"
+	}
+	if len(allRelations) > 0 {
+		output += "=== Graph Relations ===\n"
+		for _, rel := range allRelations {
+			output += fmt.Sprintf("  - %s -[%s]-> %s\n", rel.Node1, rel.Type, rel.Node2)
+		}
+		output += "\n"
+	}
 
 	if len(errors) > 0 {
 		output += "=== Partial Errors ===\n"
@@ -393,6 +413,7 @@ func (t *Neo4jHybridSearchTool) generateCypherQuery(
 - Do NOT use any node labels — use plain (n)-[r]-(m) to search across all KBs.
 - Node properties: name, chunks, attributes.
 - Use toLower(n.name) CONTAINS toLower($search_term) for case-insensitive name matching.
+- Always add LIMIT 50 to avoid scanning the entire graph.
 - The query MUST RETURN n, r, m (source node, relationship, target node).
 - Output ONLY the Cypher query, no explanation, no markdown.`, strings.Join(schemaLines, "\n"))
 
