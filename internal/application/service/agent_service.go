@@ -405,7 +405,6 @@ func (s *agentService) registerTools(
 			tools.ToolGrepChunks:          true,
 			tools.ToolListKnowledgeChunks: true,
 			tools.ToolQueryKnowledgeGraph: true,
-			tools.ToolNeo4jHybridSearch:   true,
 			tools.ToolGetDocumentInfo:     true,
 			tools.ToolDatabaseQuery:       true,
 			tools.ToolDataAnalysis:        true,
@@ -454,8 +453,7 @@ func (s *agentService) registerTools(
 		tools.ToolGrepChunks:          true,
 		tools.ToolListKnowledgeChunks: true,
 		tools.ToolQueryKnowledgeGraph: true,
-		tools.ToolNeo4jHybridSearch:   true,
-		tools.ToolGetDocumentInfo:     true,
+				tools.ToolGetDocumentInfo:     true,
 		tools.ToolDatabaseQuery:       true,
 	}
 	allWikiToolSet := map[string]bool{
