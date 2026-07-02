@@ -227,6 +227,93 @@ func (n *Neo4jRepository) SearchNode(
 	return result.(*types.GraphData), nil
 }
 
+// SearchByCypher executes a read-only Cypher query that must RETURN n, r, m (node, relationship, node).
+func (n *Neo4jRepository) SearchByCypher(
+	ctx context.Context,
+	cypher string,
+	params map[string]interface{},
+) (*types.GraphData, error) {
+	if n.driver == nil {
+		logger.Warnf(ctx, "NOT SUPPORT RETRIEVE GRAPH")
+		return nil, nil
+	}
+
+	logger.Infof(ctx, "[SearchByCypher] executing cypher: %s, params: %+v", cypher, params)
+
+	session := n.driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead})
+	defer session.Close(ctx)
+
+	result, err := session.ExecuteRead(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
+		cypherResult, err := tx.Run(ctx, cypher, params)
+		if err != nil {
+			return nil, fmt.Errorf("failed to run cypher: %v", err)
+		}
+
+		graphData := &types.GraphData{}
+		nodeSeen := make(map[string]bool)
+		recordCount := 0
+		skippedCount := 0
+
+		for cypherResult.Next(ctx) {
+			record := cypherResult.Record()
+			nodeVal, _ := record.Get("n")
+			relVal, _ := record.Get("r")
+			targetVal, _ := record.Get("m")
+
+			if nodeVal == nil || relVal == nil || targetVal == nil {
+				skippedCount++
+				continue
+			}
+
+			nodeData, ok1 := nodeVal.(neo4j.Node)
+			relData, ok2 := relVal.(neo4j.Relationship)
+			targetNodeData, ok3 := targetVal.(neo4j.Node)
+			if !ok1 || !ok2 || !ok3 {
+				skippedCount++
+				continue
+			}
+
+			for _, nd := range []neo4j.Node{nodeData, targetNodeData} {
+				nameStr, ok := nd.Props["name"].(string)
+				if !ok || nodeSeen[nameStr] {
+					continue
+				}
+				nodeSeen[nameStr] = true
+				chunks := []string{}
+				if rawChunks, ok := nd.Props["chunks"].([]interface{}); ok {
+					chunks = listI2listS(rawChunks)
+				}
+				attrs := []string{}
+				if rawAttrs, ok := nd.Props["attributes"].([]interface{}); ok {
+					attrs = listI2listS(rawAttrs)
+				}
+				graphData.Node = append(graphData.Node, &types.GraphNode{
+					Name:       nameStr,
+					Chunks:     chunks,
+					Attributes: attrs,
+				})
+			}
+
+			graphData.Relation = append(graphData.Relation, &types.GraphRelation{
+				Node1: nodeData.Props["name"].(string),
+				Node2: targetNodeData.Props["name"].(string),
+				Type:  relData.Type,
+			})
+			recordCount++
+		}
+
+		logger.Infof(ctx, "[SearchByCypher] parsed %d records (skipped %d), %d nodes, %d relations",
+			recordCount, skippedCount, len(graphData.Node), len(graphData.Relation))
+
+		return graphData, nil
+	})
+	if err != nil {
+		logger.Errorf(ctx, "search by cypher failed: %v", err)
+		return nil, err
+	}
+	return result.(*types.GraphData), nil
+}
+
 func listI2listS(list []any) []string {
 	result := make([]string, len(list))
 	for i, v := range list {

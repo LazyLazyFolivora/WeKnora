@@ -61,6 +61,7 @@ type agentService struct {
 	wikiPageService       interfaces.WikiPageService
 	tenantService         interfaces.TenantService
 	toolApprovalGate      approval.MCPApproval
+	graphRepo             interfaces.RetrieveGraphRepository
 }
 
 // NewAgentService creates a new agent service
@@ -81,6 +82,7 @@ func NewAgentService(
 	wikiPageService interfaces.WikiPageService,
 	tenantService interfaces.TenantService,
 	toolApprovalGate approval.MCPApproval,
+	graphRepo interfaces.RetrieveGraphRepository,
 ) interfaces.AgentService {
 	return &agentService{
 		cfg:                   cfg,
@@ -99,6 +101,7 @@ func NewAgentService(
 		wikiPageService:       wikiPageService,
 		tenantService:         tenantService,
 		toolApprovalGate:      toolApprovalGate,
+		graphRepo:             graphRepo,
 	}
 }
 
@@ -402,6 +405,7 @@ func (s *agentService) registerTools(
 			tools.ToolGrepChunks:          true,
 			tools.ToolListKnowledgeChunks: true,
 			tools.ToolQueryKnowledgeGraph: true,
+			tools.ToolNeo4jHybridSearch:   true,
 			tools.ToolGetDocumentInfo:     true,
 			tools.ToolDatabaseQuery:       true,
 			tools.ToolDataAnalysis:        true,
@@ -450,6 +454,7 @@ func (s *agentService) registerTools(
 		tools.ToolGrepChunks:          true,
 		tools.ToolListKnowledgeChunks: true,
 		tools.ToolQueryKnowledgeGraph: true,
+		tools.ToolNeo4jHybridSearch:   true,
 		tools.ToolGetDocumentInfo:     true,
 		tools.ToolDatabaseQuery:       true,
 	}
@@ -530,6 +535,15 @@ func (s *agentService) registerTools(
 			toolToRegister = tools.NewListKnowledgeChunksTool(s.knowledgeService, s.chunkService, config.SearchTargets)
 		case tools.ToolQueryKnowledgeGraph:
 			toolToRegister = tools.NewQueryKnowledgeGraphTool(s.knowledgeBaseService)
+		case tools.ToolNeo4jHybridSearch:
+			toolToRegister = tools.NewNeo4jHybridSearchTool(
+				s.graphRepo,
+				s.knowledgeBaseService,
+				s.chunkService.GetRepository(),
+				s.knowledgeService.GetRepository(),
+				config.SearchTargets,
+				chatModel,
+			)
 		case tools.ToolGetDocumentInfo:
 			toolToRegister = tools.NewGetDocumentInfoTool(s.knowledgeService, s.chunkService, config.SearchTargets)
 		case tools.ToolDatabaseQuery:
