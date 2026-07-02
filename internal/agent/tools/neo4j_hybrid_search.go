@@ -21,7 +21,7 @@ var neo4jHybridSearchTool = BaseTool{
 	description: `Hybrid search combining Neo4j knowledge graph traversal with vector/keyword chunk retrieval.
 
 ## Core Function
-Runs Neo4j graph search and vector/keyword search in parallel, then merges and deduplicates results. This gives the model both entity-relationship knowledge from the graph AND semantic/lexical matches from chunk indexes.
+Runs Neo4j graph search and vector/keyword search in parallel across all configured knowledge bases, then merges and deduplicates results. This gives the model both entity-relationship knowledge from the graph AND semantic/lexical matches from chunk indexes.
 
 ## When to Use
 ✅ **Use for**:
@@ -37,8 +37,6 @@ Runs Neo4j graph search and vector/keyword search in parallel, then merges and d
 
 ## Parameters
 - **query** (required): Natural language search query — used for both graph node matching and vector/keyword retrieval.
-- **knowledge_base_ids** (optional): Limit search to specific KB IDs (1-10). If omitted, all configured KBs are searched.
-- **exclude_knowledge_ids** (optional): Knowledge (document) IDs to exclude from results. Useful for filtering out irrelevant sources.
 
 ## How It Works
 1. Neo4j graph search: LLM extracts entities from query, generates Cypher query, executes against Neo4j
@@ -46,6 +44,7 @@ Runs Neo4j graph search and vector/keyword search in parallel, then merges and d
 3. Both run in parallel, results are merged, deduplicated by chunk ID, and sorted by relevance
 
 ## Notes
+- Searches across all configured knowledge bases
 - Graph search is cross-document within each KB (no per-document isolation)
 - Results include graph structure data for visualization when applicable`,
 	schema: utils.GenerateSchema[Neo4jHybridSearchInput](),
@@ -53,9 +52,7 @@ Runs Neo4j graph search and vector/keyword search in parallel, then merges and d
 
 // Neo4jHybridSearchInput defines the input parameters for neo4j_hybrid_search.
 type Neo4jHybridSearchInput struct {
-	Query               string   `json:"query" jsonschema:"Search query for both graph traversal and vector/keyword retrieval"`
-	KnowledgeBaseIDs    []string `json:"knowledge_base_ids,omitempty" jsonschema:"Optional KB IDs to limit search scope (1-10)"`
-	ExcludeKnowledgeIDs []string `json:"exclude_knowledge_ids,omitempty" jsonschema:"Knowledge (document) IDs to exclude from results"`
+	Query string `json:"query" jsonschema:"Search query for both graph traversal and vector/keyword retrieval"`
 }
 
 // Neo4jHybridSearchTool combines Neo4j graph traversal with vector/keyword hybrid search.
@@ -89,7 +86,7 @@ func NewNeo4jHybridSearchTool(
 	}
 }
 
-// Execute performs the hybrid Neo4j graph + vector/keyword search.
+// Execute performs the hybrid Neo4j graph + vector/keyword search across all KBs.
 func (t *Neo4jHybridSearchTool) Execute(ctx context.Context, args json.RawMessage) (*types.ToolResult, error) {
 	var input Neo4jHybridSearchInput
 	if err := json.Unmarshal(args, &input); err != nil {
@@ -106,50 +103,22 @@ func (t *Neo4jHybridSearchTool) Execute(ctx context.Context, args json.RawMessag
 		}, fmt.Errorf("query is required")
 	}
 
-	// Determine KBs to query
-	searchTargets := t.searchTargets
-	if len(input.KnowledgeBaseIDs) > 0 {
-		if len(input.KnowledgeBaseIDs) > 10 {
-			return &types.ToolResult{
-				Success: false,
-				Error:   "knowledge_base_ids must contain at most 10 KB IDs",
-			}, fmt.Errorf("too many KB IDs")
-		}
-		userKBSet := make(map[string]bool)
-		for _, kbID := range input.KnowledgeBaseIDs {
-			userKBSet[kbID] = true
-		}
-		var filtered types.SearchTargets
-		for _, target := range t.searchTargets {
-			if userKBSet[target.KnowledgeBaseID] {
-				filtered = append(filtered, target)
-			}
-		}
-		searchTargets = filtered
-	}
-
-	if len(searchTargets) == 0 {
+	if len(t.searchTargets) == 0 {
 		return &types.ToolResult{
 			Success: true,
 			Output:  "No knowledge bases configured for hybrid search.",
 		}, nil
 	}
 
-	// Build exclude set
-	excludeSet := make(map[string]bool, len(input.ExcludeKnowledgeIDs))
-	for _, id := range input.ExcludeKnowledgeIDs {
-		excludeSet[id] = true
-	}
-
-	kbIDs := searchTargets.GetAllKnowledgeBaseIDs()
-	logger.Infof(ctx, "[Tool][Neo4jHybridSearch] Querying %d KBs: %v, exclude: %v", len(kbIDs), kbIDs, input.ExcludeKnowledgeIDs)
+	kbIDs := t.searchTargets.GetAllKnowledgeBaseIDs()
+	logger.Infof(ctx, "[Tool][Neo4jHybridSearch] Querying %d KBs: %v", len(kbIDs), kbIDs)
 
 	// Pre-scan KBs: collect graph schema, tenantID, and capability flags
 	var tenantID uint64
 	hasGraphAny := false
 	hasChunkAny := false
 	var graphSchemas []graphSchemaInfo
-	for _, target := range searchTargets {
+	for _, target := range t.searchTargets {
 		if tenantID == 0 {
 			tenantID = target.TenantID
 		}
@@ -183,7 +152,7 @@ func (t *Neo4jHybridSearchTool) Execute(ctx context.Context, args json.RawMessag
 	// Graph search: LLM generates Cypher from user query + graph schema, then execute
 	if hasGraphAny && t.chatModel != nil {
 		g.Go(func() error {
-			cypher, err := t.generateCypherQuery(gCtx, input.Query, graphSchemas, len(input.KnowledgeBaseIDs) > 0)
+			cypher, err := t.generateCypherQuery(gCtx, input.Query, graphSchemas)
 			if err != nil {
 				mu.Lock()
 				errors = append(errors, fmt.Sprintf("Cypher generation failed: %v", err))
@@ -253,9 +222,9 @@ func (t *Neo4jHybridSearchTool) Execute(ctx context.Context, args json.RawMessag
 		})
 	}
 
-	// Chunk search: always per KB
+	// Chunk search: per KB
 	if hasChunkAny {
-		for _, target := range searchTargets {
+		for _, target := range t.searchTargets {
 			target := target
 			g.Go(func() error {
 				kb, err := t.knowledgeBaseService.GetKnowledgeBaseByID(gCtx, target.KnowledgeBaseID)
@@ -294,9 +263,6 @@ func (t *Neo4jHybridSearchTool) Execute(ctx context.Context, args json.RawMessag
 		if r == nil {
 			continue
 		}
-		if excludeSet[r.KnowledgeID] {
-			continue
-		}
 		if existing, ok := seen[r.ID]; !ok || r.Score > existing.Score {
 			seen[r.ID] = r
 		}
@@ -316,12 +282,12 @@ func (t *Neo4jHybridSearchTool) Execute(ctx context.Context, args json.RawMessag
 			Success: true,
 			Output:  "No relevant results found from graph or chunk search.",
 			Data: map[string]interface{}{
-				"query":              input.Query,
-				"knowledge_base_ids": kbIDs,
-				"results":            []interface{}{},
-				"graph_nodes":        len(allNodes),
-				"graph_relations":    len(allRelations),
-				"errors":             errors,
+				"query":           input.Query,
+				"knowledge_bases": kbIDs,
+				"results":         []interface{}{},
+				"graph_nodes":     len(allNodes),
+				"graph_relations": len(allRelations),
+				"errors":          errors,
 			},
 		}, nil
 	}
@@ -364,25 +330,25 @@ func (t *Neo4jHybridSearchTool) Execute(ctx context.Context, args json.RawMessag
 	}
 
 	graphData := map[string]interface{}{
-		"nodes":        allNodes,
-		"relations":    allRelations,
-		"total_nodes":  len(allNodes),
-		"total_edges":  len(allRelations),
+		"nodes":       allNodes,
+		"relations":   allRelations,
+		"total_nodes": len(allNodes),
+		"total_edges": len(allRelations),
 	}
 
 	return &types.ToolResult{
 		Success: true,
 		Output:  output,
 		Data: map[string]interface{}{
-			"query":              input.Query,
-			"knowledge_base_ids": kbIDs,
-			"results":            formattedResults,
-			"count":              len(deduped),
-			"graph_data":         graphData,
-			"graph_nodes":        len(allNodes),
-			"graph_relations":    len(allRelations),
-			"errors":             errors,
-			"display_type":       "neo4j_hybrid_search_results",
+			"query":           input.Query,
+			"knowledge_bases": kbIDs,
+			"results":         formattedResults,
+			"count":           len(deduped),
+			"graph_data":      graphData,
+			"graph_nodes":     len(allNodes),
+			"graph_relations": len(allRelations),
+			"errors":          errors,
+			"display_type":    "neo4j_hybrid_search_results",
 		},
 	}, nil
 }
@@ -395,11 +361,11 @@ type graphSchemaInfo struct {
 }
 
 // generateCypherQuery calls the LLM to extract entities and generate a Cypher query from the user's natural language input.
+// Searches across all KBs with plain (n)-[r]-(m) — no label filtering.
 func (t *Neo4jHybridSearchTool) generateCypherQuery(
 	ctx context.Context,
 	query string,
 	schemas []graphSchemaInfo,
-	filterByKB bool,
 ) (string, error) {
 	// Build schema description for the LLM prompt
 	var schemaLines []string
@@ -407,7 +373,6 @@ func (t *Neo4jHybridSearchTool) generateCypherQuery(
 		if s.config == nil {
 			continue
 		}
-		label := "ENTITY_" + strings.ReplaceAll(s.kbID, "-", "_")
 		nodeTypes := make([]string, len(s.config.Nodes))
 		for i, n := range s.config.Nodes {
 			nodeTypes[i] = n.Name
@@ -417,16 +382,9 @@ func (t *Neo4jHybridSearchTool) generateCypherQuery(
 			relTypes[i] = r.Type
 		}
 		schemaLines = append(schemaLines, fmt.Sprintf(
-			"KB %s: label=%s, entity_types=%v, relation_types=%v",
-			s.kbID, label, nodeTypes, relTypes,
+			"KB %s: entity_types=%v, relation_types=%v",
+			s.kbID, nodeTypes, relTypes,
 		))
-	}
-
-	var labelRule string
-	if filterByKB && len(schemaLines) > 0 {
-		labelRule = "- Use the specific node labels from the schema above (e.g., ENTITY_xxx) in MATCH clauses."
-	} else {
-		labelRule = "- Do NOT use any node labels — use plain (n)-[r]-(m) to search across all KBs."
 	}
 
 	systemPrompt := fmt.Sprintf(`You are a Cypher query generator for a Neo4j knowledge graph. Generate a read-only MATCH query based on the user's natural language input.
@@ -435,11 +393,11 @@ func (t *Neo4jHybridSearchTool) generateCypherQuery(
 %s
 
 ## Rules
-%s
+- Do NOT use any node labels — use plain (n)-[r]-(m) to search across all KBs.
 - Node properties: name, chunks, attributes.
 - Use CONTAINS or regex for fuzzy name matching on n.name.
 - The query MUST RETURN n, r, m (source node, relationship, target node).
-- Output ONLY the Cypher query, no explanation, no markdown.`, strings.Join(schemaLines, "\n"), labelRule)
+- Output ONLY the Cypher query, no explanation, no markdown.`, strings.Join(schemaLines, "\n"))
 
 	messages := []chat.Message{
 		{Role: "system", Content: systemPrompt},
