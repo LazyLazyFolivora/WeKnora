@@ -60,7 +60,7 @@ var ToolCapabilityRequirements = map[string]ToolRequirement{
 	"grep_chunks":           {AnyOf: []KBCapability{CapVector, CapKeyword}, ConsumesFiles: true},
 	"list_knowledge_chunks": {AnyOf: []KBCapability{CapVector, CapKeyword}, ConsumesFiles: true},
 	"query_knowledge_graph": {AnyOf: []KBCapability{CapVector, CapKeyword}, ConsumesFiles: true},
-	"neo4j_hybrid_search":  {AllOf: []KBCapability{CapGraph}, AnyOf: []KBCapability{CapVector, CapKeyword}},
+	"neo4j_hybrid_search":  {AnyOf: []KBCapability{CapVector, CapKeyword}},
 	"get_document_info":     {AnyOf: []KBCapability{CapVector, CapKeyword}, ConsumesFiles: true},
 	"database_query":        {AnyOf: []KBCapability{CapVector, CapKeyword}, ConsumesFiles: true},
 

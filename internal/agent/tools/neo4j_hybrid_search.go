@@ -115,7 +115,6 @@ func (t *Neo4jHybridSearchTool) Execute(ctx context.Context, args json.RawMessag
 
 	// Pre-scan KBs: collect graph schema, tenantID, and capability flags
 	var tenantID uint64
-	hasGraphAny := false
 	hasChunkAny := false
 	var graphSchemas []graphSchemaInfo
 	for _, target := range t.searchTargets {
@@ -126,14 +125,12 @@ func (t *Neo4jHybridSearchTool) Execute(ctx context.Context, args json.RawMessag
 		if err != nil {
 			continue
 		}
-		if kb.IsGraphEnabled() {
-			hasGraphAny = true
-			graphSchemas = append(graphSchemas, graphSchemaInfo{
-				kbID:     target.KnowledgeBaseID,
-				config:   kb.ExtractConfig,
-				tenantID: target.TenantID,
-			})
-		}
+		// Always collect graph schema — the graph may be independently built without ExtractConfig
+		graphSchemas = append(graphSchemas, graphSchemaInfo{
+			kbID:     target.KnowledgeBaseID,
+			config:   kb.ExtractConfig,
+			tenantID: target.TenantID,
+		})
 		if kb.IsVectorEnabled() || kb.IsKeywordEnabled() {
 			hasChunkAny = true
 		}
@@ -150,7 +147,7 @@ func (t *Neo4jHybridSearchTool) Execute(ctx context.Context, args json.RawMessag
 	g, gCtx := errgroup.WithContext(ctx)
 
 	// Graph search: LLM generates Cypher from user query + graph schema, then execute
-	if hasGraphAny && t.chatModel != nil {
+	if t.chatModel != nil {
 		g.Go(func() error {
 			cypher, err := t.generateCypherQuery(gCtx, input.Query, graphSchemas)
 			if err != nil {
