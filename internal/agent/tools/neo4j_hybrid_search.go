@@ -392,7 +392,7 @@ func (t *Neo4jHybridSearchTool) generateCypherQuery(
 ## Rules
 - Do NOT use any node labels — use plain (n)-[r]-(m) to search across all KBs.
 - Node properties: name, chunks, attributes.
-- Use `toLower(n.name) CONTAINS toLower($search_term)` for case-insensitive name matching.
+- Use toLower(n.name) CONTAINS toLower($search_term) for case-insensitive name matching.
 - The query MUST RETURN n, r, m (source node, relationship, target node).
 - Output ONLY the Cypher query, no explanation, no markdown.`, strings.Join(schemaLines, "\n"))
 
