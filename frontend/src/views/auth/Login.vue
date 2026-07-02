@@ -1,189 +1,54 @@
 <template>
-  <div class="login-layout">
-    <div class="animated-bg">
-      <div class="knowledge-node node-1">
-        <svg class="node-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-        </svg>
-      </div>
-      <div class="knowledge-node node-2">
-        <svg class="node-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-        </svg>
-      </div>
-      <div class="knowledge-node node-3">
-        <svg class="node-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 2L2 7l10 5 10-5-10-5z" />
-          <path d="M2 17l10 5 10-5" />
-          <path d="M2 12l10 5 10-5" />
-        </svg>
-      </div>
-      <div class="knowledge-node node-4">
-        <svg class="node-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <ellipse cx="12" cy="5" rx="9" ry="3" />
-          <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
-          <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
-        </svg>
-      </div>
-      <div class="knowledge-node node-5">
-        <svg class="node-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8" />
-          <path d="m21 21-4.35-4.35" />
-        </svg>
-      </div>
-      <div class="knowledge-node node-6">
-        <svg class="node-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path
-            d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-          <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-          <line x1="12" y1="22.08" x2="12" y2="12" />
-        </svg>
-      </div>
-      <div class="knowledge-node node-7">
-        <svg class="node-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-          <polyline points="14 2 14 8 20 8" />
-        </svg>
-      </div>
-      <div class="knowledge-node node-8">
-        <svg class="node-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-          <circle cx="9" cy="7" r="4" />
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-        </svg>
-      </div>
-      <div class="knowledge-node node-9">
-        <svg class="node-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-        </svg>
-      </div>
-      <div class="knowledge-node node-10">
-        <svg class="node-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="3" />
-          <path
-            d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24" />
-        </svg>
-      </div>
-      <div class="knowledge-node node-11">
-        <svg class="node-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M9 11l3 3L22 4" />
-          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-        </svg>
-      </div>
-      <div class="knowledge-node node-12">
-        <svg class="node-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polygon
-            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-        </svg>
-      </div>
-
-      <svg class="knowledge-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
-        <line class="connection-line line-1" x1="20" y1="15" x2="35" y2="25" />
-        <line class="connection-line line-2" x1="35" y1="25" x2="55" y2="20" />
-        <line class="connection-line line-3" x1="55" y1="20" x2="85" y2="12" />
-        <line class="connection-line line-4" x1="8" y1="35" x2="25" y2="45" />
-        <line class="connection-line line-5" x1="25" y1="45" x2="65" y2="48" />
-        <line class="connection-line line-6" x1="20" y1="60" x2="60" y2="75" />
-        <line class="connection-line line-7" x1="20" y1="15" x2="20" y2="60" />
-        <line class="connection-line line-8" x1="55" y1="20" x2="45" y2="50" />
-        <line class="connection-line line-9" x1="65" y1="48" x2="90" y2="38" />
-        <line class="connection-line line-10" x1="40" y1="70" x2="75" y2="80" />
-        <line class="connection-line line-11" x1="35" y1="25" x2="25" y2="45" />
-        <line class="connection-line line-12" x1="75" y1="30" x2="65" y2="48" />
-      </svg>
-    </div>
-
-    <!-- Logo - Top Left -->
-    <a href="https://github.com/Tencent/WeKnora" target="_blank" class="header-logo" :title="$t('common.github')">
-      <img src="@/assets/img/weknora.png" alt="WeKnora" class="logo-image" />
-    </a>
-
-    <!-- Header Links - Top Right -->
-    <div class="header-links">
-      <a href="https://weknora.weixin.qq.com" target="_blank" class="header-link" :title="$t('common.website')">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-          stroke-linecap="round">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="2" y1="12" x2="22" y2="12" />
-          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-        </svg>
-        <span class="link-text">{{ $t('common.website') }}</span>
-      </a>
-
-      <a href="https://github.com/Tencent/WeKnora" target="_blank" class="header-link" :title="$t('common.info')">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
-          <path
-            d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" />
-        </svg>
-        <span class="link-text">GitHub</span>
-      </a>
-
-      <div class="language-switch">
-        <button @click="toggleLanguageMenu" class="header-link" :title="currentLangOption?.label">
-          <span class="lang-flag-icon">{{ currentLangOption?.flag }}</span>
-          <span class="link-text">{{ currentLangOption?.shortLabel }}</span>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-            stroke-linecap="round">
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </button>
-
-        <!-- Language Dropdown -->
-        <div v-if="showLanguageMenu" class="language-dropdown">
-          <div v-for="lang in languageOptions" :key="lang.value" @click="selectLanguage(lang.value)"
-            class="language-option" :class="{ active: currentLanguage === lang.value }">
-            <span class="lang-flag">{{ lang.flag }}</span>
-            <span class="lang-label">{{ lang.label }}</span>
-            <span v-if="currentLanguage === lang.value" class="check-icon">✓</span>
+  <div class="login-page">
+    <div class="login-container">
+    <!-- 左侧登录面板 -->
+    <div class="login-panel">
+      <!-- 语言切换 -->
+      <div class="panel-header">
+        <div class="language-switch">
+          <button @click="toggleLanguageMenu" class="lang-btn" :title="currentLangOption?.label">
+            <span class="lang-flag-icon">{{ currentLangOption?.flag }}</span>
+            <span class="lang-label">{{ currentLangOption?.shortLabel }}</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+          <div v-if="showLanguageMenu" class="language-dropdown">
+            <div v-for="lang in languageOptions" :key="lang.value" @click="selectLanguage(lang.value)"
+              class="language-option" :class="{ active: currentLanguage === lang.value }">
+              <span class="lang-flag">{{ lang.flag }}</span>
+              <span class="lang-text">{{ lang.label }}</span>
+              <span v-if="currentLanguage === lang.value" class="check-icon">✓</span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Left Showcase Section -->
-    <div class="showcase-section">
-      <div class="showcase-content">
-        <p class="showcase-subtitle">{{ $t('platform.subtitle') }}</p>
-        <p class="showcase-description">{{ $t('platform.description') }}</p>
-
-        <div class="feature-tags">
-          <span class="tag">{{ $t('platform.rag') }}</span>
-          <span class="tag">{{ $t('platform.agent') }}</span>
-          <span class="tag">{{ $t('platform.wiki') }}</span>
-          <span class="tag">{{ $t('platform.hybridSearch') }}</span>
+      <!-- 登录表单区域 -->
+      <div class="panel-content">
+        <!-- Logo + 品牌 -->
+        <div class="brand-section">
+<img src="@/assets/img/login-page/中国药科大学-logo-2048px.png" alt="Logo" class="brand-logo" />
+          <h1 class="brand-title"><span class="brand-title-text">中国药科大学</span> · <span class="brand-title-gradient">药到知来</span></h1>
+          <p class="brand-subtitle">CPUBrain</p>
+          <p class="brand-slogan">「药问，就知道」</p>
         </div>
 
-        <!-- Swiper Carousel -->
-        <div class="carousel-container">
-          <swiper :modules="modules" :slides-per-view="1" :loop="true" :autoplay="{
-            delay: 4000,
-            disableOnInteraction: false,
-          }" :effect="'fade'" :fade-effect="{ crossFade: true }"
-            :pagination="{ clickable: true, dynamicBullets: false }" :speed="800" class="screenshot-swiper">
-            <swiper-slide v-for="(slide, index) in slides" :key="index">
-              <div class="slide-content">
-                <img :src="slide.image" :alt="slide.title" class="slide-image" />
-              </div>
-            </swiper-slide>
-          </swiper>
-        </div>
-      </div>
-    </div>
-
-    <!-- Right Form Section -->
-    <div class="form-section">
-      <div class="form-panel">
-        <!-- Login Card -->
+        <!-- 登录模式 -->
         <div class="form-card" v-if="!isRegisterMode">
           <div class="form-header">
             <h2 class="form-title">{{ $t('auth.login') }}</h2>
-            <p class="form-welcome">{{ $t('auth.subtitle') }}</p>
-            <p v-if="registrationEnabled" class="form-hint">{{ $t('auth.loginHint') }}</p>
+            <p class="form-desc">{{ $t('auth.subtitle') }}</p>
           </div>
 
-          <div class="form-content">
+          <!-- Tab 切换：Sign In / Sign Up -->
+          <div class="mode-tabs" v-if="registrationEnabled">
+            <button class="mode-tab active" @click="toggleMode">{{ $t('auth.login') }}</button>
+            <button class="mode-tab" @click="toggleMode">{{ $t('auth.createAccount') }}</button>
+          </div>
+
+          <div class="form-body">
             <t-form ref="formRef" :data="formData" :rules="formRules" @submit="handleLogin" layout="vertical">
               <t-form-item :label="$t('auth.email')" name="email">
                 <t-input v-model="formData.email" :placeholder="$t('auth.emailPlaceholder')" type="text"
@@ -195,27 +60,19 @@
                   autocomplete="current-password" size="large" :disabled="loading" @enter="handleLogin" />
               </t-form-item>
 
-              <t-button type="submit" theme="primary" size="large" block :loading="loading" class="submit-button">
+              <t-button type="submit" theme="primary" size="large" block :loading="loading" class="submit-btn">
                 {{ loading ? $t('auth.loggingIn') : $t('auth.login') }}
               </t-button>
+            </t-form>
 
-              <div class="register-cta" v-if="registrationEnabled">
-                <div class="register-cta__divider">
-                  <span>{{ $t('auth.firstTime') }}</span>
-                </div>
-                <t-button theme="default" variant="outline" size="large" block class="register-cta__button"
-                  :disabled="loading" @click="toggleMode">
-                  {{ $t('auth.createAccount') }}
-                </t-button>
-              </div>
-
-              <div v-if="oidcEnabled" class="oidc-divider">
+            <!-- 统一身份认证 - 始终显示 -->
+            <div class="oidc-section">
+              <div class="oidc-divider">
                 <span>{{ $t('auth.orContinueWith') }}</span>
               </div>
-
-              <t-button v-if="oidcEnabled" theme="default" size="large" block :loading="oidcLoading" :disabled="loading"
-                class="oidc-button" @click="handleOIDCLogin">
-                {{ oidcLoading ? $t('auth.redirectingToOIDC') : oidcLoginText }}
+              <t-button theme="default" size="large" block :loading="oidcLoading" :disabled="loading"
+                class="oidc-btn" @click="handleOIDCLogin">
+                {{ oidcLoading ? $t('auth.redirectingToOIDC') : '统一身份认证' }}
               </t-button>
 
               <div v-if="casEnabled" class="oidc-divider">
@@ -246,15 +103,9 @@
           </div>
         </div>
 
-        <!-- Register Card. Renders when the user is in register mode
-             AND either self-service registration is enabled OR they
-             arrived with a valid share-link token (which bypasses the
-             invite_only gate). -->
+        <!-- 注册表单 -->
         <div class="form-card" v-if="isRegisterMode && (registrationEnabled || inviteLookup)">
-          <!-- Share-link banner: shown only when ?token= resolved to a
-               real invitation row. Sits above the form header so the
-               invitee instantly sees who invited them and into which
-               workspace, without bumping the existing register UX. -->
+          <!-- 邀请横幅 -->
           <div v-if="inviteLookup" class="invite-banner">
             <t-icon name="link" class="invite-banner__icon" />
             <div class="invite-banner__text">
@@ -269,12 +120,19 @@
           <div v-else-if="inviteLookupError" class="invite-banner invite-banner--error">
             {{ inviteLookupError }}
           </div>
+
           <div class="form-header">
             <h2 class="form-title">{{ $t('auth.createAccount') }}</h2>
-            <p class="form-subtitle">{{ $t('auth.registerSubtitle') }}</p>
+            <p class="form-desc">{{ $t('auth.registerSubtitle') }}</p>
           </div>
 
-          <div class="form-content">
+          <!-- Tab 切换 -->
+          <div class="mode-tabs">
+            <button class="mode-tab" @click="toggleMode">{{ $t('auth.login') }}</button>
+            <button class="mode-tab active" @click="toggleMode">{{ $t('auth.createAccount') }}</button>
+          </div>
+
+          <div class="form-body">
             <t-form ref="registerFormRef" :data="registerData" :rules="registerRules" @submit="handleRegister"
               layout="vertical">
               <t-form-item :label="$t('auth.username')" name="username">
@@ -297,36 +155,85 @@
                   type="password" autocomplete="new-password" size="large" :disabled="loading" @enter="handleRegister" />
               </t-form-item>
 
-              <t-button type="submit" theme="primary" size="large" block :loading="loading" class="submit-button">
+              <t-button type="submit" theme="primary" size="large" block :loading="loading" class="submit-btn">
                 {{ loading ? $t('auth.registering') : $t('auth.register') }}
               </t-button>
             </t-form>
-
-            <div class="form-footer">
-              <span>{{ $t('auth.haveAccount') }}</span>
-              <a href="#" @click.prevent="toggleMode" class="link-button">
-                {{ $t('auth.backToLogin') }}
-              </a>
-            </div>
-
-            <!-- Features list for register -->
-            <div class="login-features">
-              <div class="feature-item">
-                <span class="feature-icon">✓</span>
-                <span class="feature-text">{{ $t('platform.independentTenant') }}</span>
-              </div>
-              <div class="feature-item">
-                <span class="feature-icon">✓</span>
-                <span class="feature-text">{{ $t('platform.fullApiAccess') }}</span>
-              </div>
-              <div class="feature-item">
-                <span class="feature-icon">✓</span>
-                <span class="feature-text">{{ $t('platform.knowledgeBaseManagement') }}</span>
-              </div>
-            </div>
           </div>
         </div>
       </div>
+
+      <!-- 底部版权 -->
+      <div class="panel-footer">
+        <span>Copyright © CPUBrain, All Right Reserved</span>
+      </div>
+    </div>
+
+    <!-- 右侧展示面板 -->
+    <div class="showcase-panel">
+      <!-- 背景图片轮播（无滤镜，暴露原图） -->
+      <div class="bg-carousel">
+        <div v-for="(slide, index) in backgroundSlides" :key="index" class="bg-slide"
+          :class="{ active: currentBgSlide === index }" :style="{ backgroundImage: `url(${slide})` }"></div>
+      </div>
+
+      <!-- 功能展示卡片 - 水平排列在文字上方 -->
+      <div class="feature-cards">
+        <div class="feature-item">
+          <div class="feature-header">
+            <div class="feature-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                <line x1="8" y1="7" x2="16" y2="7" />
+                <line x1="8" y1="11" x2="14" y2="11" />
+              </svg>
+            </div>
+            <span class="feature-text">{{ $t('platform.multimodalParsing') }}</span>
+          </div>
+          <div class="feature-image-placeholder"></div>
+        </div>
+
+        <div class="feature-item">
+          <div class="feature-header">
+            <div class="feature-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            </div>
+            <span class="feature-text">{{ $t('platform.hybridSearchEngine') }}</span>
+          </div>
+          <div class="feature-image-placeholder"></div>
+        </div>
+
+        <div class="feature-item">
+          <div class="feature-header">
+            <div class="feature-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+            </div>
+            <span class="feature-text">{{ $t('platform.ragQandA') }}</span>
+          </div>
+          <div class="feature-image-placeholder"></div>
+        </div>
+      </div>
+
+      <!-- 底部文字 -->
+      <div class="showcase-footer">
+        <h2 class="showcase-title">药问，就知道</h2>
+        <p class="showcase-desc">{{ $t('platform.hybridSearchEngine') }} · {{ $t('platform.ragQandA') }}</p>
+        <!-- 轮播指示器 -->
+        <div class="carousel-indicators">
+          <span v-for="(_, index) in backgroundSlides" :key="index" class="indicator"
+            :class="{ active: currentBgSlide === index }"></span>
+        </div>
+      </div>
+    </div>
     </div>
   </div>
 </template>
@@ -337,11 +244,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { useRoleLabel } from '@/composables/useRoleLabel'
 import { notifyLoginSuccess } from '@/utils/loginNotify'
-import { Swiper, SwiperSlide } from 'swiper/vue'
-import { Autoplay, EffectFade, Pagination } from 'swiper/modules'
-import 'swiper/css'
-import 'swiper/css/effect-fade'
-import 'swiper/css/pagination'
 import {
   login,
   register,
@@ -359,11 +261,11 @@ import {
 import { useAuthStore } from '@/stores/auth'
 import { useI18n } from 'vue-i18n'
 
-// Import screenshot images
-import screenshot1 from '@/assets/img/screenshot-1.svg'
-import screenshot2 from '@/assets/img/screenshot-2.svg'
-import screenshot3 from '@/assets/img/screenshot-3.svg'
-import screenshot4 from '@/assets/img/screenshot-4.svg'
+// Import background images
+import bgImage1 from '@/assets/img/login-page/login-picture1.jpg'
+import bgImage2 from '@/assets/img/login-page/login-picture2.jpg'
+import bgImage3 from '@/assets/img/login-page/login-picture3.jpg'
+import bgImage4 from '@/assets/img/login-page/login-picture4.jpg'
 
 const router = useRouter()
 const route = useRoute()
@@ -371,32 +273,23 @@ const authStore = useAuthStore()
 const { t, tm, locale } = useI18n()
 const { formatRole, roleIcon } = useRoleLabel()
 
-// Swiper modules
-const modules = [Autoplay, EffectFade, Pagination]
+// Background carousel
+const backgroundSlides = [bgImage1, bgImage2, bgImage3, bgImage4]
+const currentBgSlide = ref(0)
+const bgCarouselInterval = ref<number | null>(null)
 
-// Carousel slides data
-const slides = [
-  {
-    image: screenshot4,
-    title: t('platform.carousel.agenticRagTitle'),
-    description: t('platform.carousel.agenticRagDesc')
-  },
-  {
-    image: screenshot2,
-    title: t('platform.carousel.hybridSearchTitle'),
-    description: t('platform.carousel.hybridSearchDesc')
-  },
-  {
-    image: screenshot3,
-    title: t('platform.carousel.wikiTitle'),
-    description: t('platform.carousel.wikiDesc')
-  },
-  {
-    image: screenshot1,
-    title: t('platform.carousel.smartDocRetrievalTitle'),
-    description: t('platform.carousel.smartDocRetrievalDesc')
+const startBgCarousel = () => {
+  bgCarouselInterval.value = window.setInterval(() => {
+    currentBgSlide.value = (currentBgSlide.value + 1) % backgroundSlides.length
+  }, 5000)
+}
+
+const stopBgCarousel = () => {
+  if (bgCarouselInterval.value !== null) {
+    clearInterval(bgCarouselInterval.value)
+    bgCarouselInterval.value = null
   }
-]
+}
 
 // Form references
 const formRef = ref()
@@ -417,12 +310,7 @@ const casProviderName = ref('')
 // In invite_only mode the link/card are hidden.
 const registrationEnabled = ref(true)
 
-// invite-link state. When the URL carries ?token=xxx we resolve it to
-// the originating tenant + role and switch the form into a "register
-// via invitation" mode. The token bypasses the normal invite_only
-// gate — possessing it IS the authorisation. Submitting the register
-// form with this set hits /auth/register-by-invite (auto-login on
-// success) instead of /auth/register.
+// invite-link state
 const inviteToken = ref('')
 const inviteLookup = ref<InviteLookup | null>(null)
 const inviteLookupError = ref('')
@@ -516,7 +404,6 @@ const registerRules = computed(() => ({
 // Toggle login/register mode
 const toggleMode = () => {
   isRegisterMode.value = !isRegisterMode.value
-
   Object.keys(registerData).forEach(key => {
     (registerData as any)[key] = ''
   })
@@ -543,27 +430,19 @@ const handleClickOutside = (event: MouseEvent) => {
   }
 }
 
-// Add click outside listener
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
+  startBgCarousel()
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside)
+  stopBgCarousel()
 })
 
 const persistLoginResponse = async (response: any) => {
-  // Backend renamed `tenant` to `active_tenant` and added `memberships`
-  // when tenant-level RBAC landed (issue #1303). The two are otherwise
-  // identical — `active_tenant` is the tenant whose ID is encoded in the
-  // JWT, defaulting to the user's home tenant on a fresh login.
   const activeTenant = response.active_tenant || response.tenant
-  if (response.user && response.token) {
-    // user.tenant_id must be the user's HOME tenant (the immutable row
-    // on the users table); useHomeTenant() and the home-badge logic both
-    // assume so. The ACTIVE tenant (which can differ from home when the
-    // server honoured a remembered last-active-tenant preference) is
-    // expressed separately via setSelectedTenant below.
+  if (response.user && activeTenant && response.token) {
     const homeTenantIdRaw = response.user.tenant_id ?? activeTenant?.id ?? ''
     authStore.setUser(userInfoFromApi(response.user, homeTenantIdRaw))
     authStore.setToken(response.token)
@@ -710,10 +589,6 @@ const handleLogin = async () => {
   }
 }
 
-// Handle registration. Dispatches based on whether the user arrived
-// with a share-link token: with token -> register-by-invite (auto-
-// login on success); without -> the normal self-service register
-// (drops back to the login form for the user to sign in).
 const handleRegister = async () => {
   try {
     const valid = await registerFormRef.value?.validate()
@@ -733,9 +608,6 @@ const handleRegister = async () => {
         return
       }
       MessagePlugin.success(t('auth.registerSuccess'))
-      // register-by-invite returns the same shape as login (token +
-      // active_tenant + memberships), so reuse the login persistence
-      // path — same store writes, same redirect target.
       await persistLoginResponse(response)
       return
     }
@@ -748,12 +620,9 @@ const handleRegister = async () => {
 
     if (response.success) {
       MessagePlugin.success(t('auth.registerSuccess'))
-
-      // Switch to login mode and fill in email
       isRegisterMode.value = false
       formData.email = registerData.email
 
-      // Clear register form
       Object.keys(registerData).forEach(key => {
         (registerData as any)[key] = ''
       })
@@ -768,16 +637,7 @@ const handleRegister = async () => {
   }
 }
 
-// Check if already logged in; for lite edition, attempt transparent auto-setup
 onMounted(async () => {
-  // Share-link landing: ?token=xxx switches the form into invite-
-  // register mode before any other auto-flow (logged-in redirect /
-  // auto-setup / OIDC) gets a chance to redirect. Resolution failure
-  // surfaces inline; the user can still log in normally if they
-  // already have an account. We check this BEFORE the isLoggedIn
-  // redirect so an existing session doesn't bounce the user to
-  // /platform (and possibly back to /login if the session is stale),
-  // dropping the invite token along the way.
   const tokenFromQuery = String(route.query.token || '').trim()
   if (tokenFromQuery) {
     inviteToken.value = tokenFromQuery
@@ -786,8 +646,6 @@ onMounted(async () => {
       const resp = await getInvitationByToken(tokenFromQuery)
       if (resp.success && resp.data) {
         inviteLookup.value = resp.data
-        // Token bypasses invite_only — show the register card even
-        // when self-service registration is otherwise disabled.
         registrationEnabled.value = true
         isRegisterMode.value = true
       } else {
@@ -798,9 +656,6 @@ onMounted(async () => {
     } finally {
       inviteLookupLoading.value = false
     }
-    // Don't run auto-setup when the user came in via an invite link —
-    // they're explicitly trying to register, not bootstrap a Lite
-    // single-user instance.
     loadOIDCConfig()
     loadCASConfig()
     return
@@ -834,445 +689,86 @@ onMounted(async () => {
 </script>
 
 <style lang="less" scoped>
-.login-layout {
+/* ========================================
+   登录页面 - 左右分栏布局
+   ======================================== */
+.login-page {
   display: flex;
   width: 100%;
-  min-height: 100%;
+  min-height: 100vh;
   overflow: hidden;
-  position: relative;
-  background: linear-gradient(225deg, #022c22 0%, #064e3b 15%, #065f46 25%, #047857 38%, #059669 50%, #07C05F 65%, #10B981 78%, #34D399 90%, #6EE7B7 100%);
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.06) 0%, transparent 50%),
-      radial-gradient(circle at 80% 50%, rgba(255, 255, 255, 0.04) 0%, transparent 50%);
-    pointer-events: none;
-  }
-}
-
-.animated-bg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-  z-index: 1;
-  overflow: hidden;
-  contain: strict;
-}
-
-.knowledge-node {
-  position: absolute;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  box-shadow:
-    0 0 15px rgba(255, 255, 255, 0.35),
-    0 0 30px rgba(16, 185, 129, 0.2),
-    inset 0 0 8px rgba(255, 255, 255, 0.1);
-  display: flex;
+  background: #eef1f6;
   align-items: center;
   justify-content: center;
-  animation: nodePulse 5s infinite ease-in-out;
-  will-change: transform, opacity;
-}
-
-.node-icon {
-  width: 20px;
-  height: 20px;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.node-1 {
-  top: 15%;
-  left: 20%;
-  animation-delay: 0s;
-}
-
-.node-2 {
-  top: 25%;
-  left: 35%;
-  animation-delay: 0.5s;
-}
-
-.node-3 {
-  top: 20%;
-  left: 55%;
-  animation-delay: 1s;
-}
-
-.node-4 {
-  top: 30%;
-  left: 75%;
-  animation-delay: 1.5s;
-}
-
-.node-5 {
-  top: 45%;
-  left: 25%;
-  animation-delay: 2s;
-}
-
-.node-6 {
-  top: 50%;
-  left: 45%;
-  animation-delay: 2.5s;
-}
-
-.node-7 {
-  top: 48%;
-  left: 65%;
-  animation-delay: 3s;
-}
-
-.node-8 {
-  top: 60%;
-  left: 20%;
-  animation-delay: 0.3s;
-}
-
-.node-9 {
-  top: 12%;
-  right: 15%;
-  animation-delay: 1.8s;
-}
-
-.node-10 {
-  top: 38%;
-  right: 10%;
-  animation-delay: 2.3s;
-}
-
-.node-11 {
-  top: 70%;
-  left: 40%;
-  animation-delay: 0.8s;
-}
-
-.node-12 {
-  top: 65%;
-  left: 80%;
-  animation-delay: 1.3s;
-}
-
-@keyframes nodePulse {
-
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 0.65;
-  }
-
-  50% {
-    transform: scale(1.08);
-    opacity: 0.9;
-  }
-}
-
-.knowledge-lines {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0.35;
-}
-
-.connection-line {
-  stroke: rgba(255, 255, 255, 0.5);
-  stroke-width: 1.5;
-  stroke-dasharray: 6, 3;
-  stroke-linecap: round;
-  animation: lineFlow 10s infinite linear;
-  will-change: stroke-dashoffset;
-}
-
-.line-1 {
-  animation-delay: 0s;
-}
-
-.line-2 {
-  animation-delay: 0.5s;
-}
-
-.line-3 {
-  animation-delay: 1s;
-}
-
-.line-4 {
-  animation-delay: 0.3s;
-}
-
-.line-5 {
-  animation-delay: 0.8s;
-}
-
-.line-6 {
-  animation-delay: 1.3s;
-}
-
-.line-7 {
-  animation-delay: 1.8s;
-}
-
-.line-8 {
-  animation-delay: 2.3s;
-}
-
-.line-9 {
-  animation-delay: 0.2s;
-}
-
-.line-10 {
-  animation-delay: 0.7s;
-}
-
-.line-11 {
-  animation-delay: 0.9s;
-}
-
-.line-12 {
-  animation-delay: 1.5s;
-}
-
-@keyframes lineFlow {
-  0% {
-    stroke-dashoffset: 0;
-  }
-
-  100% {
-    stroke-dashoffset: 18;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .knowledge-node {
-    animation: none;
-    opacity: 0.65;
-  }
-
-  .connection-line {
-    animation: none;
-  }
-}
-
-/* Left Showcase Section */
-.showcase-section {
-  flex: 0 0 52%;
-  display: flex;
-  align-items: flex-end;
-  padding: 100px 30px 100px 50px;
+  padding: 5vh 5%;
   box-sizing: border-box;
-  position: relative;
 }
 
-.showcase-content {
+/* 圆角容器 - 两个独立的圆角卡片 */
+.login-container {
+  display: flex;
+  gap: 20px;
   width: 100%;
-  max-width: 600px;
-  position: relative;
-  z-index: 2;
+  height: 90vh;
+  align-items: stretch;
+  justify-content: center;
+}
+
+/* ========================================
+   左侧登录面板
+   ======================================== */
+.login-panel {
+  width: 460px;
+  min-width: 400px;
   display: flex;
   flex-direction: column;
-  margin-bottom: 60px;
-}
-
-.showcase-subtitle {
-  margin-top: 0;
-  font-size: 22px;
-  color: rgba(255, 255, 255, 0.95);
-  margin: 0 0 8px 0;
-  font-family: var(--app-font-family);
-  line-height: 1.4;
-  font-weight: 500;
-}
-
-.showcase-description {
-  font-size: 15px;
-  color: rgba(255, 255, 255, 0.8);
-  margin: 0 0 28px 0;
-  font-family: var(--app-font-family);
-  line-height: 1.5;
-}
-
-.feature-tags {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 40px;
-  flex-wrap: wrap;
-}
-
-.tag {
-  display: inline-block;
-  padding: 8px 20px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
-  color: var(--td-text-color-anti);
-  font-size: 14px;
-  font-weight: 500;
-  font-family: var(--app-font-family);
-}
-
-/* Carousel */
-.carousel-container {
-  width: 100%;
-  margin-top: 48px;
-}
-
-.screenshot-swiper {
-  width: 100%;
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  padding-bottom: 40px;
-
-  :deep(.swiper-wrapper) {
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  :deep(.swiper-pagination) {
-    bottom: 15px !important;
-    z-index: 10;
-  }
-
-  :deep(.swiper-pagination-bullet) {
-    width: 10px;
-    height: 10px;
-    background: rgba(255, 255, 255, 0.5);
-    opacity: 1;
-    transition: all 0.3s ease;
-    margin: 0 6px !important;
-  }
-
-  :deep(.swiper-pagination-bullet-active) {
-    background: var(--td-bg-color-container);
-    width: 28px;
-    border-radius: 5px;
-  }
-}
-
-.slide-content {
-  width: 100%;
-  height: 100%;
-  background: var(--td-bg-color-container);
-  border-radius: 16px;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.slide-image {
-  width: 100%;
-  height: 100%;
-  display: block;
-  object-fit: contain;
-}
-
-/* Right Form Section */
-.form-section {
-  flex: 0 0 48%;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 40px 50px 100px 30px;
-  box-sizing: border-box;
-  position: relative;
-}
-
-.form-panel {
-  width: 100%;
-  max-width: 480px;
-  margin-bottom: 60px;
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   position: relative;
   z-index: 2;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
-.header-logo {
-  position: fixed;
-  top: 32px;
-  left: 50px;
-  z-index: 100;
-  cursor: pointer;
-
-  .logo-image {
-    width: 120px;
-    height: auto;
-  }
-}
-
-.header-links {
-  position: fixed;
-  top: 28px;
-  right: 28px;
+/* 语言切换按钮区域 */
+.panel-header {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  z-index: 100;
-}
-
-.header-link {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 9px 15px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  color: var(--td-text-color-anti);
-  text-decoration: none;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: var(--app-font-family);
-  letter-spacing: 0.2px;
-  cursor: pointer;
-  position: relative;
-
-  svg {
-    flex-shrink: 0;
-  }
-
-  .link-text {
-    line-height: 1;
-  }
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.3);
-    border-color: rgba(255, 255, 255, 0.4);
-    color: var(--td-text-color-anti);
-  }
+  justify-content: flex-end;
+  padding: 20px 28px 0;
 }
 
 .language-switch {
   position: relative;
+}
 
-  button {
-    background: rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    color: var(--td-text-color-anti);
+.lang-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: #f5f7fa;
+  border: 1px solid #e8eaed;
+  color: #606266;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--app-font-family);
+  cursor: pointer;
+  transition: all 0.2s;
 
-    .lang-flag-icon {
-      font-size: 16px;
-      line-height: 1;
-      flex-shrink: 0;
-    }
+  &:hover {
+    background: #eef0f3;
+    border-color: #d0d3d8;
+  }
 
-    &:hover {
-      background: rgba(255, 255, 255, 0.3);
-      border-color: rgba(255, 255, 255, 0.4);
-    }
+  .lang-flag-icon {
+    font-size: 16px;
+    line-height: 1;
+  }
 
-    svg:last-child {
-      margin-left: 2px;
-      flex-shrink: 0;
-    }
+  svg {
+    color: #909399;
   }
 }
 
@@ -1281,10 +777,10 @@ onMounted(async () => {
   top: calc(100% + 8px);
   right: 0;
   min-width: 160px;
-  background: rgba(255, 255, 255, 0.97);
-  border: 1px solid var(--td-component-stroke);
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  background: #ffffff;
+  border: 1px solid #e8eaed;
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   z-index: 1000;
 }
@@ -1297,260 +793,237 @@ onMounted(async () => {
   cursor: pointer;
   font-size: 13px;
   font-family: var(--app-font-family);
-  color: var(--td-text-color-primary);
+  color: #303133;
+  transition: background 0.15s;
 
   .lang-flag {
     font-size: 16px;
-    flex-shrink: 0;
   }
 
-  .lang-label {
+  .lang-text {
     flex: 1;
   }
 
   .check-icon {
-    color: var(--td-success-color);
+    color: #667eea;
     font-weight: 700;
     font-size: 14px;
-    flex-shrink: 0;
   }
 
   &:hover {
-    background: var(--td-bg-color-secondarycontainer);
+    background: #f5f7fa;
   }
 
   &.active {
-    background: var(--td-success-color-light);
-    color: var(--td-brand-color-active);
+    background: rgba(102, 126, 234, 0.08);
+    color: #667eea;
   }
 }
 
-.form-card {
-  background: rgba(255, 255, 255, 0.97);
-  border-radius: 16px;
-  padding: 40px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-  box-sizing: border-box;
-  border: none;
-  width: 100%;
-}
-
-/* Share-link invitation banner. Sits above the register form when the
- * user arrived via /register?token=xxx; gives them confirmation of who
- * invited them before they fill anything in. Subtle, neutral card —
- * the page background is heavily brand-coloured already, so a loud
- * tinted banner clashes; we lean on the form's own surface tokens. */
-.invite-banner {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 12px 14px;
-  margin-bottom: 20px;
-  border-radius: 10px;
-  background: var(--td-bg-color-container-hover, rgba(0, 0, 0, 0.03));
-  border: 1px solid var(--td-component-stroke);
-  color: var(--td-text-color-primary);
-}
-
-.invite-banner__icon {
-  margin-top: 2px;
-  font-size: 18px;
-  flex-shrink: 0;
-  color: var(--td-text-color-secondary);
-}
-
-.invite-banner__text {
+/* 内容区域 */
+.panel-content {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 40px;
+  overflow-y: auto;
 }
 
-.invite-banner__title {
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.4;
-  color: var(--td-text-color-primary);
-}
-
-.invite-banner__hint {
-  font-size: 12px;
-  color: var(--td-text-color-secondary);
-  line-height: 1.5;
-}
-
-.invite-banner--error {
-  background: var(--td-error-color-1, rgba(220, 38, 38, 0.06));
-  border-color: var(--td-error-color-3, rgba(220, 38, 38, 0.2));
-  color: var(--td-error-color, #b91c1c);
-  font-size: 13px;
-}
-
-.form-header {
+/* 品牌区域 */
+.brand-section {
   text-align: center;
   margin-bottom: 32px;
 }
 
-.form-title {
-  font-size: 24px;
+.brand-logo {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  margin-bottom: 16px;
+}
+
+.brand-title {
+  font-size: 22px;
   font-weight: 600;
-  color: var(--td-text-color-primary);
-  margin: 0 0 6px 0;
+  margin: 0 0 4px;
   font-family: var(--app-font-family);
+  letter-spacing: 1px;
 }
 
-.form-welcome {
+.brand-title-text {
+  color: #1a1a2e;
+}
+
+.brand-title-gradient {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.brand-subtitle {
+  font-size: 14px;
+  color: #667eea;
+  font-weight: 600;
+  margin: 0 0 8px;
+  font-family: var(--app-font-family);
+  letter-spacing: 2px;
+}
+
+.brand-slogan {
   font-size: 13px;
-  color: var(--td-text-color-secondary);
+  color: #909399;
   margin: 0;
   font-family: var(--app-font-family);
+  font-style: italic;
 }
 
-.form-hint {
-  margin: 10px 0 0;
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: var(--td-success-color-light, rgba(7, 192, 95, 0.08));
-  color: var(--td-brand-color-active);
-  font-size: 12.5px;
+/* 表单卡片 */
+.form-card {
+  width: 100%;
+  max-width: 380px;
+}
+
+.form-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.form-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin: 0 0 6px;
+  font-family: var(--app-font-family);
+}
+
+.form-desc {
+  font-size: 13px;
+  color: #909399;
+  margin: 0;
+  font-family: var(--app-font-family);
   line-height: 1.5;
-  font-family: var(--app-font-family);
 }
 
-/* 注册入口：从底部小字链接升级为带分隔线的醒目次级按钮，
-   让首次访客一眼就能找到「创建账户」。 */
-.register-cta {
-  margin-top: 8px;
+/* 模式切换 Tab */
+.mode-tabs {
+  display: flex;
+  background: #f5f7fa;
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 24px;
+}
 
-  &__divider {
-    position: relative;
-    text-align: center;
-    margin: 4px 0 14px;
-    color: var(--td-text-color-secondary);
-    font-size: 13px;
-    font-family: var(--app-font-family);
+.mode-tab {
+  flex: 1;
+  padding: 10px 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #909399;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: var(--app-font-family);
+  cursor: pointer;
+  transition: all 0.25s;
 
-    span {
-      position: relative;
-      z-index: 1;
-      padding: 0 12px;
-      background: rgba(255, 255, 255, 0.97);
-    }
-
-    &::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: 50%;
-      border-top: 1px solid var(--td-component-stroke);
-    }
+  &:hover {
+    color: #606266;
   }
 
-  &__button {
-    height: 46px;
-    border-radius: 8px;
-    font-size: 15px;
-    font-weight: 500;
-    border-color: var(--td-brand-color);
-    color: var(--td-brand-color);
-
-    &:hover {
-      border-color: var(--td-brand-color-active);
-      color: var(--td-brand-color-active);
-      background: var(--td-success-color-light, rgba(7, 192, 95, 0.08));
-    }
+  &.active {
+    background: #ffffff;
+    color: #667eea;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+    font-weight: 600;
   }
 }
 
-.form-subtitle {
-  font-size: 13px;
-  color: var(--td-text-color-secondary);
-  margin: 0;
-  font-family: var(--app-font-family);
-}
-
-.form-content {
+/* 表单内容 */
+.form-body {
   :deep(.t-form-item__label) {
     font-size: 14px;
-    color: var(--td-text-color-primary);
+    color: #303133;
     font-weight: 500;
     margin-bottom: 8px;
     font-family: var(--app-font-family);
-    display: block;
-    text-align: left;
   }
 
   :deep(.t-input) {
-    border: 1px solid var(--td-component-stroke);
-    border-radius: 8px;
-    background: var(--td-bg-color-container);
+    border: 1.5px solid #e0e4ea;
+    border-radius: 10px;
+    background: #fafbfc;
     transition: all 0.2s;
 
-    &:focus-within {
-      border-color: var(--td-brand-color);
-      box-shadow: 0 0 0 3px rgba(7, 192, 95, 0.1);
+    &:hover {
+      border-color: #c0c5ce;
     }
 
-    &:hover {
-      border-color: var(--td-brand-color);
+    &:focus-within {
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      background: #ffffff;
     }
 
     .t-input__inner {
-      border: none !important;
-      box-shadow: none !important;
-      outline: none !important;
-      background: transparent;
       font-size: 15px;
       font-family: var(--app-font-family);
+      color: #303133;
 
-      &:focus {
-        border: none !important;
-        box-shadow: none !important;
-        outline: none !important;
+      &::placeholder {
+        color: #c0c4cc;
       }
-    }
-
-    .t-input__wrap {
-      border: none !important;
-      box-shadow: none !important;
     }
   }
 
   :deep(.t-form-item) {
     margin-bottom: 18px;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
-
-  :deep(.t-form-item__control) {
-    width: 100%;
   }
 }
 
-.submit-button {
-  height: 46px;
-  border-radius: 8px;
+/* 登录按钮 */
+.submit-btn {
+  height: 48px;
+  border-radius: 10px;
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 600;
   font-family: var(--app-font-family);
-  margin: 20px 0 16px 0;
+  margin-top: 8px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  border: none !important;
+  color: #ffffff;
+  transition: all 0.3s;
+
+  &:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.35);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+/* 统一身份认证 区域 */
+.oidc-section {
+  margin-top: 4px;
 }
 
 .oidc-divider {
   position: relative;
-  margin: 4px 0 6px;
+  margin: 16px 0 12px;
   text-align: center;
-  color: var(--td-text-color-placeholder);
+  color: #c0c4cc;
   font-size: 12px;
 
   span {
     position: relative;
     z-index: 1;
     padding: 0 12px;
-    background: rgba(255, 255, 255, 0.95);
+    background: #ffffff;
   }
 
   &::before {
@@ -1559,338 +1032,504 @@ onMounted(async () => {
     left: 0;
     right: 0;
     top: 50%;
-    border-top: 1px solid var(--td-component-stroke);
+    border-top: 1px solid #e8eaed;
   }
 }
 
-.oidc-button {
+.oidc-btn {
   height: 46px;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 15px;
   font-weight: 500;
+  border: 1.5px solid #e0e4ea;
+  color: #606266;
+  background: #fafbfc;
+
+  &:hover {
+    background: #f0f2f5;
+    border-color: #c0c5ce;
+  }
 }
 
-.form-footer {
-  text-align: center;
+/* 邀请横幅 */
+.invite-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  border-radius: 10px;
+  background: #f0f5ff;
+  border: 1px solid #d4e4ff;
+}
+
+.invite-banner__icon {
+  margin-top: 2px;
+  font-size: 18px;
+  color: #667eea;
+}
+
+.invite-banner__title {
   font-size: 14px;
-  color: var(--td-text-color-secondary);
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.invite-banner__hint {
+  font-size: 12px;
+  color: #909399;
+}
+
+.invite-banner--error {
+  background: #fef0f0;
+  border-color: #fde2e2;
+  color: #f56c6c;
+}
+
+/* 底部版权 */
+.panel-footer {
+  padding: 16px 28px;
+  text-align: center;
+  font-size: 12px;
+  color: #c0c4cc;
   font-family: var(--app-font-family);
-  margin-top: 16px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--td-component-stroke);
+}
 
-  .link-button {
-    color: var(--td-brand-color);
-    text-decoration: none;
-    margin-left: 4px;
-    font-weight: 500;
-    transition: all 0.2s;
+/* ========================================
+   右侧展示面板
+   ======================================== */
+.showcase-panel {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  padding-bottom: 48px;
+  background: #f0f2f5;
+  border-radius: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+}
 
-    &:hover {
-      color: var(--td-brand-color);
-      text-decoration: underline;
-    }
+/* 背景图片轮播 */
+.bg-carousel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.bg-slide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  transition: opacity 1.2s ease-in-out;
+
+  &.active {
+    opacity: 1;
   }
 }
 
-.login-form-footer {
-  border-bottom: none;
-  padding-bottom: 8px;
-  margin-top: 12px;
+/* 浮动功能卡片 */
+.floating-cards {
+  position: relative;
+  z-index: 10;
+  width: 80%;
+  max-width: 520px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 32px;
 }
 
-.login-features {
-  margin-top: 20px;
-  padding: 0;
+.feature-card {
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  transition: transform 0.3s, box-shadow 0.3s;
 
-  .feature-item {
-    display: flex;
-    align-items: center;
-    margin-bottom: 12px;
-    font-size: 13px;
-    color: var(--td-text-color-secondary);
-    font-family: var(--app-font-family);
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-
-    .feature-icon {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: var(--td-success-color-light);
-      color: var(--td-brand-color-active);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      font-weight: 700;
-      margin-right: 10px;
-      flex-shrink: 0;
-    }
-
-    .feature-text {
-      line-height: 1.4;
-    }
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    background: rgba(255, 255, 255, 0.35);
   }
 }
 
-/* Responsive Design */
+.card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  background: rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.card-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+  font-family: var(--app-font-family);
+  margin-bottom: 12px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.card-placeholder {
+  height: 80px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* 底部展示文字 */
+.showcase-footer {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+}
+
+.showcase-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0 0 10px;
+  font-family: var(--app-font-family);
+  letter-spacing: 3px;
+}
+
+.showcase-desc {
+  font-size: 14px;
+  color: #606266;
+  margin: 0 0 20px;
+  font-family: var(--app-font-family);
+}
+
+/* 轮播指示器 */
+.carousel-indicators {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.indicator {
+  width: 32px;
+  height: 4px;
+  border-radius: 2px;
+  background: #d0d3d8;
+  transition: all 0.3s;
+
+  &.active {
+    background: #667eea;
+    width: 48px;
+  }
+}
+
+/* 功能展示卡片 - 水平排列 */
+.feature-cards {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  padding: 0 20px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.feature-item {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: all 0.3s;
+  width: 200px;
+}
+
+.feature-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.feature-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.feature-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(102, 126, 234, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.feature-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #ffffff;
+  font-family: var(--app-font-family);
+  white-space: nowrap;
+}
+
+.feature-image-placeholder {
+  width: 100%;
+  height: 60px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px dashed rgba(255, 255, 255, 0.3);
+}
+
+/* ========================================
+   响应式设计
+   ======================================== */
 @media (max-width: 1024px) {
-  .knowledge-node:nth-of-type(n + 13) {
-    display: none;
+  .login-page {
+    padding: 4vh 6vw;
   }
 
-  .connection-line:nth-of-type(n + 13) {
-    display: none;
+  .login-container {
+    height: 92vh;
   }
 
-  .showcase-subtitle {
-    font-size: 18px;
+  .login-panel {
+    width: 400px;
+    min-width: 360px;
   }
 
-  .header-logo {
-    top: 26px;
-    left: 40px;
-
-    .logo-image {
-      width: 100px;
-    }
+  .panel-content {
+    padding: 20px 32px;
   }
 
-  .header-links {
-    top: 22px;
-    right: 22px;
-    gap: 8px;
-
-    .link-text {
-      display: none;
-    }
-
-    .header-link {
-      padding: 10px;
-      gap: 0;
-    }
+  .floating-cards {
+    width: 85%;
   }
 }
 
 @media (max-width: 768px) {
-  .login-layout {
-    flex-direction: column;
+  .login-page {
+    padding: 0;
   }
 
-  .knowledge-node:nth-of-type(n + 9) {
+  .login-container {
+    height: 100vh;
+    gap: 0;
+  }
+
+  .login-panel {
+    width: 100%;
+    min-width: auto;
+    flex: 1;
+    order: 1;
+    border-radius: 0;
+  }
+
+  .showcase-panel {
     display: none;
   }
 
-  .connection-line:nth-of-type(n + 9) {
-    display: none;
+  .panel-content {
+    padding: 20px 10vw;
   }
 
-  .showcase-section {
-    flex: 0 0 auto;
-    min-height: 50vh;
-    padding: 40px 24px;
-  }
-
-  .showcase-content {
-    max-width: 100%;
-  }
-
-  .header-logo {
-    top: 22px;
-    left: 30px;
-
-    .logo-image {
-      width: 80px;
-    }
-  }
-
-  .showcase-subtitle {
-    font-size: 16px;
-    margin-bottom: 24px;
-  }
-
-  .feature-tags {
-    margin-bottom: 24px;
-  }
-
-  .carousel-container {
-    margin-top: 24px;
-  }
-
-  .form-section {
-    flex: 0 0 auto;
-    padding: 24px;
-  }
-
-  .header-links {
-    top: 18px;
-    right: 18px;
-    gap: 8px;
-
-    .link-text {
-      display: inline;
-    }
-
-    .header-link {
-      padding: 8px 12px;
-      font-size: 12px;
-    }
-  }
-
-  .form-card {
-    padding: 32px 24px;
-  }
-
-  .form-title {
-    font-size: 22px;
+  .brand-title {
+    font-size: 20px;
   }
 }
 
 @media (max-width: 480px) {
-  .animated-bg {
-    display: none;
+  .panel-content {
+    padding: 16px 6vw;
   }
 
-  .showcase-section {
-    padding: 32px 20px;
+  .brand-title {
+    font-size: 18px;
   }
 
-  .header-logo {
-    top: 18px;
-    left: 20px;
-
-    .logo-image {
-      width: 70px;
-    }
-  }
-
-  .showcase-subtitle {
-    font-size: 14px;
-  }
-
-  .tag {
-    font-size: 12px;
-    padding: 6px 16px;
-  }
-
-  .form-section {
-    padding: 20px;
-  }
-
-  .header-links {
-    top: 14px;
-    right: 14px;
-    gap: 6px;
-    flex-wrap: wrap;
-
-    .header-link {
-      padding: 7px 10px;
-      font-size: 11px;
-    }
+  .brand-logo {
+    width: 60px;
+    height: 60px;
   }
 
   .form-card {
-    padding: 28px 20px;
-  }
-
-  .form-header {
-    margin-bottom: 24px;
+    max-width: 100%;
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-
-  .knowledge-node,
-  .connection-line {
-    animation: none !important;
-    transition: none !important;
-  }
-
-  .animated-bg {
-    display: none;
-  }
-}
-</style>
-
-<style lang="less">
+/* ========================================
+   深色模式
+   ======================================== */
 html[theme-mode="dark"] {
-  .login-layout {
-    background: linear-gradient(225deg, #011a14 0%, #032e22 15%, #043a2c 25%, #05503d 38%, #046647 50%, #038a56 65%, #049b60 78%, #06a06a 90%, #07b074 100%);
+  .login-page {
+    background: #0a0a1a;
   }
 
-  .knowledge-node {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.2);
-    box-shadow: 0 0 8px rgba(255, 255, 255, 0.15);
+  .login-panel {
+    background: #141428;
   }
 
-  .connection-line {
-    stroke: rgba(255, 255, 255, 0.25);
-  }
-
-  .header-logo .logo-image {
-    filter: invert(1) hue-rotate(180deg) brightness(1.1);
-  }
-
-  .header-link {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.15);
+  .lang-btn {
+    background: #1e1e3a;
+    border-color: #2a2a4a;
+    color: #a0a3b0;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.2);
+      background: #252545;
+      border-color: #353560;
     }
-  }
 
-  .language-switch button {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.15);
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.2);
+    svg {
+      color: #606370;
     }
   }
 
   .language-dropdown {
-    background: rgba(36, 36, 36, 0.97) !important;
-    border-color: var(--td-component-stroke) !important;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+    background: #1e1e3a;
+    border-color: #2a2a4a;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
   }
 
-  .tag {
-    background: rgba(255, 255, 255, 0.12);
-  }
-
-  .form-card {
-    background: rgba(36, 36, 36, 0.97) !important;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4) !important;
-  }
-
-  .register-cta__divider span {
-    background: rgba(36, 36, 36, 0.97);
-  }
-
-  .form-content .t-input {
-    background: var(--td-bg-color-page) !important;
-    border-color: rgba(255, 255, 255, 0.1) !important;
+  .language-option {
+    color: #c0c3d0;
 
     &:hover {
-      border-color: var(--td-brand-color) !important;
+      background: #252545;
     }
 
-    &:focus-within {
-      border-color: var(--td-brand-color) !important;
+    &.active {
+      background: rgba(102, 126, 234, 0.15);
+      color: #8b9cf7;
     }
   }
 
-  .screenshot-swiper .swiper-pagination-bullet-active {
-    background: rgba(255, 255, 255, 0.9) !important;
+  .brand-title-text {
+    color: #e8eaf0;
   }
 
-  .login-features .feature-icon {
-    background: rgba(6, 176, 77, 0.15);
+  .brand-subtitle {
+    color: #8b9cf7;
+  }
+
+  .brand-slogan {
+    color: #606370;
+  }
+
+  .form-title {
+    color: #e8eaf0;
+  }
+
+  .form-desc {
+    color: #606370;
+  }
+
+  .mode-tabs {
+    background: #1e1e3a;
+  }
+
+  .mode-tab {
+    color: #606370;
+
+    &:hover {
+      color: #a0a3b0;
+    }
+
+    &.active {
+      background: #252545;
+      color: #8b9cf7;
+    }
+  }
+
+  .form-body {
+    :deep(.t-form-item__label) {
+      color: #c0c3d0;
+    }
+
+    :deep(.t-input) {
+      border-color: #2a2a4a;
+      background: #1a1a35;
+
+      &:hover {
+        border-color: #353560;
+      }
+
+      &:focus-within {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+        background: #1e1e3a;
+      }
+
+      .t-input__inner {
+        color: #e8eaf0;
+
+        &::placeholder {
+          color: #4a4a6a;
+        }
+      }
+    }
+  }
+
+  .oidc-divider span {
+    background: #141428;
+  }
+
+  .oidc-btn {
+    border-color: #2a2a4a;
+    background: #1a1a35;
+    color: #a0a3b0;
+
+    &:hover {
+      background: #252545;
+      border-color: #353560;
+    }
+  }
+
+  .panel-footer {
+    color: #3a3a5a;
+  }
+
+  .invite-banner {
+    background: rgba(102, 126, 234, 0.1);
+    border-color: rgba(102, 126, 234, 0.2);
+  }
+
+  .invite-banner__title {
+    color: #e8eaf0;
+  }
+
+  .invite-banner__hint {
+    color: #606370;
+  }
+
+  .invite-banner--error {
+    background: rgba(245, 108, 108, 0.1);
+    border-color: rgba(245, 108, 108, 0.2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-slide {
+    transition: none !important;
   }
 }
 </style>
