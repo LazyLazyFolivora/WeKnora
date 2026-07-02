@@ -67,7 +67,14 @@ function resolveVueOfficePptxEntry(): string {
   }
 }
 
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+  const DEV_PROXY_TARGET =
+    env.VITE_DEV_PROXY_TARGET ||
+    env.FRONTEND_BACKEND_URL ||
+    'http://localhost:8080'
+
+  return {
   define: {
     __FRONTEND_VERSION__: JSON.stringify(FRONTEND_VERSION),
     __FRONTEND_COMMIT__: JSON.stringify(FRONTEND_COMMIT),
@@ -130,7 +137,6 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
-    // 代理配置，用于开发环境
     proxy: {
       '/api': {
         target: DEV_PROXY_TARGET,
@@ -162,5 +168,6 @@ export default defineConfig({
         secure: false,
       }
     }
+  }
   }
 })
