@@ -178,7 +178,6 @@ func (t *Neo4jHybridSearchTool) Execute(ctx context.Context, args json.RawMessag
 			mu.Unlock()
 
 			chunkIDs := extractChunkIDs(graphData.Node)
-			chunkIDs := extractChunkIDs(graphData.Node)
 			if len(chunkIDs) > 0 {
 				chunks, err := t.chunkRepo.ListChunksByIDOnly(gCtx, chunkIDs)
 				if err != nil {
