@@ -405,8 +405,7 @@ func (s *agentService) registerTools(
 			tools.ToolGrepChunks:          true,
 			tools.ToolListKnowledgeChunks: true,
 			tools.ToolQueryKnowledgeGraph: true,
-			tools.ToolNeo4jHybridSearch:   true,
-			tools.ToolExploreGraph:        true,
+			tools.ToolGraphQuery:          true,
 			tools.ToolGetDocumentInfo:     true,
 			tools.ToolDatabaseQuery:       true,
 			tools.ToolDataAnalysis:        true,
@@ -535,17 +534,8 @@ func (s *agentService) registerTools(
 			toolToRegister = tools.NewListKnowledgeChunksTool(s.knowledgeService, s.chunkService, config.SearchTargets)
 		case tools.ToolQueryKnowledgeGraph:
 			toolToRegister = tools.NewQueryKnowledgeGraphTool(s.knowledgeBaseService)
-		case tools.ToolNeo4jHybridSearch:
-			toolToRegister = tools.NewNeo4jHybridSearchTool(
-				s.graphRepo,
-				s.knowledgeBaseService,
-				s.chunkService.GetRepository(),
-				s.knowledgeService.GetRepository(),
-				config.SearchTargets,
-				chatModel,
-			)
-		case tools.ToolExploreGraph:
-			toolToRegister = tools.NewExploreGraphTool(s.graphRepo)
+		case tools.ToolGraphQuery:
+			toolToRegister = tools.NewGraphQueryTool(s.graphRepo)
 		case tools.ToolGetDocumentInfo:
 			toolToRegister = tools.NewGetDocumentInfoTool(s.knowledgeService, s.chunkService, config.SearchTargets)
 		case tools.ToolDatabaseQuery:

@@ -286,10 +286,6 @@ func (n *Neo4jRepository) SearchByCypher(
 					continue
 				}
 				nodeSeen[nameStr] = true
-				chunks := []string{}
-				if rawChunks, ok := nd.Props["chunks"].([]interface{}); ok {
-					chunks = listI2listS(rawChunks)
-				}
 				attrs := []string{}
 				if rawAttrs, ok := nd.Props["attributes"].([]interface{}); ok {
 					attrs = listI2listS(rawAttrs)
@@ -300,9 +296,20 @@ func (n *Neo4jRepository) SearchByCypher(
 				if entityData, ok := nd.Props["entity_data"].(string); ok && entityData != "" {
 					attrs = append(attrs, entityData)
 				}
+				if primekgType, ok := nd.Props["primekg_type"].(string); ok && primekgType != "" {
+					attrs = append(attrs, "primekg_type:"+primekgType)
+				}
+				if primekgID, ok := nd.Props["primekg_id"].(string); ok && primekgID != "" {
+					attrs = append(attrs, "primekg_id:"+primekgID)
+				}
+				if nodeSource, ok := nd.Props["node_source"].(string); ok && nodeSource != "" {
+					attrs = append(attrs, "source:"+nodeSource)
+				}
+				if sourceSite, ok := nd.Props["source_site"].(string); ok && sourceSite != "" {
+					attrs = append(attrs, "site:"+sourceSite)
+				}
 				graphData.Node = append(graphData.Node, &types.GraphNode{
 					Name:       nameStr,
-					Chunks:     chunks,
 					Attributes: attrs,
 				})
 			}

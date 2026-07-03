@@ -53,8 +53,7 @@ export const TOOL_CAPABILITY_REQUIREMENTS: Record<string, ToolRequirement> = {
   grep_chunks:           { anyOf: ['vector', 'keyword'], consumesFiles: true },
   list_knowledge_chunks: { anyOf: ['vector', 'keyword'], consumesFiles: true },
   query_knowledge_graph: { anyOf: ['vector', 'keyword'], consumesFiles: true },
-  neo4j_hybrid_search:   {},
-  explore_graph:         {},
+  graph_query:           {},
   get_document_info:     { anyOf: ['vector', 'keyword'], consumesFiles: true },
   database_query:        { anyOf: ['vector', 'keyword'], consumesFiles: true },
 

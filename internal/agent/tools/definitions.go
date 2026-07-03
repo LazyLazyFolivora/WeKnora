@@ -12,8 +12,7 @@ const (
 	ToolKnowledgeSearch     = "knowledge_search"
 	ToolListKnowledgeChunks = "list_knowledge_chunks"
 	ToolQueryKnowledgeGraph = "query_knowledge_graph"
-	ToolNeo4jHybridSearch   = "neo4j_hybrid_search"
-	ToolExploreGraph        = "explore_graph"
+	ToolGraphQuery = "graph_query"
 	ToolGetDocumentInfo     = "get_document_info"
 	ToolDatabaseQuery       = "database_query"
 	ToolDataAnalysis        = "data_analysis"
@@ -53,8 +52,7 @@ func AvailableToolDefinitions() []AvailableTool {
 		{Name: ToolKnowledgeSearch, Label: "语义搜索", Description: "理解问题并查找语义相关内容"},
 		{Name: ToolListKnowledgeChunks, Label: "查看文档分块", Description: "获取文档完整分块内容"},
 		{Name: ToolQueryKnowledgeGraph, Label: "查询知识图谱", Description: "从知识图谱中查询关系"},
-		{Name: ToolNeo4jHybridSearch, Label: "图谱混合搜索", Description: "结合Neo4j知识图谱遍历与向量关键词混合检索"},
-		{Name: ToolExploreGraph, Label: "图谱探索", Description: "深入探索知识图谱中特定实体的关系和邻居"},
+		{Name: ToolGraphQuery, Label: "图谱查询", Description: "执行只读Cypher查询，探索Neo4j知识图谱的结构和数据"},
 		{Name: ToolGetDocumentInfo, Label: "获取文档信息", Description: "查看文档元数据"},
 		{Name: ToolDatabaseQuery, Label: "查询数据库", Description: "查询数据库中的信息"},
 		{Name: ToolDataAnalysis, Label: "数据分析", Description: "理解数据文件并进行数据分析"},
@@ -83,8 +81,7 @@ func DefaultAllowedTools() []string {
 		ToolGrepChunks,
 		ToolListKnowledgeChunks,
 		ToolQueryKnowledgeGraph,
-		ToolNeo4jHybridSearch,
-		ToolExploreGraph,
+		ToolGraphQuery,
 		ToolGetDocumentInfo,
 		ToolDatabaseQuery,
 		ToolDataAnalysis,
