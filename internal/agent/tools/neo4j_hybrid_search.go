@@ -29,11 +29,15 @@ Runs Neo4j graph search and vector/keyword search in parallel across all configu
 - Exploring knowledge networks and concept associations
 - Queries that need both structural context (graph) and detailed content (chunks)
 - Multi-hop questions where entity connections matter
+- As the FIRST step for any graph-related question — use this to discover entities, then drill deeper with explore_graph
 
 ❌ **Don't use for**:
 - Pure semantic/conceptual queries → use knowledge_search
 - Literal keyword/string matching → use grep_chunks
 - Knowledge bases without graph extraction configured
+
+## Important: Follow-up with explore_graph
+After this tool returns graph results, you MUST use explore_graph to drill into specific entities that are relevant to the user's question. The Graph Nodes section gives you entity names with their attributes (entity_type, entity_data, etc.) — pick the most relevant entity and call explore_graph(entity="...") to see its full neighborhood and properties. Do NOT answer the user based only on the node name list — the real knowledge is in the entity attributes and relationships you get from explore_graph.
 
 ## Parameters
 - **query** (required): Natural language search query — used for both graph node matching and vector/keyword retrieval.
@@ -430,13 +434,15 @@ func (t *Neo4jHybridSearchTool) generateCypherQuery(
 ## Graph Schema
 %s
 
-## Rules
+## CRITICAL Rules
 - Do NOT use any node labels — use plain (n)-[r]-(m) to search across all KBs.
 - Node properties: name, chunks, attributes, entity_type, entity_data.
-- Use toLower(n.name) CONTAINS toLower($search_term) for case-insensitive name matching.
+- ALWAYS use the $search_term parameter for name matching. NEVER embed literal search strings.
+  Correct: WHERE toLower(n.name) CONTAINS toLower($search_term)
+  Wrong:   WHERE toLower(n.name) CONTAINS toLower("some drug name")
 - Always add LIMIT 50 to avoid scanning the entire graph.
 - The query MUST RETURN n, r, m (source node, relationship, target node).
-- Output ONLY the Cypher query, no explanation, no markdown.`, strings.Join(schemaLines, "\n"))
+- Output ONLY the Cypher query, no explanation, no markdown, no code fences.`, strings.Join(schemaLines, "\n"))
 
 	messages := []chat.Message{
 		{Role: "system", Content: systemPrompt},

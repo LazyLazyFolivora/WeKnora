@@ -5341,6 +5341,8 @@ export default {
       queryGraphDesc: "从知识图谱中查询关系",
       neo4jHybridSearch: "图谱混合搜索",
       neo4jHybridSearchDesc: "结合Neo4j知识图谱遍历与向量关键词混合检索",
+      exploreGraph: "图谱探索",
+      exploreGraphDesc: "深入探索知识图谱中特定实体的邻居和关系",
       getDocInfo: "获取文档信息",
       getDocInfoDesc: "查看文档元数据",
       dbQuery: "查询数据库",

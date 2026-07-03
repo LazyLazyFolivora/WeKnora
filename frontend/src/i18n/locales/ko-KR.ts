@@ -5334,6 +5334,8 @@ export default {
       queryGraphDesc: '지식 그래프에서 관계 조회',
       neo4jHybridSearch: 'Graph Hybrid Search',
       neo4jHybridSearchDesc: 'Combined Neo4j knowledge graph traversal with vector/keyword hybrid search',
+      exploreGraph: 'Graph Explore',
+      exploreGraphDesc: 'Deep exploration of entity neighbors and relationships in the knowledge graph',
       getDocInfo: '문서 정보 조회',
       getDocInfoDesc: '문서 메타데이터 보기',
       dbQuery: '데이터베이스 쿼리',

@@ -4757,6 +4757,8 @@ export default {
       queryGraphDesc: 'Запрос связей из графа знаний',
       neo4jHybridSearch: 'Graph Hybrid Search',
       neo4jHybridSearchDesc: 'Combined Neo4j knowledge graph traversal with vector/keyword hybrid search',
+      exploreGraph: 'Graph Explore',
+      exploreGraphDesc: 'Deep exploration of entity neighbors and relationships in the knowledge graph',
       getDocInfo: 'Информация о документе',
       getDocInfoDesc: 'Просмотр метаданных документа',
       dbQuery: 'Запрос к базе данных',
