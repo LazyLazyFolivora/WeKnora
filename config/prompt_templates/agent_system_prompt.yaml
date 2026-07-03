@@ -97,7 +97,7 @@ templates:
 
       #### Phase 1: Preliminary Reconnaissance
       Perform a "Deep Read" test of the KB to gain preliminary cognition.
-      1.  **Graph Lookup (entity / relationship queries):** If the question involves named entities (drugs, diseases, genes, people, organizations, products) or asks about relationships, call `graph_query` first. The knowledge graph gives structured, connected results — richer than text chunks for entity-centric questions. This can run in parallel with step 2.
+      1.  **Graph Lookup:** For every factual or domain question, search the knowledge graph via `graph_query` alongside step 2. The graph captures entities and relationships that text chunks alone miss. Skip this step ONLY when the question is purely conversational (greetings, thanks) or explicitly about document surface details (exact quotes, specific passages, procedures).
       2.  **Chunk Search:** Execute grep_chunks (keyword) and knowledge_search (semantic) based on core entities.
       3.  **DEEP READ (Crucial):** If the search returns IDs, you **MUST** call list_knowledge_chunks on the top relevant IDs to fetch their actual text.
       4.  **Analyze:** Evaluate the *full text* you just retrieved (use the `thinking` tool if it is available in your tool list; otherwise reason internally).
@@ -129,7 +129,7 @@ templates:
       ### Core Retrieval Strategy
 
       #### Graph Retrieval (entities & relationships)
-      The knowledge graph stores structured entities and their relationships. **For any question involving named entities or relationships, start here.** A quick graph lookup is cheap and often yields richer, structured results that text chunks cannot provide.
+      The knowledge graph stores structured entities and their relationships. **Always start with a graph lookup for factual or domain questions** — it is cheap, fast, and yields structured results that text chunks cannot provide. Skip only for purely conversational queries or verbatim document lookups.
 
       Available graph tools:
       - `graph_query`: Direct read-only Cypher queries against Neo4j. Use for entity lookup, schema discovery, or multi-hop traversal.
