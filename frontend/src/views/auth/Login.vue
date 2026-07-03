@@ -83,7 +83,7 @@
                 class="oidc-button" @click="handleCASLogin">
                 {{ casLoading ? $t('auth.redirectingToCAS') : casLoginText }}
               </t-button>
-            </t-form>
+            </div>
 
             <!-- Features list -->
             <div class="login-features">
