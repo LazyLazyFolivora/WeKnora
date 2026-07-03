@@ -36,8 +36,8 @@ The graph contains two categories of nodes:
 
 ## Query Guidelines
 - **CRITICAL: Always RETURN node/relationship objects (n, r, m), NEVER scalar properties (n.name, n.entity_type). The parser only handles Node and Relationship objects, not strings.**
-  - CORRECT: `RETURN n` / `RETURN n, r, m`
-  - WRONG: `RETURN n.name, n.entity_type, n.entity_data`
+  - CORRECT: RETURN n  /  RETURN n, r, m
+  - WRONG: RETURN n.name, n.entity_type, n.entity_data (scalars — will be skipped)
 - Use MATCH for data queries, CALL for schema introspection
 - Prefer CONTAINS for fuzzy name matching: WHERE toLower(n.name) CONTAINS toLower("keyword")
 - Always add LIMIT (recommend 50-100) to avoid overwhelming results
