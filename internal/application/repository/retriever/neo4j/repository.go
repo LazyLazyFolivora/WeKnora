@@ -1,4 +1,4 @@
-package neo4j
+﻿package neo4j
 
 import (
 	"context"
@@ -263,24 +263,31 @@ func (n *Neo4jRepository) SearchByCypher(
 
 		for cypherResult.Next(ctx) {
 			record := cypherResult.Record()
-			nodeVal, _ := record.Get("n")
-			relVal, _ := record.Get("r")
-			targetVal, _ := record.Get("m")
 
-			if nodeVal == nil || relVal == nil || targetVal == nil {
+			// Collect all nodes and relationships from every returned column,
+			// so the LLM is free to write RETURN n, RETURN n/r/m, or any aliases.
+			var recordNodes []neo4j.Node
+			var recordRels []neo4j.Relationship
+
+			for _, key := range record.Keys {
+				val, _ := record.Get(key)
+				if val == nil {
+					continue
+				}
+				switch v := val.(type) {
+				case neo4j.Node:
+					recordNodes = append(recordNodes, v)
+				case neo4j.Relationship:
+					recordRels = append(recordRels, v)
+				}
+			}
+
+			if len(recordNodes) == 0 {
 				skippedCount++
 				continue
 			}
 
-			nodeData, ok1 := nodeVal.(neo4j.Node)
-			relData, ok2 := relVal.(neo4j.Relationship)
-			targetNodeData, ok3 := targetVal.(neo4j.Node)
-			if !ok1 || !ok2 || !ok3 {
-				skippedCount++
-				continue
-			}
-
-			for _, nd := range []neo4j.Node{nodeData, targetNodeData} {
+			for _, nd := range recordNodes {
 				nameStr, ok := nd.Props["name"].(string)
 				if !ok || nodeSeen[nameStr] {
 					continue
@@ -314,11 +321,24 @@ func (n *Neo4jRepository) SearchByCypher(
 				})
 			}
 
-			graphData.Relation = append(graphData.Relation, &types.GraphRelation{
-				Node1: nodeData.Props["name"].(string),
-				Node2: targetNodeData.Props["name"].(string),
-				Type:  relData.Type,
-			})
+			// Relations: when the record also has a relationship together with
+			// at least 2 nodes, connect the first two nodes.
+			for _, rel := range recordRels {
+				var node1, node2 string
+				if len(recordNodes) >= 2 {
+					if n, ok := recordNodes[0].Props["name"].(string); ok {
+						node1 = n
+					}
+					if n, ok := recordNodes[1].Props["name"].(string); ok {
+						node2 = n
+					}
+				}
+				graphData.Relation = append(graphData.Relation, &types.GraphRelation{
+					Node1: node1,
+					Node2: node2,
+					Type:  rel.Type,
+				})
+			}
 			recordCount++
 		}
 

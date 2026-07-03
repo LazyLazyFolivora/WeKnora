@@ -79,6 +79,7 @@ builtin_agents:
         - "grep_chunks"
         - "list_knowledge_chunks"
         - "query_knowledge_graph"
+        - "graph_query"
         - "get_document_info"
       web_search_enabled: true
       web_search_max_results: 5

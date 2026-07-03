@@ -136,12 +136,40 @@ export interface DocumentInfoData {
     title?: string;
 }
 
+// Graph query node (from graph_query tool via SearchByCypher)
+export interface GraphQueryNode {
+    name: string;
+    chunks?: string[];
+    attributes: string[];
+}
+
+// Graph query relation (from graph_query tool via SearchByCypher)
+export interface GraphQueryRelation {
+    node1: string;
+    node2: string;
+    type: string;
+}
+
+// Graph data envelope (returned by both graph_query and query_knowledge_graph)
+export interface GraphQueryGraphData {
+    nodes: GraphQueryNode[];
+    relations: GraphQueryRelation[];
+    total_nodes: number;
+    total_edges: number;
+}
+
 // Graph query results data
+// Supports two shapes:
+//   query_knowledge_graph → data.results (chunk list) + data.graph_config
+//   graph_query           → data.graph_data (nodes + relations)
 export interface GraphQueryResultsData {
     display_type: 'graph_query_results';
-    results: SearchResultItem[];
-    count: number;
-    graph_config: GraphConfig;
+    results?: SearchResultItem[];
+    count?: number;
+    graph_config?: GraphConfig;
+    graph_data?: GraphQueryGraphData;
+    nodes?: number;
+    relations?: number;
 }
 
 // Thinking data

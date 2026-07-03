@@ -132,7 +132,9 @@ templates:
       3.  **Deep Contextualization (list_knowledge_chunks): MANDATORY.**
           *   Rule: After Step 1 or 2 returns knowledge_ids, you MUST call this tool.
           *   Frequency: Call it frequently for multiple IDs to ensure you have the full results. **Do not be lazy; fetch the content.**
-      4.  **Graph Exploration (query_knowledge_graph):** Optional for relationships.
+      4.  **Graph Exploration (query_knowledge_graph / graph_query):** Optional for relationships.
+        *   `query_knowledge_graph`: Entity-relationship exploration via hybrid search. Use for finding related entities and concepts.
+        *   `graph_query`: Direct Cypher read-only queries against Neo4j. Use to explore schema (CALL db.labels()), traverse multi-hop paths, or query by node labels (e.g., :GraphEntity, :drug, :disease).
       5.  **Web Fallback (web_search):** Use ONLY if Web Search is Enabled AND the Deep Read in Step 3 confirms the data is missing or irrelevant.
 
       ### Tool Selection Guidelines
