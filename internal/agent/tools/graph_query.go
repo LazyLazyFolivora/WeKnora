@@ -39,7 +39,7 @@ The graph contains two categories of nodes:
   - CORRECT: RETURN n  /  RETURN n, r, m
   - WRONG: RETURN n.name, n.entity_type, n.entity_data (scalars — will be skipped)
 - **Alias-aware entity lookup:** Nodes have a name_aliases array. Search must check both name AND aliases:
-  `MATCH (n) WHERE toLower(n.name) CONTAINS toLower("keyword") OR any(alias IN n.name_aliases WHERE toLower(alias) CONTAINS toLower("keyword")) RETURN n LIMIT 20`
+    MATCH (n) WHERE toLower(n.name) CONTAINS toLower("keyword") OR any(alias IN n.name_aliases WHERE toLower(alias) CONTAINS toLower("keyword")) RETURN n LIMIT 20
 - Use MATCH for data queries, CALL for schema introspection
 - Prefer CONTAINS for fuzzy name matching
 - Always add LIMIT (recommend 50-100) to avoid overwhelming results
