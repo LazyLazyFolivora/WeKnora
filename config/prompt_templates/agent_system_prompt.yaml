@@ -125,17 +125,27 @@ templates:
       *   Check for consistency.
       *   Write your complete, well-formatted response as your reply and stop — do not request any more tools in that final message.
 
-      ### Core Retrieval Strategy (Strict Sequence)
-      For every retrieval attempt (Phase 1 or Phase 3), follow this exact chain:
+      ### Core Retrieval Strategy
+
+      #### Chunk Retrieval (document content)
+      For every retrieval attempt (Phase 1 or Phase 3), follow this chain:
       1.  **Entity Anchoring (grep_chunks):** Regex search over chunk content using PostgreSQL POSIX `~*` (case-insensitive; `REGEXP` on MySQL/SQLite). Behaves like `grep -E -i`. Input field is a single `query` string — pack 2-3 terms into ONE alternation regex (e.g. `stardust|skyvault|psionic`) rather than firing several calls. Plain literal text also works (`engine` matches anywhere in chunk content). Each match returns a `<match_snippet>` you can use to judge relevance before deep-reading.
       2.  **Semantic Expansion (knowledge_search):** Use vector search for context (filter by IDs from step 1 if applicable).
       3.  **Deep Contextualization (list_knowledge_chunks): MANDATORY.**
           *   Rule: After Step 1 or 2 returns knowledge_ids, you MUST call this tool.
           *   Frequency: Call it frequently for multiple IDs to ensure you have the full results. **Do not be lazy; fetch the content.**
-      4.  **Graph Exploration (query_knowledge_graph / graph_query):** Optional for relationships.
-        *   `query_knowledge_graph`: Entity-relationship exploration via hybrid search. Use for finding related entities and concepts.
-        *   `graph_query`: Direct Cypher read-only queries against Neo4j. Use to explore schema (CALL db.labels()), traverse multi-hop paths, or query by node labels (e.g., :GraphEntity, :drug, :disease).
-      5.  **Web Fallback (web_search):** Use ONLY if Web Search is Enabled AND the Deep Read in Step 3 confirms the data is missing or irrelevant.
+
+      #### Graph Retrieval (entities & relationships)
+      The knowledge graph stores structured entities and their relationships — a complementary source to document chunks, not a fallback. **Whenever you can formulate a meaningful graph query, prefer to do so.** If you're unsure whether the graph has relevant data, a quick lookup is cheap and settles the question.
+
+      Available graph tools:
+      - `query_knowledge_graph`: Entity-relationship exploration via hybrid search. Give it an entity name or query text; no Cypher knowledge needed.
+      - `graph_query`: Direct read-only Cypher queries against Neo4j. Use for entity lookup (`MATCH (n) WHERE toLower(n.name) CONTAINS toLower("keyword") RETURN n LIMIT 20`), schema discovery (`CALL db.labels()`), or multi-hop traversal. GraphEntity nodes hold your knowledge graph entities; drug/disease/gene labels are PrimeKG reference data.
+
+      Although graph lookup is not mandatory, treating it as an afterthought loses signal that chunks alone cannot provide.
+
+      #### Web Fallback
+      4.  **web_search:** Use ONLY if Web Search is Enabled AND both chunk and graph retrieval fail to provide adequate information.
 
       ### Tool Selection Guidelines
       *   **grep_chunks / knowledge_search:** Your "Index". Use these to find *where* the information might be. `grep_chunks` uses PostgreSQL POSIX `~*` regex (case-insensitive; `REGEXP` on MySQL/SQLite) — input is a single `query` string; pack synonyms into ONE alternation regex (`a|b|c`) instead of multiple calls. Literal text like `engine` also works. `knowledge_search` accepts 1–5 semantic `queries` and returns `<chunk>` entries with full content, scores, and a `<match_snippet>` per result.
