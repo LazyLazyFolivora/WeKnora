@@ -1,4 +1,4 @@
-package service
+﻿package service
 
 import (
 	"context"
@@ -405,6 +405,8 @@ func (s *agentService) registerTools(
 			tools.ToolGrepChunks:          true,
 			tools.ToolListKnowledgeChunks: true,
 			tools.ToolQueryKnowledgeGraph: true,
+			tools.ToolNeo4jHybridSearch:   true,
+			tools.ToolExploreGraph:        true,
 			tools.ToolGetDocumentInfo:     true,
 			tools.ToolDatabaseQuery:       true,
 			tools.ToolDataAnalysis:        true,
@@ -542,6 +544,8 @@ func (s *agentService) registerTools(
 				config.SearchTargets,
 				chatModel,
 			)
+		case tools.ToolExploreGraph:
+			toolToRegister = tools.NewExploreGraphTool(s.graphRepo)
 		case tools.ToolGetDocumentInfo:
 			toolToRegister = tools.NewGetDocumentInfoTool(s.knowledgeService, s.chunkService, config.SearchTargets)
 		case tools.ToolDatabaseQuery:

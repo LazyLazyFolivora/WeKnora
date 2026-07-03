@@ -202,10 +202,17 @@ func (n *Neo4jRepository) SearchNode(
 				nameStr := n.Props["name"].(string)
 				if _, ok := nodeSeen[nameStr]; !ok {
 					nodeSeen[nameStr] = true
+					attrs := listI2listS(n.Props["attributes"].([]interface{}))
+					if entityType, ok := n.Props["entity_type"].(string); ok && entityType != "" {
+						attrs = append(attrs, "type:"+entityType)
+					}
+					if entityData, ok := n.Props["entity_data"].(string); ok && entityData != "" {
+						attrs = append(attrs, entityData)
+					}
 					graphData.Node = append(graphData.Node, &types.GraphNode{
 						Name:       nameStr,
 						Chunks:     listI2listS(n.Props["chunks"].([]interface{})),
-						Attributes: listI2listS(n.Props["attributes"].([]interface{})),
+						Attributes: attrs,
 					})
 				}
 			}
@@ -286,6 +293,12 @@ func (n *Neo4jRepository) SearchByCypher(
 				attrs := []string{}
 				if rawAttrs, ok := nd.Props["attributes"].([]interface{}); ok {
 					attrs = listI2listS(rawAttrs)
+				}
+				if entityType, ok := nd.Props["entity_type"].(string); ok && entityType != "" {
+					attrs = append(attrs, "type:"+entityType)
+				}
+				if entityData, ok := nd.Props["entity_data"].(string); ok && entityData != "" {
+					attrs = append(attrs, entityData)
 				}
 				graphData.Node = append(graphData.Node, &types.GraphNode{
 					Name:       nameStr,

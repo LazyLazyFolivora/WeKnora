@@ -146,76 +146,92 @@ func (t *Neo4jHybridSearchTool) Execute(ctx context.Context, args json.RawMessag
 
 	g, gCtx := errgroup.WithContext(ctx)
 
-	// Graph search: LLM generates Cypher from user query + graph schema, then execute
-	if t.chatModel != nil {
-		g.Go(func() error {
-			cypher, err := t.generateCypherQuery(gCtx, input.Query, graphSchemas)
+	// Graph search: generate Cypher (LLM or deterministic), validate, execute
+	g.Go(func() error {
+		var cypher string
+		var err error
+
+		if t.chatModel != nil {
+			cypher, err = t.generateCypherQuery(gCtx, input.Query, graphSchemas)
 			if err != nil {
 				mu.Lock()
 				errors = append(errors, fmt.Sprintf("Cypher generation failed: %v", err))
 				mu.Unlock()
 				return nil
 			}
-			if cypher == "" {
-				return nil
-			}
-			logger.Infof(gCtx, "[Tool][Neo4jHybridSearch] Generated Cypher: %s", cypher)
+		} else {
+			// Deterministic fallback: plain CONTAINS search, no LLM needed
+			cypher = "MATCH (n)-[r]-(m) WHERE toLower(n.name) CONTAINS toLower($search_term) RETURN n, r, m LIMIT 50"
+		}
 
-			graphData, err := t.graphRepo.SearchByCypher(gCtx, cypher, nil)
+		if cypher == "" {
+			return nil
+		}
+
+		if err := validateCypher(cypher); err != nil {
+			mu.Lock()
+			errors = append(errors, fmt.Sprintf("Cypher validation failed: %v", err))
+			mu.Unlock()
+			return nil
+		}
+
+		logger.Infof(gCtx, "[Tool][Neo4jHybridSearch] Executing Cypher: %s", cypher)
+
+		params := map[string]interface{}{"search_term": input.Query}
+		graphData, err := t.graphRepo.SearchByCypher(gCtx, cypher, params)
+		if err != nil {
+			mu.Lock()
+			errors = append(errors, fmt.Sprintf("graph search failed: %v", err))
+			mu.Unlock()
+			return nil
+		}
+		if graphData == nil || len(graphData.Node) == 0 {
+			return nil
+		}
+
+		mu.Lock()
+		allNodes = append(allNodes, graphData.Node...)
+		allRelations = append(allRelations, graphData.Relation...)
+		mu.Unlock()
+
+		chunkIDs := extractChunkIDs(graphData.Node)
+		if len(chunkIDs) > 0 {
+			chunks, err := t.chunkRepo.ListChunksByIDOnly(gCtx, chunkIDs)
 			if err != nil {
 				mu.Lock()
-				errors = append(errors, fmt.Sprintf("graph search failed: %v", err))
+				errors = append(errors, fmt.Sprintf("failed to load graph chunks: %v", err))
 				mu.Unlock()
 				return nil
 			}
-			if graphData == nil || len(graphData.Node) == 0 {
+
+			knowledgeIDs := make([]string, 0, len(chunks))
+			for _, c := range chunks {
+				knowledgeIDs = append(knowledgeIDs, c.KnowledgeID)
+			}
+
+			knowledges, err := t.knowledgeRepo.GetKnowledgeBatch(gCtx, tenantID, knowledgeIDs)
+			if err != nil {
+				mu.Lock()
+				errors = append(errors, fmt.Sprintf("failed to load knowledge: %v", err))
+				mu.Unlock()
 				return nil
+			}
+
+			knowledgeMap := make(map[string]*types.Knowledge, len(knowledges))
+			for _, k := range knowledges {
+				knowledgeMap[k.ID] = k
 			}
 
 			mu.Lock()
-			allNodes = append(allNodes, graphData.Node...)
-			allRelations = append(allRelations, graphData.Relation...)
-			mu.Unlock()
-
-			chunkIDs := extractChunkIDs(graphData.Node)
-			if len(chunkIDs) > 0 {
-				chunks, err := t.chunkRepo.ListChunksByIDOnly(gCtx, chunkIDs)
-				if err != nil {
-					mu.Lock()
-					errors = append(errors, fmt.Sprintf("failed to load graph chunks: %v", err))
-					mu.Unlock()
-					return nil
+			for _, chunk := range chunks {
+				if k, ok := knowledgeMap[chunk.KnowledgeID]; ok {
+					allResults = append(allResults, graphChunkToSearchResult(chunk, k))
 				}
-
-				knowledgeIDs := make([]string, 0, len(chunks))
-				for _, c := range chunks {
-					knowledgeIDs = append(knowledgeIDs, c.KnowledgeID)
-				}
-
-				knowledges, err := t.knowledgeRepo.GetKnowledgeBatch(gCtx, tenantID, knowledgeIDs)
-				if err != nil {
-					mu.Lock()
-					errors = append(errors, fmt.Sprintf("failed to load knowledge: %v", err))
-					mu.Unlock()
-					return nil
-				}
-
-				knowledgeMap := make(map[string]*types.Knowledge, len(knowledges))
-				for _, k := range knowledges {
-					knowledgeMap[k.ID] = k
-				}
-
-				mu.Lock()
-				for _, chunk := range chunks {
-					if k, ok := knowledgeMap[chunk.KnowledgeID]; ok {
-						allResults = append(allResults, graphChunkToSearchResult(chunk, k))
-					}
-				}
-				mu.Unlock()
 			}
-			return nil
-		})
-	}
+			mu.Unlock()
+		}
+		return nil
+	})
 
 	// Chunk search: per KB
 	if hasChunkAny {
@@ -299,11 +315,12 @@ func (t *Neo4jHybridSearchTool) Execute(ctx context.Context, args json.RawMessag
 	if len(allNodes) > 0 {
 		output += "=== Graph Nodes ===\n"
 		for _, node := range allNodes {
-			output += fmt.Sprintf("  - %s", node.Name)
+			line := fmt.Sprintf("  - %s", node.Name)
 			if len(node.Attributes) > 0 {
-				output += fmt.Sprintf(" [%s]", strings.Join(node.Attributes, ", "))
+				line += fmt.Sprintf(" [%s]", strings.Join(node.Attributes, ", "))
 			}
-			output += "\n"
+			line += "\n"
+			output += line
 		}
 		output += "\n"
 	}
@@ -352,6 +369,13 @@ func (t *Neo4jHybridSearchTool) Execute(ctx context.Context, args json.RawMessag
 		"total_edges": len(allRelations),
 	}
 
+	// Truncate output if too long (~15000 char soft limit)
+	const outputLimit = 15000
+	if len(output) > outputLimit {
+		output = output[:outputLimit]
+		output += fmt.Sprintf("\n\n... (output truncated at %d chars, use explore_graph to drill down)", outputLimit)
+	}
+
 	return &types.ToolResult{
 		Success: true,
 		Output:  output,
@@ -377,13 +401,11 @@ type graphSchemaInfo struct {
 }
 
 // generateCypherQuery calls the LLM to extract entities and generate a Cypher query from the user's natural language input.
-// Searches across all KBs with plain (n)-[r]-(m) — no label filtering.
 func (t *Neo4jHybridSearchTool) generateCypherQuery(
 	ctx context.Context,
 	query string,
 	schemas []graphSchemaInfo,
 ) (string, error) {
-	// Build schema description for the LLM prompt
 	var schemaLines []string
 	for _, s := range schemas {
 		if s.config == nil {
@@ -410,7 +432,7 @@ func (t *Neo4jHybridSearchTool) generateCypherQuery(
 
 ## Rules
 - Do NOT use any node labels — use plain (n)-[r]-(m) to search across all KBs.
-- Node properties: name, chunks, attributes.
+- Node properties: name, chunks, attributes, entity_type, entity_data.
 - Use toLower(n.name) CONTAINS toLower($search_term) for case-insensitive name matching.
 - Always add LIMIT 50 to avoid scanning the entire graph.
 - The query MUST RETURN n, r, m (source node, relationship, target node).
@@ -427,7 +449,6 @@ func (t *Neo4jHybridSearchTool) generateCypherQuery(
 	}
 
 	cypher := strings.TrimSpace(resp.Content)
-	// Strip markdown code fences if present
 	cypher = strings.TrimPrefix(cypher, "```cypher")
 	cypher = strings.TrimPrefix(cypher, "```")
 	cypher = strings.TrimSuffix(cypher, "```")
@@ -438,6 +459,28 @@ func (t *Neo4jHybridSearchTool) generateCypherQuery(
 	}
 
 	return cypher, nil
+}
+
+// validateCypher checks a LLM-generated Cypher query for dangerous operations before execution.
+func validateCypher(cypher string) error {
+	upper := strings.ToUpper(cypher)
+
+	forbidden := []string{"DELETE", "DETACH", "SET", "CREATE", "MERGE", "DROP", "REMOVE"}
+	for _, kw := range forbidden {
+		if strings.Contains(upper, kw) {
+			return fmt.Errorf("forbidden keyword %q in Cypher query", kw)
+		}
+	}
+
+	if !strings.HasPrefix(strings.TrimSpace(upper), "MATCH") {
+		return fmt.Errorf("query must start with MATCH")
+	}
+
+	if strings.Contains(cypher, ";") {
+		return fmt.Errorf("multiple statements not allowed")
+	}
+
+	return nil
 }
 
 // extractChunkIDs collects unique chunk IDs from graph nodes.
@@ -457,7 +500,6 @@ func extractChunkIDs(nodes []*types.GraphNode) []string {
 }
 
 // graphChunkToSearchResult converts a chunk loaded from graph node references into a SearchResult.
-// Mirrors chatpipeline.chunk2SearchResult pattern.
 func graphChunkToSearchResult(chunk *types.Chunk, knowledge *types.Knowledge) *types.SearchResult {
 	return &types.SearchResult{
 		ID:                chunk.ID,
