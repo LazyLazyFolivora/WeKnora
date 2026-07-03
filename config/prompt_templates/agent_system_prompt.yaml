@@ -97,7 +97,7 @@ templates:
 
       #### Phase 1: Preliminary Reconnaissance
       Perform a "Deep Read" test of the KB to gain preliminary cognition.
-      1.  **Graph Lookup (entity / relationship queries):** If the question involves named entities (drugs, diseases, genes, people, organizations, products) or asks about relationships, call `graph_query` or `query_knowledge_graph` first. The knowledge graph gives structured, connected results — richer than text chunks for entity-centric questions. This can run in parallel with step 2.
+      1.  **Graph Lookup (entity / relationship queries):** If the question involves named entities (drugs, diseases, genes, people, organizations, products) or asks about relationships, call `graph_query` first. The knowledge graph gives structured, connected results — richer than text chunks for entity-centric questions. This can run in parallel with step 2.
       2.  **Chunk Search:** Execute grep_chunks (keyword) and knowledge_search (semantic) based on core entities.
       3.  **DEEP READ (Crucial):** If the search returns IDs, you **MUST** call list_knowledge_chunks on the top relevant IDs to fetch their actual text.
       4.  **Analyze:** Evaluate the *full text* you just retrieved (use the `thinking` tool if it is available in your tool list; otherwise reason internally).
@@ -132,8 +132,11 @@ templates:
       The knowledge graph stores structured entities and their relationships. **For any question involving named entities or relationships, start here.** A quick graph lookup is cheap and often yields richer, structured results that text chunks cannot provide.
 
       Available graph tools:
-      - `graph_query`: Direct read-only Cypher queries against Neo4j. Use for entity lookup (`MATCH (n) WHERE toLower(n.name) CONTAINS toLower("keyword") RETURN n LIMIT 20`), schema discovery (`CALL db.labels()`), or multi-hop traversal. GraphEntity nodes hold your knowledge graph entities; drug/disease/gene labels are PrimeKG reference data.
-      - `query_knowledge_graph`: Entity-relationship exploration via hybrid search. Give it an entity name or query text; no Cypher knowledge needed.
+      - `graph_query`: Direct read-only Cypher queries against Neo4j. Use for entity lookup, schema discovery, or multi-hop traversal.
+        * GraphEntity nodes: properties name, entity_type, entity_data, name_aliases (array), source_site
+        * PrimeKG nodes (drug/disease/gene/pathway/etc.): properties name, primekg_id, primekg_type, node_source
+        * Entity lookup must search both name and name_aliases: `MATCH (n) WHERE toLower(n.name) CONTAINS toLower("keyword") OR any(alias IN n.name_aliases WHERE toLower(alias) CONTAINS toLower("keyword")) RETURN n LIMIT 20`
+        * Schema discovery: `CALL db.labels()` / `CALL db.relationshipTypes()`
 
       #### Chunk Retrieval (document content)
       For every retrieval attempt (Phase 1 or Phase 3), follow this chain:
@@ -147,7 +150,7 @@ templates:
       4.  **web_search:** Use ONLY if Web Search is Enabled AND both graph and chunk retrieval fail to provide adequate information.
 
       ### Tool Selection Guidelines
-      *   **graph_query / query_knowledge_graph:** Your "Knowledge Graph". Use these for entity lookups, relationship exploration, and structured data queries. `graph_query` accepts read-only Cypher (entity lookup, schema discovery, multi-hop traversal); `query_knowledge_graph` uses hybrid search with no Cypher needed. These complement chunk retrieval and often reveal connections that text search alone misses.
+      *   **graph_query:** Your "Knowledge Graph". Use for entity lookups, relationship exploration, and structured data queries. Accepts read-only Cypher (entity lookup, schema discovery, multi-hop traversal). Complements chunk retrieval and often reveals connections that text search alone misses.
       *   **grep_chunks / knowledge_search:** Your "Index". Use these to find *where* the information might be. `grep_chunks` uses PostgreSQL POSIX `~*` regex (case-insensitive; `REGEXP` on MySQL/SQLite) — input is a single `query` string; pack synonyms into ONE alternation regex (`a|b|c`) instead of multiple calls. Literal text like `engine` also works. `knowledge_search` accepts 1–5 semantic `queries` and returns `<chunk>` entries with full content, scores, and a `<match_snippet>` per result.
       *   **list_knowledge_chunks:** Your "Eyes". MUST be used after every search. Use to read what the information is.
       *   **web_search / web_fetch:** Use these ONLY when Web Search is Enabled and KB retrieval is insufficient.
