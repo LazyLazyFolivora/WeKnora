@@ -75,13 +75,15 @@
                 <div v-for="(session, index) in messagesList"
                     :key="session.id || `${session.role}-${session.created_at}-${index}`" class="msg-item-wrapper">
 
-                    <div v-if="session.role == 'user'">
+                    <div v-if="session.role == 'user'" class="msg-with-avatar msg-user-row">
                         <usermsg :content="session.content" :mentioned_items="session.mentioned_items"
                             :images="session.images" :attachments="session.attachments" :embeddedMode="embeddedMode"
                             :session-id="session_id">
                         </usermsg>
+                        <img class="msg-avatar" src="@/assets/img/药小知.png" alt="用户头像" />
                     </div>
-                    <div v-if="session.role == 'assistant' && shouldRenderAssistantMessage(session)">
+                    <div v-if="session.role == 'assistant' && shouldRenderAssistantMessage(session)" class="msg-with-avatar msg-bot-row">
+                        <img class="msg-avatar" src="@/assets/img/药小知.png" alt="药小知" />
                         <botmsg :content="session.content" :session="session" :session-id="session_id"
                             :user-query="getUserQuery(index)" @scroll-bottom="scrollToBottom"
                             :isFirstEnter="isFirstEnter" :embeddedMode="embeddedMode"
@@ -1167,6 +1169,33 @@ onBeforeRouteUpdate((to, from, next) => {
     max-width: 800px;
     padding: 16px 0;
     animation: contentFadeIn 0.3s ease-out;
+}
+
+/* 消息头像 */
+.msg-with-avatar {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    max-width: 85%;
+}
+
+.msg-user-row {
+    justify-content: flex-end;
+    margin-left: auto;
+    flex-direction: row-reverse;
+}
+
+.msg-bot-row {
+    justify-content: flex-start;
+    flex-direction: row;
+}
+
+.msg-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: contain;
+    flex-shrink: 0;
 }
 
 .msg-skeleton-user {
