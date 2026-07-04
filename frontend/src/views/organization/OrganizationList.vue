@@ -176,7 +176,6 @@
 
         <!-- 空状态（按筛选显示不同文案） -->
         <div v-else-if="!loading" class="empty-state">
-          <img class="empty-img" src="@/assets/img/upload.svg" alt="">
           <span class="empty-txt">{{ emptyStateTitle }}</span>
           <span class="empty-desc">{{ emptyStateDesc }}</span>
           <div class="empty-state-actions">
@@ -1207,37 +1206,35 @@ onUnmounted(() => {
 }
 
 .org-join-btn {
-  border-color: rgba(7, 192, 95, 0.5);
-  color: var(--td-brand-color);
+  border-color: #667eea;
+  color: #667eea;
   font-weight: 500;
   transition: all 0.2s ease;
 
   .t-icon {
-    color: var(--td-brand-color);
+    color: #667eea;
   }
 
   &:hover {
-    background: rgba(7, 192, 95, 0.08);
-    border-color: var(--td-brand-color);
-    color: var(--td-brand-color);
+    background: rgba(102, 126, 234, 0.08);
+    border-color: #764ba2;
+    color: #764ba2;
 
     .t-icon {
-      color: var(--td-brand-color);
+      color: #764ba2;
     }
   }
 }
 
 .org-create-btn {
-  background: var(--td-brand-color);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border: none;
   color: var(--td-text-color-anti);
   font-weight: 500;
-  box-shadow: 0 2px 8px rgba(7, 192, 95, 0.25);
   transition: all 0.25s ease;
 
   &:hover {
-    background: var(--td-brand-color);
-    box-shadow: 0 4px 14px rgba(7, 192, 95, 0.35);
+    background: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%);
   }
 
   .org-create-icon {

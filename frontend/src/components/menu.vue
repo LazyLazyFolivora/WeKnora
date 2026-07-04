@@ -3,7 +3,8 @@
         <!-- 展开时：Logo + 搜索/折叠按钮同行 -->
         <div class="logo_row" v-if="!uiStore.sidebarCollapsed">
             <div class="logo_box" @click="router.push('/platform/knowledge-bases')" style="cursor: pointer;">
-                <img class="logo" src="@/assets/img/weknora.png" alt="">
+                <img class="logo" src="@/assets/img/login-page/中国药科大学-logo-2048px.png" alt="">
+                <span class="logo-brand-text">CPUBrain</span>
                 <sup v-if="isLiteEdition" class="lite-badge">Lite</sup>
             </div>
             <div class="logo_actions">
@@ -1172,6 +1173,7 @@ const onDragHandleMouseDown = (e: MouseEvent) => {
     width: 260px;
     padding: 8px 6px 6px;
     background: var(--td-bg-color-sidebar);
+    border-radius: 12px;
     box-sizing: border-box;
     /* Avoid 100vh because <html> carries a `zoom` multiplier for font-size
        control; 100vh is evaluated against the unscaled viewport and then
@@ -1269,10 +1271,24 @@ const onDragHandleMouseDown = (e: MouseEvent) => {
         flex: 1;
         min-width: 0;
         overflow: hidden;
+        gap: 8px;
 
         .logo {
-            width: 128px;
-            height: auto;
+            width: 36px;
+            height: 36px;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+
+        .logo-brand-text {
+            font-size: 18px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
         }
 
         .lite-badge {
@@ -1397,9 +1413,17 @@ const onDragHandleMouseDown = (e: MouseEvent) => {
         border-radius: 4px;
         background: var(--td-bg-color-secondarycontainer) !important;
 
-        .menu_icon,
+        .menu_icon {
+            .icon {
+                opacity: 1 !important;
+            }
+        }
+
         .menu_title {
-            color: var(--td-brand-color) !important;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
     }
 
@@ -1931,9 +1955,8 @@ html[theme-mode="dark"] .aside_box .menu_item_c_active .menu_icon img.icon {
     opacity: 0.9;
 }
 
-// Active (green) icons should not be inverted
+// Active icons use blue-purple theme gradient (convert green → blue-purple)
 html[theme-mode="dark"] .aside_box .menu_item_active .menu_icon img.icon {
-    filter: none;
     opacity: 1;
 }
 

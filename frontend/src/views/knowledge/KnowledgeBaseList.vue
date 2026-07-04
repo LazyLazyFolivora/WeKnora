@@ -632,7 +632,6 @@
 
         <!-- 全部空状态：保留「新建知识库」CTA，因为是空间没有任何 KB 的真空场景 -->
         <div v-if="spaceSelection === 'all' && filteredKnowledgeBases.length === 0 && !loading" class="empty-state">
-          <img class="empty-img" src="@/assets/img/upload.svg" alt="">
           <span class="empty-txt">{{ $t('knowledgeList.empty.title') }}</span>
           <span class="empty-desc">{{ $t('knowledgeList.empty.description') }}</span>
           <t-button v-if="authStore.hasRole('contributor')" class="kb-create-btn empty-state-btn"
@@ -660,7 +659,6 @@
 
         <!-- 我的知识库空状态 -->
         <div v-if="spaceSelection === 'mine' && kbs.length === 0 && !loading" class="empty-state">
-          <img class="empty-img" src="@/assets/img/upload.svg" alt="">
           <span class="empty-txt">{{ $t('knowledgeList.empty.title') }}</span>
           <span class="empty-desc">{{ $t('knowledgeList.empty.description') }}</span>
           <t-button v-if="authStore.hasRole('contributor')" class="kb-create-btn empty-state-btn"
@@ -672,7 +670,6 @@
 
         <!-- 空间下知识库空状态 -->
         <div v-if="spaceSelectionOrgId && !spaceKbsLoading && spaceKbsList.length === 0" class="empty-state">
-          <img class="empty-img" src="@/assets/img/upload.svg" alt="">
           <span class="empty-txt">{{ $t('knowledgeList.empty.sharedTitle') }}</span>
           <span class="empty-desc">{{ $t('knowledgeList.empty.sharedDescription') }}</span>
         </div>
@@ -1836,12 +1833,12 @@ const handleUploadFinishedEvent = (event: Event) => {
 }
 
 .kb-create-btn {
-  background: linear-gradient(135deg, var(--td-brand-color) 0%, #00a67e 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border: none;
   color: var(--td-text-color-anti);
 
   &:hover {
-    background: linear-gradient(135deg, var(--td-brand-color) 0%, var(--td-brand-color-active) 100%);
+    background: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%);
   }
 }
 
