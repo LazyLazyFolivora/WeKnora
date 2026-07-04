@@ -643,7 +643,6 @@
 
         <!-- 空状态：全部（保留创建 CTA） -->
         <div v-if="spaceSelection === 'all' && filteredAgents.length === 0 && !loading" class="empty-state">
-          <img class="empty-img" src="@/assets/img/upload.svg" alt="">
           <span class="empty-txt">{{ $t('agent.empty.title') }}</span>
           <span class="empty-desc">{{ $t('agent.empty.description') }}</span>
           <t-button v-if="authStore.hasRole('contributor')" class="agent-create-btn empty-state-btn"
@@ -684,7 +683,6 @@
         </div>
         <!-- 空状态：我的 -->
         <div v-if="spaceSelection === 'mine' && agents.length === 0 && !loading" class="empty-state">
-          <img class="empty-img" src="@/assets/img/upload.svg" alt="">
           <span class="empty-txt">{{ $t('agent.empty.title') }}</span>
           <span class="empty-desc">{{ $t('agent.empty.description') }}</span>
           <t-button v-if="authStore.hasRole('contributor')" class="agent-create-btn empty-state-btn"
@@ -713,7 +711,6 @@
         </div>
         <!-- 空状态：空间下 -->
         <div v-if="spaceSelectionOrgId && !spaceAgentsLoading && spaceAgentsList.length === 0" class="empty-state">
-          <img class="empty-img" src="@/assets/img/upload.svg" alt="">
           <span class="empty-txt">{{ $t('agent.empty.sharedTitle') }}</span>
           <span class="empty-desc">{{ $t('agent.empty.sharedDescription') }}</span>
         </div>

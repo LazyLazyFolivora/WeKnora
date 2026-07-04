@@ -1,6 +1,10 @@
 <template>
     <div class="dialogue-wrap">
         <div class="dialogue-answers">
+            <!-- 药小知形象 -->
+            <div class="mascot-wrapper">
+                <img src="@/assets/img/药小知.png" alt="药小知" class="mascot-avatar" />
+            </div>
             <div class="dialogue-title" style="--wails-draggable: drag">
                 <span style="--wails-draggable: drag">{{ $t('createChat.title') }}</span>
             </div>
@@ -43,7 +47,22 @@
                     </div>
                 </transition>
             </div>
-            <InputField ref="inputFieldRef" @send-msg="sendMsg"></InputField>
+            <!-- 输入框光晕容器 -->
+            <div class="input-glow-wrapper">
+                <div class="input-glow"></div>
+                <InputField ref="inputFieldRef" @send-msg="sendMsg"></InputField>
+            </div>
+            <!-- 药学专业示例问题 -->
+            <div class="pharmacy-examples">
+                <p class="pharmacy-examples-title">{{ $t('chat.pharmacyExamples') }}</p>
+                <div class="pharmacy-examples-list">
+                    <div v-for="(example, index) in pharmacyExampleQuestions" :key="index"
+                        class="pharmacy-example-tag" @click="handleSuggestedQuestionClick(example)">
+                        <span class="pharmacy-example-text">{{ example }}</span>
+                        <span class="pharmacy-example-arrow">›</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -174,6 +193,14 @@ watch(() => settingsStore.selectedAgentId, debouncedFetch);
 watch(() => settingsStore.settings.selectedKnowledgeBases, debouncedFetch, { deep: true });
 watch(() => settingsStore.settings.selectedFiles, debouncedFetch, { deep: true });
 
+// ===== 药学专业示例问题 =====
+const pharmacyExampleQuestions = ref<string[]>([
+    t('chat.pharmacyExample1'),
+    t('chat.pharmacyExample2'),
+    t('chat.pharmacyExample3'),
+    t('chat.pharmacyExample4'),
+]);
+
 onMounted(() => { fetchSuggestedQuestions(); });
 
 const inputFieldRef = ref();
@@ -260,6 +287,20 @@ const handleKBEditorSuccess = (kbId: string) => {
         position: static;
         transform: translateX(0);
     }
+}
+
+/* 药小知形象 */
+.mascot-wrapper {
+    margin-bottom: -8px;
+    position: relative;
+    z-index: 2;
+}
+
+.mascot-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: contain;
 }
 
 .dialogue-title {
@@ -388,6 +429,109 @@ const handleKBEditorSuccess = (kbId: string) => {
     :deep(.t-textarea__inner) {
         width: 340px !important;
     }
+}
+
+/* 输入框光晕效果 */
+.input-glow-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 800px;
+}
+
+.input-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 480px;
+    height: 480px;
+    background:
+        radial-gradient(
+            circle at 50% 50%,
+            rgba(102, 126, 234, 0.50) 0%,
+            rgba(102, 126, 234, 0.25) 25%,
+            rgba(118, 75, 162, 0.08) 50%,
+            transparent 68%
+        ),
+        radial-gradient(
+            circle at 30% 35%,
+            rgba(74, 155, 232, 0.25) 0%,
+            transparent 40%
+        ),
+        radial-gradient(
+            circle at 72% 40%,
+            rgba(74, 155, 232, 0.22) 0%,
+            transparent 35%
+        ),
+        radial-gradient(
+            circle at 35% 65%,
+            rgba(74, 155, 232, 0.22) 0%,
+            transparent 38%
+        ),
+        radial-gradient(
+            circle at 68% 60%,
+            rgba(74, 155, 232, 0.24) 0%,
+            transparent 36%
+        );
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+    filter: blur(30px);
+}
+
+/* 药学专业示例问题 */
+.pharmacy-examples {
+    width: 100%;
+    max-width: 800px;
+    padding: 0 16px;
+}
+
+.pharmacy-examples-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--td-text-color-placeholder);
+    margin: 0 0 10px 2px;
+}
+
+.pharmacy-examples-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.pharmacy-example-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    background: var(--td-bg-color-container, #fff);
+    border: 1px solid var(--td-component-stroke, #e0e0e0);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 13px;
+    color: var(--td-text-color-primary);
+    line-height: 1.4;
+
+    &:hover {
+        border-color: var(--td-brand-color, #07C05F);
+        background: var(--td-brand-color-light, rgba(7, 192, 95, 0.06));
+        color: var(--td-brand-color);
+    }
+
+    &:active {
+        transform: scale(0.97);
+    }
+}
+
+.pharmacy-example-text {
+    white-space: nowrap;
+}
+
+.pharmacy-example-arrow {
+    font-size: 14px;
+    opacity: 0.5;
+    margin-left: 2px;
 }
 
 @media (max-width: 600px) {
