@@ -25,7 +25,7 @@
             <span class="icon-label">{{ $t('listSpaceSidebar.recents') }}</span>
           </div>
         </t-tooltip>
-        <t-tooltip :content="tooltipText(workspaceLabel, countMine)" placement="right" :show-arrow="false">
+        <t-tooltip v-if="!hideAllMine" :content="tooltipText(workspaceLabel, countMine)" placement="right" :show-arrow="false">
           <div class="icon-item-labeled workspace-item" :class="{ active: selected === 'mine' }"
             @click="select('mine')">
             <t-icon name="system-sum" size="16px" />
@@ -101,7 +101,8 @@
           <span v-if="countRecents > 0" class="item-count">{{ countRecents }}</span>
         </div>
         <div v-if="(showFavorites || showRecents)" class="sidebar-divider" />
-        <div class="sidebar-item" :class="{ active: selected === 'mine' }" @click="select('mine')">
+        <!-- 本空间 tab: 暂时隐藏，通过 hideAllMine prop 控制 -->
+        <div v-if="!hideAllMine" class="sidebar-item" :class="{ active: selected === 'mine' }" @click="select('mine')">
           <div class="item-left">
             <t-icon name="system-sum" class="item-icon" />
             <span class="item-label">{{ workspaceLabel }}</span>
@@ -172,6 +173,8 @@ const props = withDefaults(
     countCreated?: number
     countJoined?: number
     hideAll?: boolean
+    /** Hide the "本空间" (workspace/mine) tab */
+    hideAllMine?: boolean
     /** Favorites entry. Only meaningful in resource mode. */
     countFavorites?: number
     showFavorites?: boolean
@@ -188,6 +191,7 @@ const props = withDefaults(
     countCreated: undefined,
     countJoined: undefined,
     hideAll: false,
+    hideAllMine: false,
     countFavorites: 0,
     showFavorites: true,
     countRecents: 0,

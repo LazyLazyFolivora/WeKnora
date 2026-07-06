@@ -6,27 +6,6 @@
     </div>
 
     <div class="settings-group">
-      <!-- 语言选择 -->
-      <div class="setting-row">
-        <div class="setting-info">
-          <label>{{ $t('language.language') }}</label>
-          <p class="desc">{{ $t('language.languageDescription') }}</p>
-        </div>
-        <div class="setting-control">
-          <t-select
-            v-model="localLanguage"
-            :placeholder="$t('language.selectLanguage')"
-            @change="handleLanguageChange"
-            style="width: 280px;"
-          >
-            <t-option value="zh-CN" :label="$t('language.zhCN')">{{ $t('language.zhCN') }}</t-option>
-            <t-option value="en-US" :label="$t('language.enUS')">{{ $t('language.enUS') }}</t-option>
-            <t-option value="ru-RU" :label="$t('language.ruRU')">{{ $t('language.ruRU') }}</t-option>
-            <t-option value="ko-KR" :label="$t('language.koKR')">{{ $t('language.koKR') }}</t-option>
-          </t-select>
-        </div>
-      </div>
-
       <!-- 主题设置 -->
       <div class="setting-row">
         <div class="setting-info">

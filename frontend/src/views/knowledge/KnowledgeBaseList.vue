@@ -2,7 +2,7 @@
   <div class="kb-list-container">
     <ListSpaceSidebar v-if="!authStore.isLiteMode" v-model="spaceSelection" :count-all="allKnowledgeBases"
       :count-mine="kbs.length" :count-by-org="effectiveSharedCountByOrg" :count-favorites="kbFavoritesCount"
-      :count-recents="kbRecentsCount" />
+      :count-recents="kbRecentsCount" :hide-all-mine="!authStore.isAdminTenant" />
     <div class="kb-list-content">
       <div class="header" style="--wails-draggable: drag">
         <div class="header-title" style="--wails-draggable: drag">
@@ -188,8 +188,10 @@
               'uninitialized': !isInitialized(kb),
               'kb-type-document': (kb.type || 'document') === 'document',
               'kb-type-faq': kb.type === 'faq',
-              'highlight-flash': highlightedKbId !== null && highlightedKbId === kb.id
+              'highlight-flash': highlightedKbId !== null && highlightedKbId === kb.id,
+              [getCardColorClass(kb.id)]: true
             }"
+              :style="getCardStyle(kb.id)"
               :ref="el => { if (highlightedKbId !== null && highlightedKbId === kb.id && el) highlightedCardRef = el as HTMLElement }"
               @click="handleCardClick(kb)">
               <!-- 收藏按钮：右上角浮动；通过 .card-header 的 padding-right
@@ -223,6 +225,31 @@
                         @click.stop="handleDuplicateById(kb.id)">
                         <t-icon class="menu-icon" name="file-copy" />
                         <span>{{ $t('knowledgeList.menu.duplicate') }}</span>
+                      </div>
+                      <!-- 设置知识库颜色 -->
+                      <div class="popup-menu-divider" />
+                      <div class="popup-menu-item" @click.stop>
+                        <t-icon class="menu-icon" name="palette" />
+                        <span>{{ $t('knowledgeList.setColor') }}</span>
+                      </div>
+                      <div class="card-color-picker">
+                        <div
+                          v-for="preset in CARD_COLOR_PRESETS"
+                          :key="preset.key"
+                          class="color-swatch"
+                          :class="{ active: kbCardColors.getColor(kb.id) === preset.key }"
+                          :style="{ background: preset.bg, border: '1px solid ' + preset.accent }"
+                          :title="preset.label"
+                          @click.stop="handleSetCardColor(kb.id, preset.key)"
+                        />
+                        <div
+                          v-if="kbCardColors.getColor(kb.id)"
+                          class="color-swatch color-clear"
+                          title="清除颜色"
+                          @click.stop="handleClearColor(kb.id)"
+                        >
+                          <t-icon name="close" size="12px" />
+                        </div>
                       </div>
                       <template v-if="canManageKBCard(kb)">
                         <div class="popup-menu-item" @click.stop="handleSettingsById(kb.id)">
@@ -296,8 +323,11 @@
             <!-- 共享知识库卡片 -->
             <div v-else v-show="!isKbSectionCollapsed(kbSectionOf(kb))" class="kb-card shared-kb-card" :class="{
               'kb-type-document': (kb.type || 'document') === 'document',
-              'kb-type-faq': kb.type === 'faq'
-            }" @click="handleSharedKbClickFromAll(kb)">
+              'kb-type-faq': kb.type === 'faq',
+              [getCardColorClass(kb.id)]: true
+            }"
+              :style="getCardStyle(kb.id)"
+              @click="handleSharedKbClickFromAll(kb)">
               <button type="button" class="kb-favorite-star" :class="{ 'is-favorited': isKbFavorited(kb.id) }"
                 @click.stop="toggleFavoriteKb(kb.id, $event)">
                 <t-icon :name="isKbFavorited(kb.id) ? 'star-filled' : 'star'" size="14px" />
@@ -425,8 +455,10 @@
               'uninitialized': !isInitialized(kb),
               'kb-type-document': (kb.type || 'document') === 'document',
               'kb-type-faq': kb.type === 'faq',
-              'highlight-flash': highlightedKbId !== null && highlightedKbId === kb.id
+              'highlight-flash': highlightedKbId !== null && highlightedKbId === kb.id,
+              [getCardColorClass(kb.id)]: true
             }"
+              :style="getCardStyle(kb.id)"
               :ref="el => { if (highlightedKbId !== null && highlightedKbId === kb.id && el) highlightedCardRef = el as HTMLElement }"
               @click="handleCardClick(kb)">
               <button type="button" class="kb-favorite-star" :class="{ 'is-favorited': isKbFavorited(kb.id) }"
@@ -452,6 +484,31 @@
                       <div class="popup-menu-item" @click.stop="handleTogglePin(kb)">
                         <t-icon class="menu-icon" :name="kb.is_pinned ? 'pin-filled' : 'pin'" />
                         <span>{{ kb.is_pinned ? $t('knowledgeList.pin.unpin') : $t('knowledgeList.pin.pin') }}</span>
+                      </div>
+                      <!-- 设置知识库颜色 -->
+                      <div class="popup-menu-divider" />
+                      <div class="popup-menu-item" @click.stop>
+                        <t-icon class="menu-icon" name="palette" />
+                        <span>{{ $t('knowledgeList.setColor') }}</span>
+                      </div>
+                      <div class="card-color-picker">
+                        <div
+                          v-for="preset in CARD_COLOR_PRESETS"
+                          :key="preset.key"
+                          class="color-swatch"
+                          :class="{ active: kbCardColors.getColor(kb.id) === preset.key }"
+                          :style="{ background: preset.bg, border: '1px solid ' + preset.accent }"
+                          :title="preset.label"
+                          @click.stop="handleSetCardColor(kb.id, preset.key)"
+                        />
+                        <div
+                          v-if="kbCardColors.getColor(kb.id)"
+                          class="color-swatch color-clear"
+                          title="清除颜色"
+                          @click.stop="handleClearColor(kb.id)"
+                        >
+                          <t-icon name="close" size="12px" />
+                        </div>
                       </div>
                       <div v-if="canDuplicateKBCard(kb)" class="popup-menu-item" @click.stop="handleDuplicate(kb)">
                         <t-icon class="menu-icon" name="file-copy" />
@@ -800,6 +857,37 @@ import { useTenantModelReadiness } from '@/composables/useTenantModelReadiness'
 import { useI18n } from 'vue-i18n'
 import { useListUrlState } from '@/composables/useListUrlState'
 import { useResourcePins } from '@/composables/useResourcePins'
+import { useCardColors, CARD_COLOR_PRESETS } from '@/composables/useCardColors'
+
+// 卡片颜色标签
+const kbCardColors = useCardColors('kb')
+
+/** 获取卡片的动态样式（颜色标签背景 + 装饰层 accent） */
+const getCardStyle = (kbId: string) => {
+  const colorKey = kbCardColors.getColor(kbId)
+  if (!colorKey) return {}
+  const preset = kbCardColors.getPreset(colorKey)
+  if (!preset) return {}
+  return {
+    background: preset.bg,
+    '--card-accent': preset.accent,
+  }
+}
+
+/** 获取卡片的动态 class（是否有颜色标签） */
+const getCardColorClass = (kbId: string) => {
+  return kbCardColors.getColor(kbId) ? 'has-card-color' : ''
+}
+
+/** 处理选择卡片颜色 */
+const handleSetCardColor = (kbId: string, colorKey: string) => {
+  kbCardColors.setColor(kbId, colorKey)
+}
+
+/** 清除卡片颜色 */
+const handleClearColor = (kbId: string) => {
+  kbCardColors.clearColor(kbId)
+}
 
 const router = useRouter()
 const route = useRoute()
@@ -858,6 +946,8 @@ interface KB {
   processing_count?: number;
   share_count?: number;
   is_pinned?: boolean;
+  pinned_at?: string;
+  created_at?: string;
   // creator_id is the owner-id matched against authStore.user.id when
   // gating the per-card more-menu (Settings / Delete). Empty for legacy
   // KBs created before PR 5; those fall back to the role gate.
@@ -2279,20 +2369,22 @@ const handleUploadFinishedEvent = (event: Event) => {
 }
 
 .kb-card {
-  border: 1px solid var(--td-component-stroke);
-  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 16px;
   overflow: hidden;
   box-sizing: border-box;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  background: var(--td-bg-color-container);
+  box-shadow: 0 2px 12px rgba(102, 126, 234, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.65) 0%, rgba(245, 240, 255, 0.50) 50%, rgba(240, 248, 255, 0.45) 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   position: relative;
   cursor: pointer;
-  transition: all 0.25s ease;
-  padding: 12px 14px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 16px 18px;
   display: flex;
   flex-direction: column;
-  height: 136px;
-  min-height: 136px;
+  height: 160px;
+  min-height: 160px;
 
   &.kb-card-skeleton {
     cursor: default;
@@ -2311,60 +2403,60 @@ const handleUploadFinishedEvent = (event: Event) => {
   }
 
   &:hover {
-    border-color: var(--td-brand-color);
-    box-shadow: 0 4px 12px rgba(7, 192, 95, 0.12);
+    border-color: rgba(102, 126, 234, 0.4);
+    box-shadow: 0 8px 28px rgba(102, 126, 234, 0.15), 0 2px 8px rgba(0, 0, 0, 0.06);
+    transform: translateY(-2px);
   }
 
   &.uninitialized {
     opacity: 0.9;
   }
 
-  // 文档类型样式
-  &.kb-type-document {
-    background: linear-gradient(135deg, var(--td-bg-color-container) 0%, rgba(7, 192, 95, 0.04) 100%);
-
-    &:hover {
-      border-color: var(--td-brand-color);
-      background: linear-gradient(135deg, var(--td-bg-color-container) 0%, rgba(7, 192, 95, 0.08) 100%);
-    }
-
-    // 右上角装饰
+  // 文档类型样式（默认渐变，无颜色标签时）
+  &.kb-type-document:not(.has-card-color) {
     &::after {
       content: '';
       position: absolute;
       top: 0;
       right: 0;
-      width: 60px;
-      height: 60px;
-      background: linear-gradient(135deg, rgba(7, 192, 95, 0.08) 0%, transparent 100%);
-      border-radius: 0 12px 0 100%;
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.12) 0%, rgba(118, 75, 162, 0.06) 50%, transparent 100%);
+      border-radius: 0 16px 0 100%;
       pointer-events: none;
       z-index: 0;
     }
   }
 
-  // 问答类型样式
-  &.kb-type-faq {
-    background: linear-gradient(135deg, var(--td-bg-color-container) 0%, rgba(0, 82, 217, 0.04) 100%);
-
-    &:hover {
-      border-color: var(--td-brand-color);
-      box-shadow: 0 4px 12px rgba(0, 82, 217, 0.12);
-      background: linear-gradient(135deg, var(--td-bg-color-container) 0%, rgba(0, 82, 217, 0.08) 100%);
-    }
-
-    // 右上角装饰
+  // 问答类型样式（默认渐变，无颜色标签时）
+  &.kb-type-faq:not(.has-card-color) {
     &::after {
       content: '';
       position: absolute;
       top: 0;
       right: 0;
-      width: 60px;
-      height: 60px;
-      background: linear-gradient(135deg, rgba(0, 82, 217, 0.08) 0%, transparent 100%);
-      border-radius: 0 12px 0 100%;
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, rgba(7, 192, 95, 0.12) 0%, rgba(0, 150, 136, 0.06) 50%, transparent 100%);
+      border-radius: 0 16px 0 100%;
       pointer-events: none;
       z-index: 0;
+    }
+  }
+
+  // 有颜色标签时的装饰层
+  &.has-card-color {
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 80px;
+      height: 80px;
+      border-radius: 0 16px 0 100%;
+      pointer-events: none;
+      z-index: 0;
+      background: var(--card-accent, rgba(102, 126, 234, 0.12));
     }
   }
 
@@ -2618,14 +2710,14 @@ const handleUploadFinishedEvent = (event: Event) => {
   transition: background 0.2s ease;
 
   &.type-document {
-    background: rgba(7, 192, 95, 0.08);
-    color: var(--td-brand-color-active);
+    background: var(--td-bg-color-secondarycontainer);
+    color: var(--td-text-color-primary);
     width: auto;
     padding: 0 6px;
     gap: 3px;
 
     &:hover {
-      background: rgba(7, 192, 95, 0.12);
+      background: var(--td-bg-color-secondarycontainer-hover);
     }
 
     .badge-count {
@@ -2639,14 +2731,14 @@ const handleUploadFinishedEvent = (event: Event) => {
   }
 
   &.type-faq {
-    background: rgba(0, 82, 217, 0.08);
-    color: var(--td-brand-color);
+    background: var(--td-bg-color-secondarycontainer);
+    color: var(--td-text-color-primary);
     width: auto;
     padding: 0 6px;
     gap: 3px;
 
     &:hover {
-      background: rgba(0, 82, 217, 0.12);
+      background: var(--td-bg-color-secondarycontainer-hover);
     }
 
     .badge-count {
@@ -2660,38 +2752,38 @@ const handleUploadFinishedEvent = (event: Event) => {
   }
 
   &.kg {
-    background: rgba(124, 77, 255, 0.08);
-    color: var(--td-brand-color);
+    background: var(--td-bg-color-secondarycontainer);
+    color: var(--td-text-color-primary);
 
     &:hover {
-      background: rgba(124, 77, 255, 0.12);
+      background: var(--td-bg-color-secondarycontainer-hover);
     }
   }
 
   &.multimodal {
-    background: rgba(255, 152, 0, 0.08);
-    color: var(--td-warning-color);
+    background: var(--td-bg-color-secondarycontainer);
+    color: var(--td-text-color-primary);
 
     &:hover {
-      background: rgba(255, 152, 0, 0.12);
+      background: var(--td-bg-color-secondarycontainer-hover);
     }
   }
 
   &.question {
-    background: rgba(0, 150, 136, 0.08);
-    color: var(--td-success-color);
+    background: var(--td-bg-color-secondarycontainer);
+    color: var(--td-text-color-primary);
 
     &:hover {
-      background: rgba(0, 150, 136, 0.12);
+      background: var(--td-bg-color-secondarycontainer-hover);
     }
   }
 
   &.shared {
-    background: rgba(0, 82, 217, 0.08);
-    color: var(--td-brand-color);
+    background: var(--td-bg-color-secondarycontainer);
+    color: var(--td-text-color-primary);
 
     &:hover {
-      background: rgba(0, 82, 217, 0.12);
+      background: var(--td-bg-color-secondarycontainer-hover);
     }
   }
 
@@ -3085,6 +3177,51 @@ const handleUploadFinishedEvent = (event: Event) => {
   .shared-detail-drawer {
     transform: translateX(100%);
   }
+}
+
+// 卡片颜色选择器样式（作用于 t-popup teleport 出 body 的内容）
+:deep(.card-color-picker) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px 8px;
+}
+
+:deep(.color-swatch) {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  position: relative;
+
+  &:hover {
+    transform: scale(1.15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  &.active {
+    box-shadow: 0 0 0 2px var(--td-bg-color-container), 0 0 0 4px var(--td-brand-color);
+  }
+
+  &.color-clear {
+    background: var(--td-bg-color-secondarycontainer) !important;
+    border: 1px solid var(--td-component-stroke) !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--td-text-color-placeholder);
+
+    &:hover {
+      color: var(--td-text-color-primary);
+    }
+  }
+}
+
+:deep(.popup-menu-divider) {
+  height: 1px;
+  background: var(--td-component-stroke);
+  margin: 4px 12px;
 }
 
 // 创建对话框样式优化
