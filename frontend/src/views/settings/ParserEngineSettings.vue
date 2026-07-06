@@ -797,7 +797,7 @@ onMounted(loadAll)
 
   &--active {
     border-color: var(--td-brand-color);
-    background: var(--td-brand-color-1, rgba(7, 192, 95, 0.06));
+    background: var(--td-brand-color-1, rgba(102, 126, 234, 0.06));
   }
 }
 
@@ -820,8 +820,8 @@ onMounted(loadAll)
 // 解析引擎徽章配色 —— 内置/官方系绿，外部工具按性质各取一色。
 .engine-card--builtin .engine-card__badge,
 .engine-card--weknoracloud .engine-card__badge {
-  background: rgba(7, 192, 95, 0.12);
-  color: #07C05F;
+  background: rgba(102, 126, 234, 0.12);
+  color: #667eea;
 }
 .engine-card--simple .engine-card__badge {
   background: rgba(70, 70, 70, 0.1);
@@ -1169,8 +1169,8 @@ onMounted(loadAll)
 <style lang="less">
 .parser-engine-drawer--builtin .setting-drawer__header-icon,
 .parser-engine-drawer--weknoracloud .setting-drawer__header-icon {
-  background: rgba(7, 192, 95, 0.12);
-  color: #07C05F;
+  background: rgba(102, 126, 234, 0.12);
+  color: #667eea;
 }
 .parser-engine-drawer--simple .setting-drawer__header-icon {
   background: rgba(70, 70, 70, 0.1);

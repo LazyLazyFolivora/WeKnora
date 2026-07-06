@@ -262,7 +262,7 @@ onUnmounted(() => {
     background: var(--td-bg-color-page);
     padding: 12px;
     box-sizing: border-box;
-    gap: 0;
+    gap: 12px;
 }
 
 /* 右侧路由区：卡片风格，圆角+阴影 */
@@ -276,6 +276,7 @@ onUnmounted(() => {
     background: var(--td-bg-color-container);
     border-radius: 16px;
     box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06), 0 0 1px rgba(0, 0, 0, 0.04);
+    border: 1px solid var(--td-component-border, rgba(0, 0, 0, 0.06));
 }
 
 .upload-mask {

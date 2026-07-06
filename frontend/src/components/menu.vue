@@ -1183,8 +1183,7 @@ const onDragHandleMouseDown = (e: MouseEvent) => {
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    border-right: 1px solid var(--td-component-stroke);
-    box-shadow: 1px 0 0 rgba(0, 0, 0, 0.02);
+    border: 1px solid var(--td-component-border, rgba(0, 0, 0, 0.06));
     transition: width 0.25s ease, min-width 0.25s ease;
     position: relative;
 
@@ -1659,7 +1658,7 @@ const onDragHandleMouseDown = (e: MouseEvent) => {
         }
 
         &.session-chat-row--selected .session-list-row {
-            background: rgba(7, 192, 95, 0.05);
+            background: rgba(102, 126, 234, 0.05);
         }
     }
 
