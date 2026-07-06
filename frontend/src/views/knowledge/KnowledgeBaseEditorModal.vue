@@ -45,96 +45,6 @@
                       <p class="section-desc">{{ $t('knowledgeEditor.basic.description') }}</p>
                     </div>
                     <div class="section-body">
-                      <div v-if="mode === 'edit' && props.kbId" class="form-item">
-                        <label class="form-label">{{ $t('knowledgeEditor.basic.kbId') }}</label>
-                        <p class="form-tip">{{ $t('knowledgeEditor.basic.kbIdDesc') }}</p>
-                        <div class="kb-id-field">
-                          <code class="kb-id-value" :title="props.kbId">{{ props.kbId }}</code>
-                          <t-tooltip :content="$t('common.copy')" placement="top">
-                            <t-button theme="default" size="small" variant="text" class="kb-id-copy"
-                              @click="copyKbId">
-                              <t-icon name="file-copy" />
-                            </t-button>
-                          </t-tooltip>
-                        </div>
-                      </div>
-
-                      <div class="form-item">
-                        <label class="form-label required">{{ $t('knowledgeEditor.basic.typeLabel') }}</label>
-                        <t-radio-group
-                          v-model="formData.type"
-                          :disabled="mode === 'edit'"
-                          data-guide="kb-create-type"
-                        >
-                          <t-radio-button value="document">{{ $t('knowledgeEditor.basic.typeDocument') }}</t-radio-button>
-                          <t-radio-button value="faq">{{ $t('knowledgeEditor.basic.typeFAQ') }}</t-radio-button>
-                        </t-radio-group>
-                        <p class="form-tip">{{ $t('knowledgeEditor.basic.typeDescription') }}</p>
-                      </div>
-
-                      <!-- 索引策略 (紧跟类型选择) -->
-                      <div v-if="!isFAQ" class="form-item">
-                        <label class="form-label required">{{ $t('knowledgeEditor.indexing.title') }}</label>
-                        <p class="form-tip">{{ $t('knowledgeEditor.indexing.description') }}</p>
-                        <div class="indexing-checks" :class="{ 'is-locked': isIndexingLocked }"
-                          data-guide="kb-create-indexing">
-                          <div
-                            class="indexing-check-item"
-                            :class="{ 'is-checked': formData.indexingStrategy.vectorEnabled, 'is-disabled': isIndexingLocked }"
-                            @click="toggleVectorIndexing"
-                          >
-                            <t-checkbox
-                              :checked="formData.indexingStrategy.vectorEnabled"
-                              :disabled="isIndexingLocked"
-                              class="indexing-check-box"
-                            >{{ $t('knowledgeEditor.indexing.searchTitle') }}</t-checkbox>
-                            <p class="indexing-check-desc">{{ $t('knowledgeEditor.indexing.searchDesc') }}</p>
-                          </div>
-                          <div
-                            class="indexing-check-item"
-                            :class="{ 'is-checked': formData.indexingStrategy.wikiEnabled, 'is-disabled': isIndexingLocked }"
-                            @click="toggleWikiIndexing"
-                          >
-                            <t-checkbox
-                              :checked="formData.indexingStrategy.wikiEnabled"
-                              :disabled="isIndexingLocked"
-                              class="indexing-check-box"
-                            >
-                              <span class="indexing-check-title">
-                                {{ $t('knowledgeEditor.indexing.wikiTitle') }}
-                                <span class="indexing-new-badge">NEW</span>
-                              </span>
-                            </t-checkbox>
-                            <p class="indexing-check-desc">{{ $t('knowledgeEditor.indexing.wikiDesc') }}</p>
-                          </div>
-                        </div>
-                        <p v-if="isIndexingLocked" class="form-tip locked-tip">
-                          {{ $t('knowledgeEditor.indexing.lockedTip') }}
-                        </p>
-                      </div>
-
-                      <!-- Wiki 提取粒度 (仅当 Wiki 启用时显示) -->
-                      <div v-if="!isFAQ && formData.indexingStrategy.wikiEnabled" class="form-item">
-                        <label class="form-label">{{ $t('knowledgeEditor.wiki.extractionGranularityLabel') }}</label>
-                        <p class="form-tip">{{ $t('knowledgeEditor.wiki.extractionGranularityTip') }}</p>
-                        <t-radio-group
-                          :value="resolvedGranularity"
-                          class="granularity-radio-group"
-                          @change="handleGranularityChange"
-                        >
-                          <t-radio-button value="focused">
-                            {{ $t('knowledgeEditor.wiki.granularityFocused') }}
-                          </t-radio-button>
-                          <t-radio-button value="standard">
-                            {{ $t('knowledgeEditor.wiki.granularityStandard') }}
-                          </t-radio-button>
-                          <t-radio-button value="exhaustive">
-                            {{ $t('knowledgeEditor.wiki.granularityExhaustive') }}
-                          </t-radio-button>
-                        </t-radio-group>
-                        <p class="form-tip granularity-hint">{{ granularityHint }}</p>
-                      </div>
-
                       <div class="form-item" data-guide="kb-create-name">
                         <label class="form-label required">{{ $t('knowledgeEditor.basic.nameLabel') }}</label>
                         <t-input 
@@ -561,22 +471,7 @@ const navGroups = computed(() => {
     {
       key: 'basic',
       label: t('knowledgeEditor.navGroups.basic'),
-      items: pickItems(['basic', 'models', 'vectorStore', 'faq']),
-    },
-    {
-      key: 'processing',
-      label: t('knowledgeEditor.navGroups.processing'),
-      items: pickItems(['parser', 'chunking', 'multimodal', 'asr', 'graph', 'advanced']),
-    },
-    {
-      key: 'data',
-      label: t('knowledgeEditor.navGroups.data'),
-      items: pickItems(['storage', 'datasource']),
-    },
-    {
-      key: 'integration',
-      label: t('knowledgeEditor.navGroups.integration'),
-      items: pickItems(['share']),
+      items: pickItems(['basic']),
     },
   ].filter((group) => group.items.length > 0)
 })

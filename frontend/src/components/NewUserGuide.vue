@@ -40,15 +40,6 @@ const steps = computed<SpotlightGuideStep[]>(() => [
     placement: 'right',
     before: () => uiStore.expandSidebar(),
   },
-  {
-    key: 'models',
-    target: '[data-guide="settings-add-model"], [data-guide="settings-models"]',
-    placement: 'left',
-    before: () => {
-      uiStore.openSettings('models')
-      settingsOpenedByGuide = true
-    },
-  },
   { key: 'done' },
 ])
 

@@ -3,7 +3,9 @@
         <div class="dialogue-answers">
             <!-- 药小知形象 -->
             <div class="mascot-wrapper">
-                <img src="@/assets/img/药小知.png" alt="药小知" class="mascot-avatar" />
+                <img src="@/assets/img/药小知-noeyes.png" alt="药小知" class="mascot-avatar" />
+                <span class="mascot-eye mascot-eye-left"></span>
+                <span class="mascot-eye mascot-eye-right"></span>
             </div>
             <div class="dialogue-title" style="--wails-draggable: drag">
                 <span style="--wails-draggable: drag">{{ $t('createChat.title') }}</span>
@@ -51,17 +53,6 @@
             <div class="input-glow-wrapper">
                 <div class="input-glow"></div>
                 <InputField ref="inputFieldRef" @send-msg="sendMsg"></InputField>
-            </div>
-            <!-- 药学专业示例问题 -->
-            <div class="pharmacy-examples">
-                <p class="pharmacy-examples-title">{{ $t('chat.pharmacyExamples') }}</p>
-                <div class="pharmacy-examples-list">
-                    <div v-for="(example, index) in pharmacyExampleQuestions" :key="index"
-                        class="pharmacy-example-tag" @click="handleSuggestedQuestionClick(example)">
-                        <span class="pharmacy-example-text">{{ example }}</span>
-                        <span class="pharmacy-example-arrow">›</span>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -193,14 +184,6 @@ watch(() => settingsStore.selectedAgentId, debouncedFetch);
 watch(() => settingsStore.settings.selectedKnowledgeBases, debouncedFetch, { deep: true });
 watch(() => settingsStore.settings.selectedFiles, debouncedFetch, { deep: true });
 
-// ===== 药学专业示例问题 =====
-const pharmacyExampleQuestions = ref<string[]>([
-    t('chat.pharmacyExample1'),
-    t('chat.pharmacyExample2'),
-    t('chat.pharmacyExample3'),
-    t('chat.pharmacyExample4'),
-]);
-
 onMounted(() => { fetchSuggestedQuestions(); });
 
 const inputFieldRef = ref();
@@ -294,6 +277,21 @@ const handleKBEditorSuccess = (kbId: string) => {
     margin-bottom: -8px;
     position: relative;
     z-index: 2;
+
+    /* ===== 眼睛位置/大小可通过以下变量调整 ===== */
+    /* 眼睛尺寸 */
+    --eye-w: 5px;
+    --eye-h: 8px;
+    /* 左眼位置（百分比相对于头像） */
+    --eye-left-x: 40.5%;
+    --eye-left-y: 30%;
+    /* 右眼位置（百分比相对于头像） */
+    --eye-right-x: 59.5%;
+    --eye-right-y: 30%;
+    /* 眼睛颜色 */
+    --eye-color: #ffffff;
+    /* 眨眼周期 */
+    --blink-duration: 3s;
 }
 
 .mascot-avatar {
@@ -301,6 +299,42 @@ const handleKBEditorSuccess = (kbId: string) => {
     height: 48px;
     border-radius: 50%;
     object-fit: contain;
+    position: relative;
+    z-index: 1;
+}
+
+.mascot-eye {
+    position: absolute;
+    width: var(--eye-w);
+    height: var(--eye-h);
+    background: var(--eye-color);
+    border-radius: 50%;
+    z-index: 2;
+    animation: mascot-blink var(--blink-duration) ease-in-out infinite;
+    transform-origin: center center;
+    /* 阴影让白色眼睛在浅色背景上更可见 */
+    box-shadow: 0 0 0.5px 0.5px rgba(0, 0, 0, 0.15);
+}
+
+.mascot-eye-left {
+    left: var(--eye-left-x);
+    top: var(--eye-left-y);
+    transform: translate(-50%, -50%);
+}
+
+.mascot-eye-right {
+    left: var(--eye-right-x);
+    top: var(--eye-right-y);
+    transform: translate(-50%, -50%);
+}
+
+@keyframes mascot-blink {
+    0%, 90%, 100% {
+        transform: translate(-50%, -50%) scaleY(1);
+    }
+    95% {
+        transform: translate(-50%, -50%) scaleY(0.08);
+    }
 }
 
 .dialogue-title {
@@ -442,7 +476,7 @@ const handleKBEditorSuccess = (kbId: string) => {
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%) scale(0);
     width: 480px;
     height: 480px;
     background:
@@ -477,61 +511,21 @@ const handleKBEditorSuccess = (kbId: string) => {
     pointer-events: none;
     z-index: 0;
     filter: blur(30px);
+    animation: glow-spread 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
-/* 药学专业示例问题 */
-.pharmacy-examples {
-    width: 100%;
-    max-width: 800px;
-    padding: 0 16px;
-}
-
-.pharmacy-examples-title {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--td-text-color-placeholder);
-    margin: 0 0 10px 2px;
-}
-
-.pharmacy-examples-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
-.pharmacy-example-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 6px 14px;
-    border-radius: 20px;
-    background: var(--td-bg-color-container, #fff);
-    border: 1px solid var(--td-component-stroke, #e0e0e0);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 13px;
-    color: var(--td-text-color-primary);
-    line-height: 1.4;
-
-    &:hover {
-        border-color: var(--td-brand-color, #07C05F);
-        background: var(--td-brand-color-light, rgba(7, 192, 95, 0.06));
-        color: var(--td-brand-color);
+@keyframes glow-spread {
+    0% {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 0;
     }
-
-    &:active {
-        transform: scale(0.97);
+    60% {
+        opacity: 1;
     }
-}
-
-.pharmacy-example-text {
-    white-space: nowrap;
-}
-
-.pharmacy-example-arrow {
-    font-size: 14px;
-    opacity: 0.5;
-    margin-left: 2px;
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
 }
 
 @media (max-width: 600px) {

@@ -2,7 +2,7 @@
   <div class="agent-list-container">
     <ListSpaceSidebar v-if="!authStore.isLiteMode" v-model="spaceSelection" :count-all="allAgentsCount"
       :count-mine="agents.length" :count-by-org="effectiveSharedCountByOrg" :count-favorites="agentFavoritesCount"
-      :count-recents="agentRecentsCount" />
+      :count-recents="agentRecentsCount" :hide-all-mine="!authStore.isAdminTenant" />
     <div class="agent-list-content">
       <div class="header" style="--wails-draggable: drag">
         <div class="header-title" style="--wails-draggable: drag">
@@ -1242,7 +1242,7 @@ const handleCardClick = (agent: DisplayAgent | AgentWithUI) => {
     if (shared) openSharedAgentDetail(shared)
     return
   }
-  handleEdit(agent as AgentWithUI)
+  // 点击卡片不再打开编辑器
 }
 
 const toggleFavoriteAgent = (agentId: string, evt?: Event) => {
@@ -1256,11 +1256,9 @@ function openSharedAgentDetail(shared: SharedAgentInfo) {
   sharedDetailVisible.value = true
 }
 
-/** 空间视角下点击卡片：我共享的进编辑，他人共享的打开详情抽屉 */
+/** 空间视角下点击卡片：他人共享的打开详情抽屉，我共享的不执行操作 */
 function handleSpaceAgentCardClick(shared: OrganizationSharedAgentItem) {
-  if (shared.is_mine && shared.agent) {
-    handleEdit({ ...shared.agent, showMore: false, disabled_by_me: shared.disabled_by_me } as AgentWithUI)
-  } else {
+  if (!shared.is_mine) {
     openSharedAgentDetail(shared)
   }
 }

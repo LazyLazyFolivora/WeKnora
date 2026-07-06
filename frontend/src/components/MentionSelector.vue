@@ -609,7 +609,7 @@ const scrollToItem = (index: number) => {
   transition: color 0.2s, text-decoration-color 0.2s;
 }
 .mention-detail-content .detail-value.clickable:hover {
-  color: var(--td-brand-color, #07c05f);
-  text-decoration-color: var(--td-brand-color, #07c05f);
+  color: var(--td-brand-color, #667eea);
+  text-decoration-color: var(--td-brand-color, #667eea);
 }
 </style>

@@ -114,6 +114,12 @@ export const useAuthStore = defineStore('auth', () => {
     return user.value?.is_system_admin === true
   })
 
+  // isAdminTenant 判断当前租户是否为管理员租户（tenant_id为10000）
+  const isAdminTenant = computed(() => {
+    const tid = effectiveTenantId.value
+    return tid !== null && Number(tid) === 10000
+  })
+
   // currentTenantRole returns the user's role in the active tenant
   // (defaulting to '' when memberships have not been loaded). Used by
   // role-aware UI gating; PR 2 wires backend enforcement, PR 3 uses
@@ -522,6 +528,7 @@ export const useAuthStore = defineStore('auth', () => {
     currentUserId,
     canAccessAllTenants,
     isSystemAdmin,
+    isAdminTenant,
     currentTenantRole,
     hasRole,
     effectiveTenantId,

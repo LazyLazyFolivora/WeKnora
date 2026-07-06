@@ -3,28 +3,6 @@
     <div class="login-container">
     <!-- 左侧登录面板 -->
     <div class="login-panel">
-      <!-- 语言切换 -->
-      <div class="panel-header">
-        <div class="language-switch">
-          <button @click="toggleLanguageMenu" class="lang-btn" :title="currentLangOption?.label">
-            <span class="lang-flag-icon">{{ currentLangOption?.flag }}</span>
-            <span class="lang-label">{{ currentLangOption?.shortLabel }}</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-              stroke-linecap="round">
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </button>
-          <div v-if="showLanguageMenu" class="language-dropdown">
-            <div v-for="lang in languageOptions" :key="lang.value" @click="selectLanguage(lang.value)"
-              class="language-option" :class="{ active: currentLanguage === lang.value }">
-              <span class="lang-flag">{{ lang.flag }}</span>
-              <span class="lang-text">{{ lang.label }}</span>
-              <span v-if="currentLanguage === lang.value" class="check-icon">✓</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- 登录表单区域 -->
       <div class="panel-content">
         <!-- Logo + 品牌 -->
@@ -65,22 +43,17 @@
               </t-button>
             </t-form>
 
-            <!-- 统一身份认证 - 始终显示 -->
-            <div class="oidc-section">
+            <!-- 统一身份认证 / CAS 登录（只显示有效的那个） -->
+            <div class="oidc-section" v-if="oidcEnabled || casEnabled">
               <div class="oidc-divider">
                 <span>{{ $t('auth.orContinueWith') }}</span>
               </div>
-              <t-button theme="default" size="large" block :loading="oidcLoading" :disabled="loading"
+              <t-button v-if="oidcEnabled" theme="default" size="large" block :loading="oidcLoading" :disabled="loading"
                 class="oidc-btn" @click="handleOIDCLogin">
-                {{ oidcLoading ? $t('auth.redirectingToOIDC') : '统一身份认证' }}
+                {{ oidcLoading ? $t('auth.redirectingToOIDC') : oidcLoginText }}
               </t-button>
-
-              <div v-if="casEnabled" class="oidc-divider">
-                <span>{{ $t('auth.orContinueWith') }}</span>
-              </div>
-
               <t-button v-if="casEnabled" theme="default" size="large" block :loading="casLoading" :disabled="loading"
-                class="oidc-button" @click="handleCASLogin">
+                class="oidc-btn" @click="handleCASLogin">
                 {{ casLoading ? $t('auth.redirectingToCAS') : casLoginText }}
               </t-button>
             </div>
@@ -255,7 +228,7 @@ import bgImage4 from '@/assets/img/login-page/login-picture4.jpg'
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
-const { t, tm, locale } = useI18n()
+const { t, tm } = useI18n()
 const { formatRole, roleIcon } = useRoleLabel()
 
 // Background carousel
@@ -285,7 +258,6 @@ const loading = ref(false)
 const oidcLoading = ref(false)
 const casLoading = ref(false)
 const isRegisterMode = ref(false)
-const showLanguageMenu = ref(false)
 const oidcEnabled = ref(false)
 const oidcProviderName = ref('')
 const casEnabled = ref(false)
@@ -301,15 +273,6 @@ const inviteLookup = ref<InviteLookup | null>(null)
 const inviteLookupError = ref('')
 const inviteLookupLoading = ref(false)
 
-// Language options
-const languageOptions = [
-  { value: 'zh-CN', label: '简体中文', shortLabel: '中文', flag: '🇨🇳' },
-  { value: 'en-US', label: 'English', shortLabel: 'EN', flag: '🇺🇸' },
-  { value: 'ru-RU', label: 'Русский', shortLabel: 'RU', flag: '🇷🇺' },
-  { value: 'ko-KR', label: '한국어', shortLabel: '한국어', flag: '🇰🇷' }
-]
-
-const currentLanguage = computed(() => locale.value)
 const oidcLoginText = computed(() => {
   if (oidcProviderName.value) {
     return t('auth.oidcLoginWithProvider', { provider: oidcProviderName.value })
@@ -322,8 +285,6 @@ const casLoginText = computed(() => {
   }
   return t('auth.casLogin')
 })
-const currentLangOption = computed(() => languageOptions.find(l => l.value === currentLanguage.value))
-
 // Login form data
 const formData = reactive<{ [key: string]: any }>({
   email: '',
@@ -394,34 +355,7 @@ const toggleMode = () => {
   })
 }
 
-// Toggle language menu
-const toggleLanguageMenu = () => {
-  showLanguageMenu.value = !showLanguageMenu.value
-}
-
-// Select language
-const selectLanguage = (lang: string) => {
-  locale.value = lang
-  localStorage.setItem('locale', lang)
-  showLanguageMenu.value = false
-  MessagePlugin.success(t('language.languageSaved'))
-}
-
-// Close language menu when clicking outside
-const handleClickOutside = (event: MouseEvent) => {
-  const target = event.target as HTMLElement
-  if (!target.closest('.language-switch')) {
-    showLanguageMenu.value = false
-  }
-}
-
-onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
-  startBgCarousel()
-})
-
 onBeforeUnmount(() => {
-  document.removeEventListener('click', handleClickOutside)
   stopBgCarousel()
 })
 
@@ -610,6 +544,7 @@ const handleRegister = async () => {
 }
 
 onMounted(async () => {
+  startBgCarousel()
   const tokenFromQuery = String(route.query.token || '').trim()
   if (tokenFromQuery) {
     inviteToken.value = tokenFromQuery
@@ -639,7 +574,9 @@ onMounted(async () => {
   }
 
   const AUTO_SETUP_FAILED_KEY = 'weknora_auto_setup_failed'
-  if (localStorage.getItem(AUTO_SETUP_FAILED_KEY) !== 'true') {
+  // URL 带 ?skip 或 ?debug 参数时跳过 autoSetup，方便开发调试登录页
+  const skipAutoSetup = route.query.skip !== undefined || route.query.debug !== undefined
+  if (!skipAutoSetup && localStorage.getItem(AUTO_SETUP_FAILED_KEY) !== 'true') {
     try {
       const response = await autoSetup()
       if (response.success) {
@@ -701,95 +638,6 @@ onMounted(async () => {
   z-index: 2;
   overflow: hidden;
   box-sizing: border-box;
-}
-
-/* 语言切换按钮区域 */
-.panel-header {
-  display: flex;
-  justify-content: flex-end;
-  padding: 20px 28px 0;
-}
-
-.language-switch {
-  position: relative;
-}
-
-.lang-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: 8px;
-  background: #f5f7fa;
-  border: 1px solid #e8eaed;
-  color: #606266;
-  font-size: 13px;
-  font-weight: 500;
-  font-family: var(--app-font-family);
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #eef0f3;
-    border-color: #d0d3d8;
-  }
-
-  .lang-flag-icon {
-    font-size: 16px;
-    line-height: 1;
-  }
-
-  svg {
-    color: #909399;
-  }
-}
-
-.language-dropdown {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  min-width: 160px;
-  background: #ffffff;
-  border: 1px solid #e8eaed;
-  border-radius: 10px;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-  z-index: 1000;
-}
-
-.language-option {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  cursor: pointer;
-  font-size: 13px;
-  font-family: var(--app-font-family);
-  color: #303133;
-  transition: background 0.15s;
-
-  .lang-flag {
-    font-size: 16px;
-  }
-
-  .lang-text {
-    flex: 1;
-  }
-
-  .check-icon {
-    color: #667eea;
-    font-weight: 700;
-    font-size: 14px;
-  }
-
-  &:hover {
-    background: #f5f7fa;
-  }
-
-  &.active {
-    background: rgba(102, 126, 234, 0.08);
-    color: #667eea;
-  }
 }
 
 /* 内容区域 */
@@ -1359,40 +1207,6 @@ html[theme-mode="dark"] {
 
   .login-panel {
     background: #141428;
-  }
-
-  .lang-btn {
-    background: #1e1e3a;
-    border-color: #2a2a4a;
-    color: #a0a3b0;
-
-    &:hover {
-      background: #252545;
-      border-color: #353560;
-    }
-
-    svg {
-      color: #606370;
-    }
-  }
-
-  .language-dropdown {
-    background: #1e1e3a;
-    border-color: #2a2a4a;
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
-  }
-
-  .language-option {
-    color: #c0c3d0;
-
-    &:hover {
-      background: #252545;
-    }
-
-    &.active {
-      background: rgba(102, 126, 234, 0.15);
-      color: #8b9cf7;
-    }
   }
 
   .brand-title-text {

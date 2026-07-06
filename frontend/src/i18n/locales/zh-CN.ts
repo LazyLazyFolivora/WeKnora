@@ -3119,7 +3119,7 @@ export default {
     },
   },
   createChat: {
-    title: "Hi，欢迎来到药到知来，我是药小知",
+    title: "Hi，我是药小知",
     newSessionTitle: "新会话",
     messages: {
       selectKnowledgeBase: "请先选择知识库",

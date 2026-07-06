@@ -70,90 +70,105 @@
             :title="$t('tenant.switcher.menuLabel')" />
         </div>
         <div class="menu-divider"></div>
-        <!-- QuickNav 入口与 Settings 的最低角色对齐：members/models/websearch/mcp/api
-             分别对应 viewer/viewer/admin/admin/owner（详情见 Settings.vue 的
-             SECTION_MIN_ROLE）。低角色用户看到这些入口点进去也只能看到
-             role-denied 兜底页，索性藏起来。 -->
-        <div v-if="canSeeQuickNav('members')" class="menu-item" @click="handleQuickNav('members')">
-          <t-icon name="usergroup" class="menu-icon" />
-          <span>{{ $t('tenantMember.title') }}</span>
-        </div>
-        <div v-if="canSeeQuickNav('models')" class="menu-item" @click="handleQuickNav('models')">
-          <t-icon name="control-platform" class="menu-icon" />
-          <span>{{ $t('settings.modelManagement') }}</span>
-        </div>
-        <div v-if="canSeeQuickNav('websearch')" class="menu-item" @click="handleQuickNav('websearch')">
-          <svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"
-            class="menu-icon svg-icon">
-            <circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.2" fill="none" />
-            <path d="M 9 2 A 3.5 7 0 0 0 9 16" stroke="currentColor" stroke-width="1.2" fill="none" />
-            <path d="M 9 2 A 3.5 7 0 0 1 9 16" stroke="currentColor" stroke-width="1.2" fill="none" />
-            <line x1="2.94" y1="5.5" x2="15.06" y2="5.5" stroke="currentColor" stroke-width="1.2"
-              stroke-linecap="round" />
-            <line x1="2.94" y1="12.5" x2="15.06" y2="12.5" stroke="currentColor" stroke-width="1.2"
-              stroke-linecap="round" />
-          </svg>
-          <span>{{ $t('settings.webSearchConfig') }}</span>
-        </div>
-        <div v-if="canSeeQuickNav('mcp')" class="menu-item" @click="handleQuickNav('mcp')">
-          <t-icon name="tools" class="menu-icon" />
-          <span>{{ $t('settings.mcpService') }}</span>
-        </div>
-        <div v-if="canSeeQuickNav('api')" class="menu-item" @click="handleQuickNav('api')">
-          <t-icon name="secured" class="menu-icon" />
-          <span>{{ $t('settings.apiInfo') }}</span>
-        </div>
-        <div class="menu-divider"></div>
-        <div class="menu-item" @click="handleSettings">
-          <t-icon name="setting" class="menu-icon" />
-          <span>{{ $t('general.allSettings') }}</span>
-        </div>
-        <!--
-          System administration entry — visible only to users with the
-          platform-wide is_system_admin flag. Hidden for everyone else,
-          including tenant Owners. Real authorisation lives server-side
-          (RequireSystemAdmin middleware); this is UI gating only.
-        -->
-        <div v-if="authStore.isSystemAdmin" class="menu-item" @click="handleSystemAdmin">
-          <t-icon name="server" class="menu-icon" />
-          <span>{{ $t('settings.system') }}</span>
-        </div>
-        <!-- 切换租户入口在下拉「当前租户」区块 hover；此处仅为分隔线与菜单项。 -->
-        <div class="menu-divider"></div>
-        <div class="menu-item" @click="openClawhubSkill">
-          <span class="menu-icon menu-icon--emoji" role="img" :aria-label="$t('common.clawhubSkill')">🦞</span>
-          <span class="menu-text-with-icon">
-            <span>{{ $t('common.clawhubSkill') }}</span>
-            <span class="menu-new-badge">{{ $t('common.newBadge') }}</span>
-            <svg class="menu-external-icon" viewBox="0 0 16 16" aria-hidden="true">
-              <path fill="currentColor"
-                d="M12.667 8a.667.667 0 0 1 .666.667v4a2.667 2.667 0 0 1-2.666 2.666H4.667a2.667 2.667 0 0 1-2.667-2.666V5.333a2.667 2.667 0 0 1 2.667-2.666h4a.667.667 0 1 1 0 1.333h-4a1.333 1.333 0 0 0-1.333 1.333v7.334A1.333 1.333 0 0 0 4.667 13.333h6a1.333 1.333 0 0 0 1.333-1.333v-4A.667.667 0 0 1 12.667 8Zm2.666-6.667v4a.667.667 0 0 1-1.333 0V3.276l-5.195 5.195a.667.667 0 0 1-.943-.943l5.195-5.195h-2.057a.667.667 0 0 1 0-1.333h4a.667.667 0 0 1 .666.666Z" />
+        <!-- 管理员租户（tenant_id=10000）显示完整菜单；非管理员租户只显示全部设置 -->
+        <template v-if="authStore.isAdminTenant">
+          <!-- QuickNav 入口与 Settings 的最低角色对齐：members/models/websearch/mcp/api
+               分别对应 viewer/viewer/admin/admin/owner（详情见 Settings.vue 的
+               SECTION_MIN_ROLE）。低角色用户看到这些入口点进去也只能看到
+               role-denied 兜底页，索性藏起来。 -->
+          <div v-if="canSeeQuickNav('members')" class="menu-item" @click="handleQuickNav('members')">
+            <t-icon name="usergroup" class="menu-icon" />
+            <span>{{ $t('tenantMember.title') }}</span>
+          </div>
+          <div v-if="canSeeQuickNav('models')" class="menu-item" @click="handleQuickNav('models')">
+            <t-icon name="control-platform" class="menu-icon" />
+            <span>{{ $t('settings.modelManagement') }}</span>
+          </div>
+          <div v-if="canSeeQuickNav('websearch')" class="menu-item" @click="handleQuickNav('websearch')">
+            <svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"
+              class="menu-icon svg-icon">
+              <circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.2" fill="none" />
+              <path d="M 9 2 A 3.5 7 0 0 0 9 16" stroke="currentColor" stroke-width="1.2" fill="none" />
+              <path d="M 9 2 A 3.5 7 0 0 1 9 16" stroke="currentColor" stroke-width="1.2" fill="none" />
+              <line x1="2.94" y1="5.5" x2="15.06" y2="5.5" stroke="currentColor" stroke-width="1.2"
+                stroke-linecap="round" />
+              <line x1="2.94" y1="12.5" x2="15.06" y2="12.5" stroke="currentColor" stroke-width="1.2"
+                stroke-linecap="round" />
             </svg>
-          </span>
-        </div>
-        <div class="menu-item" @click="openChromeExtension">
-          <t-icon name="extension" class="menu-icon" />
-          <span class="menu-text-with-icon">
-            <span>{{ $t('common.chromeExtension') }}</span>
-            <span class="menu-new-badge">{{ $t('common.newBadge') }}</span>
-            <svg class="menu-external-icon" viewBox="0 0 16 16" aria-hidden="true">
-              <path fill="currentColor"
-                d="M12.667 8a.667.667 0 0 1 .666.667v4a2.667 2.667 0 0 1-2.666 2.666H4.667a2.667 2.667 0 0 1-2.667-2.666V5.333a2.667 2.667 0 0 1 2.667-2.666h4a.667.667 0 1 1 0 1.333h-4a1.333 1.333 0 0 0-1.333 1.333v7.334A1.333 1.333 0 0 0 4.667 13.333h6a1.333 1.333 0 0 0 1.333-1.333v-4A.667.667 0 0 1 12.667 8Zm2.666-6.667v4a.667.667 0 0 1-1.333 0V3.276l-5.195 5.195a.667.667 0 0 1-.943-.943l5.195-5.195h-2.057a.667.667 0 0 1 0-1.333h4a.667.667 0 0 1 .666.666Z" />
-            </svg>
-          </span>
-        </div>
-        <div class="menu-item" :title="$t('common.githubStarTip')" @click="openGithub">
-          <t-icon name="logo-github" class="menu-icon" />
-          <span class="menu-text-with-icon">
-            <span>{{ $t('common.github') }}</span>
-            <t-icon name="star-filled" class="menu-github-star-icon" size="16px" aria-hidden="true" />
-            <svg class="menu-external-icon" viewBox="0 0 16 16" aria-hidden="true">
-              <path fill="currentColor"
-                d="M12.667 8a.667.667 0 0 1 .666.667v4a2.667 2.667 0 0 1-2.666 2.666H4.667a2.667 2.667 0 0 1-2.667-2.666V5.333a2.667 2.667 0 0 1 2.667-2.666h4a.667.667 0 1 1 0 1.333h-4a1.333 1.333 0 0 0-1.333 1.333v7.334A1.333 1.333 0 0 0 4.667 13.333h6a1.333 1.333 0 0 0 1.333-1.333v-4A.667.667 0 0 1 12.667 8Zm2.666-6.667v4a.667.667 0 0 1-1.333 0V3.276l-5.195 5.195a.667.667 0 0 1-.943-.943l5.195-5.195h-2.057a.667.667 0 0 1 0-1.333h4a.667.667 0 0 1 .666.666Z" />
-            </svg>
-          </span>
-        </div>
-        <template v-if="!authStore.isLiteMode">
+            <span>{{ $t('settings.webSearchConfig') }}</span>
+          </div>
+          <div v-if="canSeeQuickNav('mcp')" class="menu-item" @click="handleQuickNav('mcp')">
+            <t-icon name="tools" class="menu-icon" />
+            <span>{{ $t('settings.mcpService') }}</span>
+          </div>
+          <div v-if="canSeeQuickNav('api')" class="menu-item" @click="handleQuickNav('api')">
+            <t-icon name="secured" class="menu-icon" />
+            <span>{{ $t('settings.apiInfo') }}</span>
+          </div>
+          <div class="menu-divider"></div>
+          <div class="menu-item" @click="handleSettings">
+            <t-icon name="setting" class="menu-icon" />
+            <span>{{ $t('general.allSettings') }}</span>
+          </div>
+          <!--
+            System administration entry — visible only to users with the
+            platform-wide is_system_admin flag. Hidden for everyone else,
+            including tenant Owners. Real authorisation lives server-side
+            (RequireSystemAdmin middleware); this is UI gating only.
+          -->
+          <div v-if="authStore.isSystemAdmin" class="menu-item" @click="handleSystemAdmin">
+            <t-icon name="server" class="menu-icon" />
+            <span>{{ $t('settings.system') }}</span>
+          </div>
+          <!-- 切换租户入口在下拉「当前租户」区块 hover；此处仅为分隔线与菜单项。 -->
+          <div class="menu-divider"></div>
+          <div class="menu-item" @click="openClawhubSkill">
+            <span class="menu-icon menu-icon--emoji" role="img" :aria-label="$t('common.clawhubSkill')">🦞</span>
+            <span class="menu-text-with-icon">
+              <span>{{ $t('common.clawhubSkill') }}</span>
+              <span class="menu-new-badge">{{ $t('common.newBadge') }}</span>
+              <svg class="menu-external-icon" viewBox="0 0 16 16" aria-hidden="true">
+                <path fill="currentColor"
+                  d="M12.667 8a.667.667 0 0 1 .666.667v4a2.667 2.667 0 0 1-2.666 2.666H4.667a2.667 2.667 0 0 1-2.667-2.666V5.333a2.667 2.667 0 0 1 2.667-2.666h4a.667.667 0 1 1 0 1.333h-4a1.333 1.333 0 0 0-1.333 1.333v7.334A1.333 1.333 0 0 0 4.667 13.333h6a1.333 1.333 0 0 0 1.333-1.333v-4A.667.667 0 0 1 12.667 8Zm2.666-6.667v4a.667.667 0 0 1-1.333 0V3.276l-5.195 5.195a.667.667 0 0 1-.943-.943l5.195-5.195h-2.057a.667.667 0 0 1 0-1.333h4a.667.667 0 0 1 .666.666Z" />
+              </svg>
+            </span>
+          </div>
+          <div class="menu-item" @click="openChromeExtension">
+            <t-icon name="extension" class="menu-icon" />
+            <span class="menu-text-with-icon">
+              <span>{{ $t('common.chromeExtension') }}</span>
+              <span class="menu-new-badge">{{ $t('common.newBadge') }}</span>
+              <svg class="menu-external-icon" viewBox="0 0 16 16" aria-hidden="true">
+                <path fill="currentColor"
+                  d="M12.667 8a.667.667 0 0 1 .666.667v4a2.667 2.667 0 0 1-2.666 2.666H4.667a2.667 2.667 0 0 1-2.667-2.666V5.333a2.667 2.667 0 0 1 2.667-2.666h4a.667.667 0 1 1 0 1.333h-4a1.333 1.333 0 0 0-1.333 1.333v7.334A1.333 1.333 0 0 0 4.667 13.333h6a1.333 1.333 0 0 0 1.333-1.333v-4A.667.667 0 0 1 12.667 8Zm2.666-6.667v4a.667.667 0 0 1-1.333 0V3.276l-5.195 5.195a.667.667 0 0 1-.943-.943l5.195-5.195h-2.057a.667.667 0 0 1 0-1.333h4a.667.667 0 0 1 .666.666Z" />
+              </svg>
+            </span>
+          </div>
+          <div class="menu-item" :title="$t('common.githubStarTip')" @click="openGithub">
+            <t-icon name="logo-github" class="menu-icon" />
+            <span class="menu-text-with-icon">
+              <span>{{ $t('common.github') }}</span>
+              <t-icon name="star-filled" class="menu-github-star-icon" size="16px" aria-hidden="true" />
+              <svg class="menu-external-icon" viewBox="0 0 16 16" aria-hidden="true">
+                <path fill="currentColor"
+                  d="M12.667 8a.667.667 0 0 1 .666.667v4a2.667 2.667 0 0 1-2.666 2.666H4.667a2.667 2.667 0 0 1-2.667-2.666V5.333a2.667 2.667 0 0 1 2.667-2.666h4a.667.667 0 1 1 0 1.333h-4a1.333 1.333 0 0 0-1.333 1.333v7.334A1.333 1.333 0 0 0 4.667 13.333h6a1.333 1.333 0 0 0 1.333-1.333v-4A.667.667 0 0 1 12.667 8Zm2.666-6.667v4a.667.667 0 0 1-1.333 0V3.276l-5.195 5.195a.667.667 0 0 1-.943-.943l5.195-5.195h-2.057a.667.667 0 0 1 0-1.333h4a.667.667 0 0 1 .666.666Z" />
+              </svg>
+            </span>
+          </div>
+          <template v-if="!authStore.isLiteMode">
+            <div class="menu-divider"></div>
+            <div class="menu-item danger" @click="handleLogout">
+              <t-icon name="logout" class="menu-icon" />
+              <span>{{ $t('auth.logout') }}</span>
+            </div>
+          </template>
+        </template>
+        <!-- 非管理员租户只显示全部设置和登出 -->
+        <template v-else>
+          <div class="menu-item" @click="handleSettings">
+            <t-icon name="setting" class="menu-icon" />
+            <span>{{ $t('general.allSettings') }}</span>
+          </div>
           <div class="menu-divider"></div>
           <div class="menu-item danger" @click="handleLogout">
             <t-icon name="logout" class="menu-icon" />
