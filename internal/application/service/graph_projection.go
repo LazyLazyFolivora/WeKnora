@@ -47,7 +47,7 @@ func NewGraphProjectionService(
 
 // ProjectEntities reads pending entities, writes them to Neo4j in batches, and updates sync_status.
 func (s *graphProjectionService) ProjectEntities(
-	ctx context.Context, tenantID uint64, kbID string, limit int,
+	ctx context.Context, tenantID uint64, limit int,
 ) (int, error) {
 	if s.neo4j == nil {
 		return 0, fmt.Errorf("Neo4j 未配置")
@@ -56,7 +56,7 @@ func (s *graphProjectionService) ProjectEntities(
 		limit = 100
 	}
 
-	rows, err := s.entityRepo.ListForProjection(ctx, tenantID, kbID, limit)
+	rows, err := s.entityRepo.ListForProjection(ctx, tenantID, limit)
 	if err != nil {
 		return 0, fmt.Errorf("查询待同步实体: %w", err)
 	}
@@ -68,9 +68,9 @@ func (s *graphProjectionService) ProjectEntities(
 	defer session.Close(ctx)
 
 	var (
-		toDelete  []*types.GraphEntity
-		toUpsert  []*types.GraphEntity
-		primekg   []*types.GraphEntity
+		toDelete    []*types.GraphEntity
+		toUpsert    []*types.GraphEntity
+		primekg     []*types.GraphEntity
 		toDeleteIDs []string
 		toUpsertIDs []string
 	)
@@ -117,7 +117,7 @@ func (s *graphProjectionService) ProjectEntities(
 		}
 	}
 
-	logger.Infof(ctx, "[GraphProjection] 实体同步完成: synced=%d total=%d kb=%s", synced, len(rows), kbID)
+	logger.Infof(ctx, "[GraphProjection] 实体同步完成: synced=%d total=%d tenant=%d", synced, len(rows), tenantID)
 	return synced, nil
 }
 
@@ -128,14 +128,13 @@ func (s *graphProjectionService) batchMergeEntities(
 	rows := make([]map[string]interface{}, 0, len(entities))
 	for _, e := range entities {
 		rows = append(rows, map[string]interface{}{
-			"source_entity_id":  e.SourceEntityID,
-			"entity_type":       e.EntityType,
-			"entity_name":       e.EntityName,
-			"tenant_id":         e.TenantID,
-			"knowledge_base_id": e.KnowledgeBaseID,
-			"entity_data":       jsonToString(e.EntityData),
-			"source_site":       e.SourceSite,
-			"confidence_score":  e.ConfidenceScore,
+			"source_entity_id": e.SourceEntityID,
+			"entity_type":      e.EntityType,
+			"entity_name":      e.EntityName,
+			"tenant_id":        e.TenantID,
+			"entity_data":      jsonToString(e.EntityData),
+			"source_site":      e.SourceSite,
+			"confidence_score": e.ConfidenceScore,
 		})
 	}
 
@@ -146,7 +145,6 @@ func (s *graphProjectionService) batchMergeEntities(
 			SET n.entity_type = row.entity_type,
 			    n.entity_name = row.entity_name,
 			    n.tenant_id = row.tenant_id,
-			    n.knowledge_base_id = row.knowledge_base_id,
 			    n.entity_data = row.entity_data,
 			    n.source_site = row.source_site,
 			    n.confidence_score = row.confidence_score
@@ -203,8 +201,6 @@ func (s *graphProjectionService) batchDeleteEntities(
 }
 
 // createReferencesEdge connects a ZK entity copy to its PrimeKG original node in Neo4j.
-// Looks up entity_dict by parsing source_entity_id (format: "dict:<id>") and reads
-// the external_ids column directly — no need to inject external_ids into entity_data.
 func (s *graphProjectionService) createReferencesEdge(
 	ctx context.Context, session neo4j.Session, entity *types.GraphEntity,
 ) error {
@@ -235,9 +231,7 @@ func (s *graphProjectionService) createReferencesEdge(
 	return err
 }
 
-// resolvePrimeKGNodeID reads entity_dict.external_ids for a given source_entity_id
-// and returns a "Source:ID" string for matching PrimeKG Neo4j nodes.
-// sourceEntityID format: "dict:<entity_dict.id>".
+// resolvePrimeKGNodeID reads entity_dict.external_ids for a given source_entity_id.
 func resolvePrimeKGNodeID(db *gorm.DB, sourceEntityID string) string {
 	if !strings.HasPrefix(sourceEntityID, "dict:") {
 		return ""
@@ -278,7 +272,7 @@ func resolvePrimeKGNodeID(db *gorm.DB, sourceEntityID string) string {
 
 // ProjectRelations reads pending relations, writes them to Neo4j in batches, and updates sync_status.
 func (s *graphProjectionService) ProjectRelations(
-	ctx context.Context, tenantID uint64, kbID string, limit int,
+	ctx context.Context, tenantID uint64, limit int,
 ) (int, error) {
 	if s.neo4j == nil {
 		return 0, fmt.Errorf("Neo4j 未配置")
@@ -287,7 +281,7 @@ func (s *graphProjectionService) ProjectRelations(
 		limit = 100
 	}
 
-	rows, err := s.relationRepo.ListForProjection(ctx, tenantID, kbID, limit)
+	rows, err := s.relationRepo.ListForProjection(ctx, tenantID, limit)
 	if err != nil {
 		return 0, fmt.Errorf("查询待同步关系: %w", err)
 	}
@@ -344,7 +338,7 @@ func (s *graphProjectionService) ProjectRelations(
 		}
 	}
 
-	logger.Infof(ctx, "[GraphProjection] 关系同步完成: synced=%d total=%d kb=%s", synced, len(rows), kbID)
+	logger.Infof(ctx, "[GraphProjection] 关系同步完成: synced=%d total=%d tenant=%d", synced, len(rows), tenantID)
 	return synced, nil
 }
 
@@ -431,8 +425,6 @@ func (s *graphProjectionService) batchDeleteRelations(
 }
 
 // jsonToString converts types.JSON to a JSON string for Neo4j storage.
-// Neo4j only accepts primitive property types, so nested objects must be stored as strings.
-// Returns "{}" when input is nil or empty.
 func jsonToString(raw types.JSON) string {
 	if len(raw) == 0 {
 		return "{}"

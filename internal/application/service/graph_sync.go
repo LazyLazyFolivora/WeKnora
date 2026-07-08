@@ -18,40 +18,27 @@ import (
 type graphSyncService struct {
 	entityRepo   interfaces.GraphEntityRepository
 	relationRepo interfaces.GraphRelationRepository
-	kbService    interfaces.KnowledgeBaseService
 }
 
 // NewGraphSyncService creates a new graph sync service.
 func NewGraphSyncService(
 	entityRepo interfaces.GraphEntityRepository,
 	relationRepo interfaces.GraphRelationRepository,
-	kbService interfaces.KnowledgeBaseService,
 ) interfaces.GraphSyncService {
 	return &graphSyncService{
 		entityRepo:   entityRepo,
 		relationRepo: relationRepo,
-		kbService:    kbService,
 	}
 }
 
 func (s *graphSyncService) BatchUpsertEntities(
 	ctx context.Context,
-	kbID string,
+	tenantID uint64,
 	req *types.GraphEntityBatchUpsertRequest,
 ) (*types.GraphBatchUpsertResult, error) {
-	if kbID == "" {
-		return nil, apperrors.NewBadRequestError("知识库 ID 不能为空")
-	}
 	if req == nil || len(req.Entities) == 0 {
 		return nil, apperrors.NewBadRequestError("entities 不能为空")
 	}
-
-	kb, err := s.kbService.GetKnowledgeBaseByID(ctx, kbID)
-	if err != nil || kb == nil {
-		logger.Warnf(ctx, "[GraphSync] kb not found: %s err=%v", kbID, err)
-		return nil, apperrors.NewNotFoundError("知识库不存在")
-	}
-	tenantID := kb.TenantID
 
 	now := time.Now()
 	var upserted, deleted int
@@ -70,7 +57,7 @@ func (s *graphSyncService) BatchUpsertEntities(
 	for i, in := range req.Entities {
 		sourceIDs[i] = in.SourceEntityID
 	}
-	existing, err := s.entityRepo.FindBySourceIDs(ctx, tenantID, kbID, sourceIDs)
+	existing, err := s.entityRepo.FindBySourceIDs(ctx, tenantID, sourceIDs)
 	if err != nil {
 		logger.Errorf(ctx, "[GraphSync] find existing entities failed: %v", err)
 		return nil, apperrors.NewInternalServerError("查询已有实体失败").WithDetails(err.Error())
@@ -82,7 +69,7 @@ func (s *graphSyncService) BatchUpsertEntities(
 
 	rows := make([]*types.GraphEntity, 0, len(req.Entities))
 	for _, in := range req.Entities {
-		row := inputToGraphEntity(in, tenantID, kbID, now)
+		row := inputToGraphEntity(in, tenantID, now)
 		if prev, ok := existingBySource[in.SourceEntityID]; ok {
 			row.ID = prev.ID
 			row.CreatedAt = prev.CreatedAt
@@ -103,28 +90,18 @@ func (s *graphSyncService) BatchUpsertEntities(
 	}
 
 	result := &types.GraphBatchUpsertResult{Upserted: upserted, Deleted: deleted}
-	logger.Infof(ctx, "[GraphSync] entities upserted=%d deleted=%d kb=%s", result.Upserted, result.Deleted, kbID)
+	logger.Infof(ctx, "[GraphSync] entities upserted=%d deleted=%d tenant=%d", result.Upserted, result.Deleted, tenantID)
 	return result, nil
 }
 
 func (s *graphSyncService) BatchUpsertRelations(
 	ctx context.Context,
-	kbID string,
+	tenantID uint64,
 	req *types.GraphRelationBatchUpsertRequest,
 ) (*types.GraphBatchUpsertResult, error) {
-	if kbID == "" {
-		return nil, apperrors.NewBadRequestError("知识库 ID 不能为空")
-	}
 	if req == nil || len(req.Relations) == 0 {
 		return nil, apperrors.NewBadRequestError("relations 不能为空")
 	}
-
-	kb, err := s.kbService.GetKnowledgeBaseByID(ctx, kbID)
-	if err != nil || kb == nil {
-		logger.Warnf(ctx, "[GraphSync] kb not found: %s err=%v", kbID, err)
-		return nil, apperrors.NewNotFoundError("知识库不存在")
-	}
-	tenantID := kb.TenantID
 
 	// Validate each relation input first.
 	for _, in := range req.Relations {
@@ -146,7 +123,7 @@ func (s *graphSyncService) BatchUpsertRelations(
 	for id := range entityIDSet {
 		entityIDs = append(entityIDs, id)
 	}
-	existingEntities, err := s.entityRepo.FindBySourceIDs(ctx, tenantID, kbID, entityIDs)
+	existingEntities, err := s.entityRepo.FindBySourceIDs(ctx, tenantID, entityIDs)
 	if err != nil {
 		logger.Errorf(ctx, "[GraphSync] find entities for relation validation failed: %v", err)
 		return nil, apperrors.NewInternalServerError("查询关系端点实体失败").WithDetails(err.Error())
@@ -180,7 +157,7 @@ func (s *graphSyncService) BatchUpsertRelations(
 	var upserted, deleted int
 	rows := make([]*types.GraphRelationRecord, 0, len(req.Relations))
 	for _, in := range req.Relations {
-		row := inputToGraphRelationRecord(in, tenantID, kbID, now)
+		row := inputToGraphRelationRecord(in, tenantID, now)
 		if in.IsDeleted {
 			row.IsDeleted = true
 			row.SyncStatus = types.GraphSyncStatusPending
@@ -197,7 +174,7 @@ func (s *graphSyncService) BatchUpsertRelations(
 	}
 
 	result := &types.GraphBatchUpsertResult{Upserted: upserted, Deleted: deleted}
-	logger.Infof(ctx, "[GraphSync] relations upserted=%d deleted=%d kb=%s", result.Upserted, result.Deleted, kbID)
+	logger.Infof(ctx, "[GraphSync] relations upserted=%d deleted=%d tenant=%d", result.Upserted, result.Deleted, tenantID)
 	return result, nil
 }
 
@@ -252,7 +229,7 @@ func jsonFromMap(m map[string]interface{}) types.JSON {
 	return types.JSON(b)
 }
 
-func inputToGraphEntity(in *types.GraphEntityInput, tenantID uint64, kbID string, now time.Time) *types.GraphEntity {
+func inputToGraphEntity(in *types.GraphEntityInput, tenantID uint64, now time.Time) *types.GraphEntity {
 	reviewStatus := strings.TrimSpace(in.ReviewStatus)
 	if reviewStatus == "" {
 		reviewStatus = types.GraphReviewStatusPending
@@ -260,7 +237,6 @@ func inputToGraphEntity(in *types.GraphEntityInput, tenantID uint64, kbID string
 	return &types.GraphEntity{
 		ID:               uuid.New().String(),
 		TenantID:         tenantID,
-		KnowledgeBaseID:  kbID,
 		SourceEntityID:   in.SourceEntityID,
 		EntityType:       in.EntityType,
 		EntityName:       in.EntityName,
@@ -277,7 +253,7 @@ func inputToGraphEntity(in *types.GraphEntityInput, tenantID uint64, kbID string
 	}
 }
 
-func inputToGraphRelationRecord(in *types.GraphRelationInput, tenantID uint64, kbID string, now time.Time) *types.GraphRelationRecord {
+func inputToGraphRelationRecord(in *types.GraphRelationInput, tenantID uint64, now time.Time) *types.GraphRelationRecord {
 	reviewStatus := strings.TrimSpace(in.ReviewStatus)
 	if reviewStatus == "" {
 		reviewStatus = types.GraphReviewStatusPending
@@ -285,7 +261,6 @@ func inputToGraphRelationRecord(in *types.GraphRelationInput, tenantID uint64, k
 	return &types.GraphRelationRecord{
 		ID:               uuid.New().String(),
 		TenantID:         tenantID,
-		KnowledgeBaseID:  kbID,
 		SourceRelationID: in.SourceRelationID,
 		FromEntityID:     in.FromEntityID,
 		ToEntityID:       in.ToEntityID,

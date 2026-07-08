@@ -60,7 +60,7 @@ func (s *entityDictService) BatchUpsert(ctx context.Context, rows []*types.Entit
 
 // InitCopies reads PrimeKG rows from entity_dict and writes them to graph_entities.
 // Marks upserted rows as approved so they pass the review filter during projection.
-func (s *entityDictService) InitCopies(ctx context.Context, kbID string, tenantID uint64) (int, error) {
+func (s *entityDictService) InitCopies(ctx context.Context, tenantID uint64) (int, error) {
 	var rows []types.EntityDictRecord
 	if err := s.db.WithContext(ctx).
 		Where("canonical_source = ? AND is_deleted = ?", "primekg", false).
@@ -106,7 +106,7 @@ func (s *entityDictService) InitCopies(ctx context.Context, kbID string, tenantI
 			end = len(inputs)
 		}
 		batch := inputs[i:end]
-		result, err := s.graphSync.BatchUpsertEntities(ctx, kbID, &types.GraphEntityBatchUpsertRequest{
+		result, err := s.graphSync.BatchUpsertEntities(ctx, tenantID, &types.GraphEntityBatchUpsertRequest{
 			Entities: batch,
 		})
 		if err != nil {
