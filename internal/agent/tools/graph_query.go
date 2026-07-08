@@ -30,16 +30,17 @@ Once you understand the schema, write targeted MATCH queries.
 
 ## Graph Structure Overview
 The graph contains two categories of nodes:
-- **GraphEntity** nodes: properties name, entity_name, entity_type, entity_data, name_aliases (string array), source_site, confidence_score
-- **External nodes** (drug, disease, gene/protein, pathway, etc.): PrimeKG reference data with properties name, primekg_id, primekg_type, node_source
-- Bridge: (GraphEntity)-[:REFERENCES]->(external node) connects your entities to PrimeKG
+- **External PrimeKG nodes** (drug, disease, gene/protein, pathway, etc.) — the bulk of the graph: properties name (ENGLISH / scientific), primekg_id, primekg_type, node_source. Rich in relationships.
+- **GraphEntity** nodes (extracted from documents): properties name (in the source document's language), entity_type, entity_data, source_site, confidence_score. entity_data is a JSON *string* with sparse, per-entity keys — do NOT assume any particular key exists. There is NO name_aliases property.
+- Bridge: (GraphEntity)-[:REFERENCES]->(external node) connects extracted entities to PrimeKG when a match was found.
 
 ## Query Guidelines
 - **CRITICAL: Always RETURN node/relationship objects (n, r, m), NEVER scalar properties. The parser only handles Node and Relationship objects, not strings.**
   - CORRECT: RETURN n  /  RETURN n, r, m
   - WRONG: RETURN n.name, n.entity_type, n.entity_data (scalars — will be skipped)
-- **Alias-aware entity lookup:** Nodes have a name_aliases array. Search must check both name AND aliases:
-    MATCH (n) WHERE toLower(n.name) CONTAINS toLower("keyword") OR any(alias IN n.name_aliases WHERE toLower(alias) CONTAINS toLower("keyword")) RETURN n LIMIT 20
+- **PrimeKG is English-only:** a raw Chinese keyword will NOT match PrimeKG nodes. Always translate the user's Chinese term to its standard English / scientific name and query BOTH forms.
+- **Tolerant entity lookup** — match the keyword against name AND the entity_data string (entity_data is a JSON string, so use CONTAINS; there is NO name_aliases array, and any(x IN n.entity_data ...) list syntax will error):
+    MATCH (n) WHERE any(kw IN ["阿司匹林","aspirin"] WHERE toLower(n.name) CONTAINS toLower(kw) OR toLower(coalesce(n.entity_data,"")) CONTAINS toLower(kw)) RETURN n LIMIT 50
 - Use MATCH for data queries, CALL for schema introspection
 - Prefer CONTAINS for fuzzy name matching
 - Always add LIMIT (recommend 50-100) to avoid overwhelming results

@@ -23,7 +23,6 @@ const (
 type GraphEntity struct {
 	ID               string     `json:"id"                 gorm:"type:varchar(36);primaryKey"`
 	TenantID         uint64     `json:"tenant_id"`
-	KnowledgeBaseID  string     `json:"knowledge_base_id"`
 	SourceEntityID   string     `json:"source_entity_id"`
 	EntityType       string     `json:"entity_type"`
 	EntityName       string     `json:"entity_name"`
@@ -51,7 +50,6 @@ func (GraphEntity) TableName() string { return "graph_entities" }
 type GraphRelationRecord struct {
 	ID                string     `json:"id"                  gorm:"type:varchar(36);primaryKey"`
 	TenantID          uint64     `json:"tenant_id"`
-	KnowledgeBaseID   string     `json:"knowledge_base_id"`
 	SourceRelationID  string     `json:"source_relation_id"`
 	FromEntityID      string     `json:"from_entity_id"`
 	ToEntityID        string     `json:"to_entity_id"`

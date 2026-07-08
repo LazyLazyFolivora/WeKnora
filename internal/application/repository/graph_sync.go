@@ -27,7 +27,6 @@ func (r *graphEntityRepository) BatchUpsert(ctx context.Context, rows []*types.G
 	return r.db.WithContext(ctx).Clauses(clause.OnConflict{
 		Columns: []clause.Column{
 			{Name: "tenant_id"},
-			{Name: "knowledge_base_id"},
 			{Name: "source_entity_id"},
 		},
 		DoUpdates: clause.AssignmentColumns([]string{
@@ -41,12 +40,12 @@ func (r *graphEntityRepository) BatchUpsert(ctx context.Context, rows []*types.G
 }
 
 func (r *graphEntityRepository) ListForProjection(
-	ctx context.Context, tenantID uint64, kbID string, limit int,
+	ctx context.Context, tenantID uint64, limit int,
 ) ([]*types.GraphEntity, error) {
 	var rows []*types.GraphEntity
 	if err := r.db.WithContext(ctx).
-		Where("tenant_id = ? AND knowledge_base_id = ? AND sync_status IN ?",
-			tenantID, kbID, []string{types.GraphSyncStatusPending, types.GraphSyncStatusFailed}).
+		Where("tenant_id = ? AND sync_status IN ?",
+			tenantID, []string{types.GraphSyncStatusPending, types.GraphSyncStatusFailed}).
 		Order("updated_at ASC").
 		Limit(limit).
 		Find(&rows).Error; err != nil {
@@ -86,15 +85,15 @@ func (r *graphEntityRepository) MarkDeleted(ctx context.Context, id string, sync
 }
 
 func (r *graphEntityRepository) FindBySourceIDs(
-	ctx context.Context, tenantID uint64, kbID string, sourceIDs []string,
+	ctx context.Context, tenantID uint64, sourceIDs []string,
 ) ([]*types.GraphEntity, error) {
 	if len(sourceIDs) == 0 {
 		return nil, nil
 	}
 	var rows []*types.GraphEntity
 	if err := r.db.WithContext(ctx).
-		Where("tenant_id = ? AND knowledge_base_id = ? AND source_entity_id IN ?",
-			tenantID, kbID, sourceIDs).
+		Where("tenant_id = ? AND source_entity_id IN ?",
+			tenantID, sourceIDs).
 		Find(&rows).Error; err != nil {
 		return nil, err
 	}
@@ -118,7 +117,6 @@ func (r *graphRelationRepository) BatchUpsert(ctx context.Context, rows []*types
 	return r.db.WithContext(ctx).Clauses(clause.OnConflict{
 		Columns: []clause.Column{
 			{Name: "tenant_id"},
-			{Name: "knowledge_base_id"},
 			{Name: "source_relation_id"},
 		},
 		DoUpdates: clause.AssignmentColumns([]string{
@@ -132,12 +130,12 @@ func (r *graphRelationRepository) BatchUpsert(ctx context.Context, rows []*types
 }
 
 func (r *graphRelationRepository) ListForProjection(
-	ctx context.Context, tenantID uint64, kbID string, limit int,
+	ctx context.Context, tenantID uint64, limit int,
 ) ([]*types.GraphRelationRecord, error) {
 	var rows []*types.GraphRelationRecord
 	if err := r.db.WithContext(ctx).
-		Where("tenant_id = ? AND knowledge_base_id = ? AND sync_status IN ?",
-			tenantID, kbID, []string{types.GraphSyncStatusPending, types.GraphSyncStatusFailed}).
+		Where("tenant_id = ? AND sync_status IN ?",
+			tenantID, []string{types.GraphSyncStatusPending, types.GraphSyncStatusFailed}).
 		Order("updated_at ASC").
 		Limit(limit).
 		Find(&rows).Error; err != nil {
@@ -167,15 +165,15 @@ func (r *graphRelationRepository) MarkFailed(ctx context.Context, id string, err
 }
 
 func (r *graphRelationRepository) ListByEntityIDs(
-	ctx context.Context, tenantID uint64, kbID string, entitySourceIDs []string,
+	ctx context.Context, tenantID uint64, entitySourceIDs []string,
 ) ([]*types.GraphRelationRecord, error) {
 	if len(entitySourceIDs) == 0 {
 		return nil, nil
 	}
 	var rows []*types.GraphRelationRecord
 	if err := r.db.WithContext(ctx).
-		Where("tenant_id = ? AND knowledge_base_id = ? AND from_entity_id IN ? AND to_entity_id IN ?",
-			tenantID, kbID, entitySourceIDs, entitySourceIDs).
+		Where("tenant_id = ? AND from_entity_id IN ? AND to_entity_id IN ?",
+			tenantID, entitySourceIDs, entitySourceIDs).
 		Find(&rows).Error; err != nil {
 		return nil, err
 	}
