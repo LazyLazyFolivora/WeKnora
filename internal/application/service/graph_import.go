@@ -16,66 +16,45 @@ import (
 	"github.com/Tencent/WeKnora/internal/types/interfaces"
 )
 
-// Legacy entity type used for entities imported via the old /graph/import endpoint.
 const legacyEntityType = "CustomNode"
-
-// Legacy namespace kept for backward compatibility — the old endpoint wrote
-// with Knowledge = "manual_import" in the namespace.
-const manualGraphImportKnowledgeID = "manual_import"
 
 type graphImportService struct {
 	entityRepo   interfaces.GraphEntityRepository
 	relationRepo interfaces.GraphRelationRepository
-	kbService    interfaces.KnowledgeBaseService
 }
 
 // NewGraphImportService creates a new graph import service (legacy compatibility wrapper).
-// It writes to the database with sync_status = pending instead of writing Neo4j directly.
 func NewGraphImportService(
 	entityRepo interfaces.GraphEntityRepository,
 	relationRepo interfaces.GraphRelationRepository,
-	kbService interfaces.KnowledgeBaseService,
 ) interfaces.GraphImportService {
 	return &graphImportService{
 		entityRepo:   entityRepo,
 		relationRepo: relationRepo,
-		kbService:    kbService,
 	}
 }
 
-// ImportGraph converts legacy nodes/relations into graph_entities/graph_relations rows
-// and persists them to the database. It does NOT write Neo4j directly.
+// ImportGraph converts legacy nodes/relations into graph_entities/graph_relations rows.
 func (s *graphImportService) ImportGraph(
 	ctx context.Context,
-	kbID string,
+	tenantID uint64,
 	req *types.GraphImportRequest,
 ) (*types.GraphImportResult, error) {
-	if kbID == "" {
-		return nil, apperrors.NewBadRequestError("知识库 ID 不能为空")
-	}
 	if req == nil || len(req.Nodes) == 0 && len(req.Relations) == 0 {
 		return nil, apperrors.NewBadRequestError("nodes 和 relations 不能同时为空")
 	}
 
-	kb, err := s.kbService.GetKnowledgeBaseByID(ctx, kbID)
-	if err != nil || kb == nil {
-		logger.Warnf(ctx, "[graph_import] kb not found: %s err=%v", kbID, err)
-		return nil, apperrors.NewNotFoundError("知识库不存在")
-	}
-
-	// Validate basics
 	if err := validateGraphImportRequest(req); err != nil {
 		return nil, err
 	}
 
-	tenantID := kb.TenantID
 	now := time.Now()
 
 	// Convert and persist entities.
 	nodeCount := len(req.Nodes)
 	entities := make([]*types.GraphEntity, 0, nodeCount)
 	for _, node := range req.Nodes {
-		e := legacyNodeToEntity(node, tenantID, kbID, now)
+		e := legacyNodeToEntity(node, tenantID, now)
 		entities = append(entities, e)
 	}
 	if len(entities) > 0 {
@@ -84,7 +63,7 @@ func (s *graphImportService) ImportGraph(
 		for i, e := range entities {
 			sourceIDs[i] = e.SourceEntityID
 		}
-		existing, err := s.entityRepo.FindBySourceIDs(ctx, tenantID, kbID, sourceIDs)
+		existing, err := s.entityRepo.FindBySourceIDs(ctx, tenantID, sourceIDs)
 		if err != nil {
 			logger.Errorf(ctx, "[graph_import] find existing entities failed: %v", err)
 			return nil, apperrors.NewInternalServerError("查询已有实体失败").WithDetails(err.Error())
@@ -109,7 +88,7 @@ func (s *graphImportService) ImportGraph(
 	relationCount := len(req.Relations)
 	relations := make([]*types.GraphRelationRecord, 0, relationCount)
 	for _, rel := range req.Relations {
-		r := legacyRelationToRecord(rel, tenantID, kbID, now)
+		r := legacyRelationToRecord(rel, tenantID, now)
 		relations = append(relations, r)
 	}
 	if len(relations) > 0 {
@@ -123,14 +102,14 @@ func (s *graphImportService) ImportGraph(
 		ImportedNodes:     nodeCount,
 		ImportedRelations: relationCount,
 	}
-	logger.Infof(ctx, "[graph_import] imported kb=%s nodes=%d relations=%d",
-		kbID, result.ImportedNodes, result.ImportedRelations)
+	logger.Infof(ctx, "[graph_import] imported tenant=%d nodes=%d relations=%d",
+		tenantID, result.ImportedNodes, result.ImportedRelations)
 	return result, nil
 }
 
 // ── conversion helpers ──
 
-func legacyNodeToEntity(node *types.GraphNode, tenantID uint64, kbID string, now time.Time) *types.GraphEntity {
+func legacyNodeToEntity(node *types.GraphNode, tenantID uint64, now time.Time) *types.GraphEntity {
 	entityData := map[string]interface{}{}
 	if len(node.Attributes) > 0 {
 		entityData["attributes"] = node.Attributes
@@ -141,7 +120,6 @@ func legacyNodeToEntity(node *types.GraphNode, tenantID uint64, kbID string, now
 	return &types.GraphEntity{
 		ID:              uuid.New().String(),
 		TenantID:        tenantID,
-		KnowledgeBaseID: kbID,
 		SourceEntityID:  node.Name,
 		EntityType:      legacyEntityType,
 		EntityName:      node.Name,
@@ -154,13 +132,12 @@ func legacyNodeToEntity(node *types.GraphNode, tenantID uint64, kbID string, now
 }
 
 func legacyRelationToRecord(
-	rel *types.GraphRelation, tenantID uint64, kbID string, now time.Time,
+	rel *types.GraphRelation, tenantID uint64, now time.Time,
 ) *types.GraphRelationRecord {
-	sourceRelationID := legacyRelationSourceID(kbID, rel.Node1, rel.Node2, rel.Type)
+	sourceRelationID := legacyRelationSourceID(rel.Node1, rel.Node2, rel.Type)
 	return &types.GraphRelationRecord{
 		ID:               uuid.New().String(),
 		TenantID:         tenantID,
-		KnowledgeBaseID:  kbID,
 		SourceRelationID: sourceRelationID,
 		FromEntityID:     rel.Node1,
 		ToEntityID:       rel.Node2,
@@ -173,18 +150,16 @@ func legacyRelationToRecord(
 	}
 }
 
-// legacyRelationSourceID deterministically derives a source relation ID
-// from kbID + node1 + type + node2 when the legacy request has no explicit one.
-func legacyRelationSourceID(kbID, node1, node2, relType string) string {
-	parts := []string{kbID, node1, relType, node2}
+// legacyRelationSourceID deterministically derives a source relation ID.
+func legacyRelationSourceID(node1, node2, relType string) string {
+	parts := []string{node1, relType, node2}
 	sort.Strings(parts)
 	joined := strings.Join(parts, "|")
 	sum := sha256.Sum224([]byte(joined))
 	return fmt.Sprintf("legacy:%x", sum)
 }
 
-// validateGraphImportRequest performs basic validation (name / endpoint non-empty).
-// Schema-type validation is NOT applied — legacy imports may contain arbitrary types.
+// validateGraphImportRequest performs basic validation.
 func validateGraphImportRequest(req *types.GraphImportRequest) error {
 	for _, node := range req.Nodes {
 		if node == nil || strings.TrimSpace(node.Name) == "" {

@@ -4,9 +4,9 @@
 //
 // Usage:
 //
-//	go run cmd/project/main.go --kb-id=<uuid> --tenant-id=<uint64>
-//	go run cmd/project/main.go --kb-id=<uuid> --tenant-id=<uint64> --entities-only
-//	go run cmd/project/main.go --kb-id=<uuid> --tenant-id=<uint64> --relations-only
+//	go run cmd/project/main.go --tenant-id=<uint64>
+//	go run cmd/project/main.go --tenant-id=<uint64> --entities-only
+//	go run cmd/project/main.go --tenant-id=<uint64> --relations-only
 package main
 
 import (
@@ -21,19 +21,13 @@ import (
 )
 
 func main() {
-	kbID := flag.String("kb-id", os.Getenv("PRIMEKG_KB_ID"), "知识库 ID (UUID)")
-	tenantID := flag.Uint64("tenant-id", 0, "租户 ID")
+	tenantID := flag.Uint64("tenant-id", 10000, "租户 ID")
 	entitiesOnly := flag.Bool("entities-only", false, "仅投影实体")
 	relationsOnly := flag.Bool("relations-only", false, "仅投影关系")
 	batchSize := flag.Int("batch", 500, "每批处理数量")
 
 	flag.Parse()
 
-	if *kbID == "" {
-		fmt.Fprintln(os.Stderr, "错误: --kb-id 不能为空")
-		flag.Usage()
-		os.Exit(1)
-	}
 	if *tenantID == 0 {
 		fmt.Fprintln(os.Stderr, "错误: --tenant-id 不能为空")
 		flag.Usage()
@@ -52,7 +46,7 @@ func main() {
 			fmt.Println("开始投影实体...")
 			total := 0
 			for {
-				n, err := svc.ProjectEntities(ctx, *tenantID, *kbID, *batchSize)
+				n, err := svc.ProjectEntities(ctx, *tenantID, *batchSize)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "实体投影失败: %v\n", err)
 					os.Exit(1)
@@ -70,7 +64,7 @@ func main() {
 			fmt.Println("开始投影关系...")
 			total := 0
 			for {
-				n, err := svc.ProjectRelations(ctx, *tenantID, *kbID, *batchSize)
+				n, err := svc.ProjectRelations(ctx, *tenantID, *batchSize)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "关系投影失败: %v\n", err)
 					os.Exit(1)
