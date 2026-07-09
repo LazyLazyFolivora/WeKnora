@@ -1,10 +1,10 @@
 -- Custom: 000001_graph_sync (SQLite)
 -- Add graph_entities and graph_relations tables for DB-backed knowledge graph sync.
+-- Graph is tenant-scoped (no knowledge_base_id).
 
 CREATE TABLE IF NOT EXISTS graph_entities (
     id TEXT PRIMARY KEY,
     tenant_id INTEGER NOT NULL,
-    knowledge_base_id TEXT NOT NULL,
     source_entity_id TEXT NOT NULL,
     entity_type TEXT NOT NULL,
     entity_name TEXT NOT NULL,
@@ -26,21 +26,20 @@ CREATE TABLE IF NOT EXISTS graph_entities (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_graph_entities_unique_source
-    ON graph_entities (tenant_id, knowledge_base_id, source_entity_id);
+    ON graph_entities (tenant_id, source_entity_id);
 
 CREATE INDEX IF NOT EXISTS idx_graph_entities_sync
     ON graph_entities (sync_status, updated_at);
 
 CREATE INDEX IF NOT EXISTS idx_graph_entities_doc
-    ON graph_entities (tenant_id, knowledge_base_id, source_doc_uuid);
+    ON graph_entities (tenant_id, source_doc_uuid);
 
-CREATE INDEX IF NOT EXISTS idx_graph_entities_kb
-    ON graph_entities (tenant_id, knowledge_base_id);
+CREATE INDEX IF NOT EXISTS idx_graph_entities_tenant
+    ON graph_entities (tenant_id);
 
 CREATE TABLE IF NOT EXISTS graph_relations (
     id TEXT PRIMARY KEY,
     tenant_id INTEGER NOT NULL,
-    knowledge_base_id TEXT NOT NULL,
     source_relation_id TEXT NOT NULL,
     from_entity_id TEXT NOT NULL,
     to_entity_id TEXT NOT NULL,
@@ -63,16 +62,16 @@ CREATE TABLE IF NOT EXISTS graph_relations (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_graph_relations_unique_source
-    ON graph_relations (tenant_id, knowledge_base_id, source_relation_id);
+    ON graph_relations (tenant_id, source_relation_id);
 
 CREATE INDEX IF NOT EXISTS idx_graph_relations_sync
     ON graph_relations (sync_status, updated_at);
 
 CREATE INDEX IF NOT EXISTS idx_graph_relations_doc
-    ON graph_relations (tenant_id, knowledge_base_id, source_doc_uuid);
+    ON graph_relations (tenant_id, source_doc_uuid);
 
-CREATE INDEX IF NOT EXISTS idx_graph_relations_kb
-    ON graph_relations (tenant_id, knowledge_base_id);
+CREATE INDEX IF NOT EXISTS idx_graph_relations_tenant
+    ON graph_relations (tenant_id);
 
 CREATE INDEX IF NOT EXISTS idx_graph_relations_endpoints
-    ON graph_relations (tenant_id, knowledge_base_id, from_entity_id, to_entity_id);
+    ON graph_relations (tenant_id, from_entity_id, to_entity_id);
