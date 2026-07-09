@@ -26,9 +26,9 @@ export const CARD_COLOR_PRESETS: CardColorPreset[] = [
   {
     key: 'theme-blue',
     label: '主题蓝色',
-    bg: 'linear-gradient(135deg, rgba(7, 192, 95, 0.06) 0%, rgba(102, 126, 234, 0.10) 50%, rgba(7, 192, 95, 0.08) 100%)',
-    accent: 'rgba(102, 126, 234, 0.18)',
-    hoverBg: 'linear-gradient(135deg, rgba(7, 192, 95, 0.10) 0%, rgba(102, 126, 234, 0.16) 50%, rgba(7, 192, 95, 0.12) 100%)',
+    bg: 'linear-gradient(135deg, rgba(59, 130, 246, 0.06) 0%, rgba(99, 102, 241, 0.10) 50%, rgba(102, 126, 234, 0.08) 100%)',
+    accent: 'rgba(99, 102, 241, 0.18)',
+    hoverBg: 'linear-gradient(135deg, rgba(59, 130, 246, 0.10) 0%, rgba(99, 102, 241, 0.16) 50%, rgba(102, 126, 234, 0.12) 100%)',
   },
   {
     key: 'goose-yellow',

@@ -1752,6 +1752,9 @@ export default {
   },
   knowledgeList: {
     create: 'Create Knowledge Base',
+    createShort: 'New',
+    createFAQ: 'Create FAQ Knowledge Base',
+    setColor: 'Set Color',
     subtitle: 'Manage and organize your knowledge bases, supporting document-based and FAQ-based knowledge bases',
     sharedToOrgs: 'Shared to {count} space(s)',
     uninitializedBanner: 'Some knowledge bases are not initialized. Configure model information in settings before adding documents.',
@@ -2091,6 +2094,9 @@ export default {
       data: 'Storage & Data',
       integration: 'Publishing',
       management: 'Management & Audit'
+      models: 'Models & Storage',
+      advanced: 'Parsing & Processing',
+      extra: 'Data Sources & Sharing',
     },
     sidebar: {
       basic: 'Basic Information',

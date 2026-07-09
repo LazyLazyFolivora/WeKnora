@@ -205,9 +205,12 @@
                   </div>
                   <template #content>
                     <div class="popup-menu">
-                      <div v-if="canManageAgent(agent)" class="popup-menu-item" @click="handleEdit(agent)"><t-icon
+                      <div v-if="canManageAgent(agent) && authStore.isAdminTenant" class="popup-menu-item" @click="handleEdit(agent)"><t-icon
                           class="menu-icon" name="edit" /><span>{{ $t('common.edit') }}</span></div>
-                      <div v-if="authStore.hasRole('contributor')" class="popup-menu-item" @click="handleCopy(agent)">
+                      <div class="popup-menu-item" @click="openAgentDetail(agent)">
+                        <t-icon class="menu-icon" name="info-circle" /><span>{{ $t('knowledgeList.menu.viewDetails') }}</span>
+                      </div>
+                      <div v-if="authStore.isAdminTenant && authStore.hasRole('contributor')" class="popup-menu-item" @click="handleCopy(agent)">
                         <t-icon class="menu-icon" name="file-copy" /><span>{{ $t('common.copy') }}</span>
                       </div>
                       <div v-if="authStore.hasRole('admin')" class="popup-menu-item"
@@ -406,11 +409,15 @@
                   </div>
                   <template #content>
                     <div class="popup-menu">
-                      <div v-if="canManageAgent(agent)" class="popup-menu-item" @click="handleEdit(agent)">
+                      <div v-if="canManageAgent(agent) && authStore.isAdminTenant" class="popup-menu-item" @click="handleEdit(agent)">
                         <t-icon class="menu-icon" name="edit" />
                         <span>{{ $t('common.edit') }}</span>
                       </div>
-                      <div v-if="authStore.hasRole('contributor')" class="popup-menu-item" @click="handleCopy(agent)">
+                      <div class="popup-menu-item" @click="openAgentDetail(agent)">
+                        <t-icon class="menu-icon" name="info-circle" />
+                        <span>{{ $t('knowledgeList.menu.viewDetails') }}</span>
+                      </div>
+                      <div v-if="authStore.isAdminTenant && authStore.hasRole('contributor')" class="popup-menu-item" @click="handleCopy(agent)">
                         <t-icon class="menu-icon" name="file-copy" />
                         <span>{{ $t('common.copy') }}</span>
                       </div>
@@ -796,6 +803,68 @@
       </div>
     </Transition>
 
+    <!-- 智能体详情浮出卡片 -->
+    <Transition name="shared-detail-drawer">
+      <div v-if="agentDetailVisible && detailAgent" class="shared-detail-drawer-overlay"
+        @click.self="closeAgentDetail">
+        <div class="shared-detail-drawer">
+          <div class="shared-detail-drawer-header">
+            <h3 class="shared-detail-drawer-title">{{ $t('agent.detail.title') }}</h3>
+            <button type="button" class="shared-detail-drawer-close" @click="closeAgentDetail"
+              :aria-label="$t('general.close')">
+              <t-icon name="close" />
+            </button>
+          </div>
+          <div class="shared-detail-drawer-body">
+            <div class="shared-detail-row">
+              <span class="shared-detail-label">{{ $t('agent.editor.name') }}</span>
+              <span class="shared-detail-value">{{ detailAgent.name }}</span>
+            </div>
+            <div class="shared-detail-row">
+              <span class="shared-detail-label">{{ $t('agent.editor.description') }}</span>
+              <span class="shared-detail-value">{{ detailAgent.description || $t('agent.noDescription') }}</span>
+            </div>
+            <div class="shared-detail-row">
+              <span class="shared-detail-label">{{ $t('agent.editor.mode') }}</span>
+              <span class="shared-detail-value">{{ detailAgent.config?.agent_mode === 'smart-reasoning' ? $t('agent.mode.agent') : $t('agent.mode.normal') }}</span>
+            </div>
+            <template v-if="detailAgent.config">
+              <div class="shared-detail-section-title">{{ $t('agent.capabilities.default') }}</div>
+              <div v-if="detailAgent.config.model_id" class="shared-detail-row">
+                <span class="shared-detail-label">{{ $t('agent.editor.model') }}</span>
+                <span class="shared-detail-value">{{ $t('agent.shareScope.modelConfigured') }}</span>
+              </div>
+              <div v-if="detailAgent.config.rerank_model_id" class="shared-detail-row">
+                <span class="shared-detail-label">{{ $t('agent.editor.rerankModel') }}</span>
+                <span class="shared-detail-value">{{ $t('agent.shareScope.modelConfigured') }}</span>
+              </div>
+              <div class="shared-detail-row">
+                <span class="shared-detail-label">{{ $t('agent.shareScope.webSearch') }}</span>
+                <span class="shared-detail-value">{{ detailAgent.config.web_search_enabled ? $t('agent.shareScope.enabled') : $t('agent.shareScope.disabled') }}</span>
+              </div>
+              <div class="shared-detail-row">
+                <span class="shared-detail-label">{{ $t('agent.shareScope.knowledgeBase') }}</span>
+                <span class="shared-detail-value">{{ detailAgent.config.kb_selection_mode === 'all' ? $t('agent.shareScope.kbAll') : detailAgent.config.kb_selection_mode === 'selected' && detailAgent.config.knowledge_bases?.length ? $t('agent.shareScope.kbSelected', { count: detailAgent.config.knowledge_bases.length }) : $t('agent.shareScope.kbNone') }}</span>
+              </div>
+              <div class="shared-detail-row">
+                <span class="shared-detail-label">{{ $t('agent.shareScope.mcp') }}</span>
+                <span class="shared-detail-value">{{ detailAgent.config.mcp_selection_mode === 'all' ? $t('agent.shareScope.mcpAll') : detailAgent.config.mcp_selection_mode === 'selected' && detailAgent.config.mcp_services?.length ? $t('agent.shareScope.mcpSelected', { count: detailAgent.config.mcp_services.length }) : $t('agent.shareScope.mcpNone') }}</span>
+              </div>
+              <div class="shared-detail-row">
+                <span class="shared-detail-label">{{ $t('agent.features.multiTurn') }}</span>
+                <span class="shared-detail-value">{{ detailAgent.config.multi_turn_enabled ? $t('agent.shareScope.enabled') : $t('agent.shareScope.disabled') }}</span>
+              </div>
+            </template>
+          </div>
+          <div class="shared-detail-drawer-footer">
+            <t-button theme="default" variant="outline" @click="closeAgentDetail">
+              {{ $t('common.close') }}
+            </t-button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
     <!-- 智能体编辑器弹窗 -->
     <AgentEditorModal :visible="editorVisible" :mode="editorMode" :agent="editingAgent"
       :initialSection="editorInitialSection"
@@ -1054,6 +1123,10 @@ const deleteVisible = ref(false)
 const deletingAgent = ref<AgentWithUI | null>(null)
 const sharedDetailVisible = ref(false)
 const currentSharedAgent = ref<SharedAgentInfo | null>(null)
+// Agent detail floating card
+const agentDetailVisible = ref(false)
+const detailAgent = ref<AgentWithUI | null>(null)
+const agentDetailPos = ref({ x: 0, y: 0 })
 const sharedAgentUsesKb = computed(() => {
   const c = currentSharedAgent.value?.agent?.config
   if (!c) return false
@@ -1262,6 +1335,17 @@ function handleSpaceAgentCardClick(shared: OrganizationSharedAgentItem) {
 function closeSharedAgentDetail() {
   sharedDetailVisible.value = false
   currentSharedAgent.value = null
+}
+
+function openAgentDetail(agent: AgentWithUI) {
+  openMoreAgentId.value = null
+  detailAgent.value = agent
+  agentDetailVisible.value = true
+}
+
+function closeAgentDetail() {
+  agentDetailVisible.value = false
+  detailAgent.value = null
 }
 
 /** 在对话中使用共享智能体：创建新会话并跳转 */
@@ -2009,21 +2093,21 @@ defineExpose({
     opacity: 1;
   }
 
-  // 普通模式样式
+  // 普通模式样式（统一蓝紫色）
   &.agent-mode-normal {
-    background: linear-gradient(135deg, var(--td-bg-color-container) 0%, rgba(7, 192, 95, 0.04) 100%);
+    background: linear-gradient(135deg, var(--td-bg-color-container) 0%, rgba(124, 77, 255, 0.04) 100%);
 
     &:hover {
       border-color: var(--td-brand-color);
-      background: linear-gradient(135deg, var(--td-bg-color-container) 0%, rgba(7, 192, 95, 0.08) 100%);
+      background: linear-gradient(135deg, var(--td-bg-color-container) 0%, rgba(124, 77, 255, 0.08) 100%);
     }
 
     .card-decoration {
-      color: rgba(7, 192, 95, 0.35);
+      color: rgba(124, 77, 255, 0.35);
     }
 
     &:hover .card-decoration {
-      color: rgba(7, 192, 95, 0.5);
+      color: rgba(124, 77, 255, 0.5);
     }
   }
 
@@ -2180,7 +2264,7 @@ defineExpose({
   }
 
   &.normal {
-    background: linear-gradient(135deg, rgba(7, 192, 95, 0.15) 0%, rgba(7, 192, 95, 0.08) 100%);
+    background: linear-gradient(135deg, rgba(124, 77, 255, 0.15) 0%, rgba(124, 77, 255, 0.08) 100%);
     color: var(--td-brand-color-active);
   }
 
@@ -2297,11 +2381,11 @@ defineExpose({
   transition: background 0.2s ease;
 
   &.mode-normal {
-    background: rgba(7, 192, 95, 0.08);
-    color: var(--td-brand-color-active);
+    background: rgba(124, 77, 255, 0.08);
+    color: var(--td-brand-color);
 
     &:hover {
-      background: rgba(7, 192, 95, 0.12);
+      background: rgba(124, 77, 255, 0.12);
     }
   }
 
