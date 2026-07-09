@@ -2222,6 +2222,7 @@ export default {
     create: 'Create Knowledge Base',
     createShort: 'New',
     createFAQ: 'Create FAQ Knowledge Base',
+    setColor: 'Set Color',
     subtitle: 'Manage and organize your knowledge bases, supporting document-based and FAQ-based knowledge bases',
     myKnowledgeBases: 'My Knowledge Bases',
     sharedKnowledgeBases: 'Shared Knowledge Bases',
@@ -2496,6 +2497,9 @@ export default {
       processing: 'Indexing & Parsing',
       data: 'Storage & Data',
       integration: 'Publishing',
+      models: 'Models & Storage',
+      advanced: 'Parsing & Processing',
+      extra: 'Data Sources & Sharing',
     },
     sidebar: {
       basic: 'Basic Information',
