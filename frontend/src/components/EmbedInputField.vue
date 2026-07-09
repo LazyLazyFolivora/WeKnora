@@ -442,7 +442,8 @@ onUnmounted(() => {
 
   &.disabled {
     cursor: not-allowed;
-    opacity: 0.45;
+    opacity: 1;
+    background: rgba(102, 126, 234, 0.15);
   }
 
   img {

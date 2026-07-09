@@ -2711,7 +2711,7 @@ const handleUploadFinishedEvent = (event: Event) => {
 
   &.type-document {
     background: var(--td-bg-color-secondarycontainer);
-    color: var(--td-text-color-primary);
+    color: #8c8c8c;
     width: auto;
     padding: 0 6px;
     gap: 3px;
@@ -2732,7 +2732,7 @@ const handleUploadFinishedEvent = (event: Event) => {
 
   &.type-faq {
     background: var(--td-bg-color-secondarycontainer);
-    color: var(--td-text-color-primary);
+    color: #8c8c8c;
     width: auto;
     padding: 0 6px;
     gap: 3px;
@@ -3179,15 +3179,21 @@ const handleUploadFinishedEvent = (event: Event) => {
   }
 }
 
-// 卡片颜色选择器样式（作用于 t-popup teleport 出 body 的内容）
-:deep(.card-color-picker) {
+:deep(.popup-menu-divider) {
+  height: 1px;
+  background: var(--td-component-stroke);
+  margin: 4px 12px;
+}
+
+// 卡片颜色选择器样式（放在非 scoped 块中以匹配 t-popup teleport 到 body 的内容）
+.card-color-picker {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 4px 12px 8px;
 }
 
-:deep(.color-swatch) {
+.color-swatch {
   width: 24px;
   height: 24px;
   border-radius: 50%;
@@ -3216,12 +3222,6 @@ const handleUploadFinishedEvent = (event: Event) => {
       color: var(--td-text-color-primary);
     }
   }
-}
-
-:deep(.popup-menu-divider) {
-  height: 1px;
-  background: var(--td-component-stroke);
-  margin: 4px 12px;
 }
 
 // 创建对话框样式优化

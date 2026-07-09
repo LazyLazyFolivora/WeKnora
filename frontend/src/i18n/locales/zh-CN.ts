@@ -3556,6 +3556,7 @@ export default {
     create: "新建知识库",
     createShort: "新建",
     createFAQ: "新建 FAQ 知识库",
+    setColor: "设置颜色",
     subtitle: "管理和组织您的知识库，支持文档型和问答型知识库",
     myKnowledgeBases: "我的知识库",
     sharedKnowledgeBases: "共享的知识库",
@@ -3835,6 +3836,9 @@ export default {
       processing: "索引与解析",
       data: "存储与数据",
       integration: "发布集成",
+      models: "模型与存储",
+      advanced: "解析与处理",
+      extra: "数据源与共享",
     },
     sidebar: {
       basic: "基本信息",

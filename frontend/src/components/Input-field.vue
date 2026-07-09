@@ -3396,7 +3396,7 @@ const getImgSrc = (url: string) => {
   }
 
   &.disabled {
-    background-color: var(--td-success-color-light);
+    background-color: rgba(124, 77, 255, 0.15);
   }
 
   img {
