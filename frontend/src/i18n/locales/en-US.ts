@@ -1969,6 +1969,7 @@ export default {
     logout: 'Logout',
     oidcLogin: 'Sign in with OIDC',
     oidcLoginWithProvider: 'Sign in with {provider}',
+    noAuthMethod: 'No login method available. Please contact the administrator.',
     redirectingToOIDC: 'Redirecting to identity provider...',
     orContinueWith: 'Or continue with',
     oidcLoginFailed: 'OIDC login failed',

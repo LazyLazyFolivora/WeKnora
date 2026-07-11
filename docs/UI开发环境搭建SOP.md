@@ -69,11 +69,27 @@ npm run dev
 
 ## 5. 登录方式
 
-### 使用邮箱密码登录（推荐）
+### 登录页分流（v0.6.3 起）
 
-在本地 `http://localhost:5173` 直接使用邮箱和密码登录即可。所有 API 请求通过 Vite 代理转发到 `zkagent.cpu.edu.cn`。
+项目登录页已拆分为两个入口：
 
-> **注意**：不要通过统一身份认证（OIDC）登录，因为 OIDC 回调会跳转到生产环境 `zkagent.cpu.edu.cn`，导致本地修改不可见。
+| 路径 | 页面 | 用途 |
+|---|---|---|
+| `/login` | 统一身份认证入口页 | **面向正式用户**，仅显示 OIDC/CAS 统一身份认证按钮 |
+| `/loginpro` | 内部测试登录页 | **面向内部测试人员**，保留邮箱密码登录、注册、OIDC/CAS 全部功能 |
+
+- 访问地址示例：`http://localhost:5173/loginpro`
+- 文件对应关系：
+  - `src/views/auth/Login.vue` → 仅统一身份认证入口
+  - `src/views/auth/LoginPro.vue` → 完整登录功能（原 Login.vue 的副本）
+- 路由定义在 `src/router/index.ts`，两个路由均不需要认证（`requiresAuth: false`）
+
+### 使用邮箱密码登录（推荐，通过 /loginpro）
+
+在本地 `http://localhost:5173/loginpro` 直接使用邮箱和密码登录即可。所有 API 请求通过 Vite 代理转发到 `zkagent.cpu.edu.cn`。
+
+> **注意**：`/login` 页面已移除邮箱密码登录，仅保留统一身份认证。内部测试请使用 `/loginpro`。
+> 不要通过统一身份认证（OIDC）登录，因为 OIDC 回调会跳转到生产环境 `zkagent.cpu.edu.cn`，导致本地修改不可见。
 
 ### ?debug 参数跳过自动登录
 
@@ -190,7 +206,8 @@ http://localhost:5173/platform/chat?skip
 
 | 页面 | 文件 |
 |---|---|
-| 登录页 | `src/views/auth/Login.vue` |
+| 登录页（统一身份认证） | `src/views/auth/Login.vue` |
+| 登录页（内部测试，邮箱密码） | `src/views/auth/LoginPro.vue` |
 | 新建聊天 | `src/views/creatChat/creatChat.vue` |
 | 聊天对话 | `src/views/chat/index.vue` |
 | 知识库列表 | `src/views/knowledge/KnowledgeBaseList.vue` |
@@ -330,6 +347,7 @@ git add frontend/src/ frontend/vite.config.ts
 | 用户头像移除 | `chat/index.vue` | 对话页只保留智能体头像 |
 | OIDC按钮修复 | `Login.vue` | 防止重复渲染OIDC登录按钮 |
 | 代理配置 | `vite.config.ts` | DEV_PROXY_TARGET 指向 zkagent.cpu.edu.cn |
+| 登录页分流 | `Login.vue`, `LoginPro.vue`, `router/index.ts`, `i18n/*.ts` | `/login` 仅保留统一身份认证入口；`/loginpro` 保留完整邮箱密码登录功能供内部测试使用 |
 
 ---
 
@@ -374,8 +392,14 @@ git push origin sync_v0.6.3/UI_redesign/yourname
 ### Q: 如何查看某个内部页面？
 
 浏览器地址栏直接输入：
+- `http://localhost:5173/login` — 登录页（仅统一身份认证）
+- `http://localhost:5173/loginpro` — 登录页（内部测试，邮箱密码登录）
 - `http://localhost:5173/platform/knowledge-bases` — 知识库
 - `http://localhost:5173/platform/agents` — 智能体
 - `http://localhost:5173/platform/organizations` — 共享空间
 - `http://localhost:5173/platform/chat` — 聊天
 - `http://localhost:5173/platform/settings` — 设置
+
+### Q: /login 和 /loginpro 有什么区别？
+
+`/login`（`Login.vue`）仅保留了 OIDC/CAS 统一身份认证入口，面向正式用户。`/loginpro`（`LoginPro.vue`）保留了完整的邮箱密码登录、注册、OIDC/CAS 全部功能，供内部测试人员使用。两个页面共享相同的样式和布局，仅表单内容不同。
