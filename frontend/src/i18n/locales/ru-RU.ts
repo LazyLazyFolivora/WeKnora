@@ -1769,6 +1769,7 @@ export default {
     logout: 'Выход',
     oidcLogin: 'Войти через OIDC',
     oidcLoginWithProvider: 'Войти через {provider}',
+    noAuthMethod: 'Нет доступного способа входа. Обратитесь к администратору.',
     redirectingToOIDC: 'Перенаправление к поставщику удостоверений...',
     orContinueWith: 'Или продолжить с помощью',
     oidcLoginFailed: 'Ошибка входа через OIDC',

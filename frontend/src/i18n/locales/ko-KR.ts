@@ -1757,6 +1757,7 @@ export default {
     loggingIn: "로그인 중...",
     oidcLogin: "OIDC로 로그인",
     oidcLoginWithProvider: "{provider}(으)로 로그인",
+    noAuthMethod: "사용 가능한 로그인 방법이 없습니다. 관리자에게 문의하세요.",
     redirectingToOIDC: "ID 공급자로 이동하는 중...",
     orContinueWith: "또는 다음 방법으로 계속",
     oidcLoginFailed: "OIDC 로그인 실패",
