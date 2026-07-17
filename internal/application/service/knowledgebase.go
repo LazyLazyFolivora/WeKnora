@@ -44,6 +44,7 @@ type knowledgeBaseService struct {
 	syncLogRepo    interfaces.SyncLogRepository
 	dsScheduler    *datasource.Scheduler
 	db             *gorm.DB
+	storageResolver interfaces.StorageBackendResolver
 }
 
 // NewKnowledgeBaseService creates a new knowledge base service
@@ -66,22 +67,23 @@ func NewKnowledgeBaseService(repo interfaces.KnowledgeBaseRepository,
 	db *gorm.DB,
 ) interfaces.KnowledgeBaseService {
 	return &knowledgeBaseService{
-		repo:           repo,
-		kgRepo:         kgRepo,
-		chunkRepo:      chunkRepo,
-		shareRepo:      shareRepo,
-		kbShareService: kbShareService,
-		modelService:   modelService,
-		retrieveEngine: retrieveEngine,
-		ownership:      ownership,
-		tenantRepo:     tenantRepo,
-		fileSvc:        fileSvc,
-		graphEngine:    graphEngine,
-		asynqClient:    asynqClient,
-		dsRepo:         dsRepo,
-		syncLogRepo:    syncLogRepo,
-		dsScheduler:    dsScheduler,
-		db:             db,
+		repo:            repo,
+		kgRepo:          kgRepo,
+		chunkRepo:       chunkRepo,
+		shareRepo:       shareRepo,
+		kbShareService:  kbShareService,
+		modelService:    modelService,
+		retrieveEngine:  retrieveEngine,
+		ownership:       ownership,
+		tenantRepo:      tenantRepo,
+		fileSvc:         fileSvc,
+		storageResolver: storageResolver,
+		graphEngine:     graphEngine,
+		asynqClient:     asynqClient,
+		dsRepo:          dsRepo,
+		syncLogRepo:     syncLogRepo,
+		dsScheduler:     dsScheduler,
+		db:              db,
 	}
 }
 
