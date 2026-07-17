@@ -50,6 +50,7 @@ type knowledgeBaseService struct {
 	dsScheduler     *datasource.Scheduler
 	audit           interfaces.AuditLogService
 	db             *gorm.DB
+	storageResolver interfaces.StorageBackendResolver
 }
 
 // NewKnowledgeBaseService creates a new knowledge base service
