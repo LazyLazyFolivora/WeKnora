@@ -1,4 +1,4 @@
-dev<template>
+<template>
   <div class="login-page">
     <div class="login-container">
     <!-- 左侧登录面板 -->
@@ -43,7 +43,7 @@ dev<template>
               <p>{{ $t('auth.noAuthMethod') }}</p>
             </div>
           </div>
-          <div v-else-if="inviteLookupError" class="invite-banner invite-banner--error">
+          <div v-if="inviteLookupError" class="invite-banner invite-banner--error">
             {{ inviteLookupError }}
           </div>
 
