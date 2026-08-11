@@ -547,6 +547,20 @@ const reopenGuide = () => {
   openNewUserGuide()
 }
 
+const CHROME_EXTENSION_URL =
+  'https://chromewebstore.google.com/detail/jpemjbopikggjlmikmclgbmkhhopjdgd?utm_source=item-share-cb'
+const CLAWHUB_SKILL_URL = 'https://clawhub.ai/lyingbug/weknora'
+
+const openChromeExtension = () => {
+  menuVisible.value = false
+  window.open(CHROME_EXTENSION_URL, '_blank')
+}
+
+const openClawhubSkill = () => {
+  menuVisible.value = false
+  window.open(CLAWHUB_SKILL_URL, '_blank')
+}
+
 // 打开 GitHub
 const openGithub = () => {
   menuVisible.value = false

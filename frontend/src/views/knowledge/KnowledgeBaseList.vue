@@ -946,8 +946,6 @@ interface KB {
   processing_count?: number;
   share_count?: number;
   is_pinned?: boolean;
-  pinned_at?: string;
-  created_at?: string;
   // creator_id is the owner-id matched against authStore.user.id when
   // gating the per-card more-menu (Settings / Delete). Empty for legacy
   // KBs created before PR 5; those fall back to the role gate.

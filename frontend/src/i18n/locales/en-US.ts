@@ -2094,7 +2094,7 @@ export default {
       processing: 'Indexing & Parsing',
       data: 'Storage & Data',
       integration: 'Publishing',
-      management: 'Management & Audit'
+      management: 'Management & Audit',
       models: 'Models & Storage',
       advanced: 'Parsing & Processing',
       extra: 'Data Sources & Sharing',
@@ -2626,7 +2626,6 @@ export default {
     suggestedQuestions: 'You can ask me',
     followUpQuestions: 'Keep asking',
     followUpQuestionsLoading: 'Loading suggested questions',
-    refreshSuggestedQuestions: 'More',
     suggestedQuestionsLoading: 'Loading suggestions...',
     refreshSuggestedQuestions: 'Refresh suggestions',
     pharmacyExamples: 'Example questions:',
