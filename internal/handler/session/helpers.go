@@ -311,6 +311,7 @@ func (h *Handler) setupStreamHandler(
 		ctx, sessionID, assistantMessageID, requestID, receivedAt,
 		assistantMessage, h.streamManager, eventBus,
 	)
+	streamHandler.SetAgentGraphService(h.agentGraphService)
 	streamHandler.Subscribe()
 	return streamHandler
 }

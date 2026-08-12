@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Tencent/WeKnora/internal/agent/approval"
+	"github.com/Tencent/WeKnora/internal/graphstream"
 	"github.com/Tencent/WeKnora/internal/logger"
 	"github.com/Tencent/WeKnora/internal/mcp"
 	"github.com/Tencent/WeKnora/internal/types"
@@ -99,6 +100,24 @@ func (t *MCPTool) Parameters() json.RawMessage {
 	}`)
 }
 
+// declaresSessionID reports whether this MCP tool's input schema accepts session_id.
+// Blindly injecting session_id into every MCP tool breaks strict schema validators.
+func (t *MCPTool) declaresSessionID() bool {
+	if t.mcpTool == nil || len(t.mcpTool.InputSchema) == 0 {
+		return false
+	}
+	var schema map[string]any
+	if err := json.Unmarshal(t.mcpTool.InputSchema, &schema); err != nil {
+		return false
+	}
+	props, _ := schema["properties"].(map[string]any)
+	if props == nil {
+		return false
+	}
+	_, ok := props["session_id"]
+	return ok
+}
+
 // Execute executes the MCP tool
 func (t *MCPTool) Execute(ctx context.Context, args json.RawMessage) (*types.ToolResult, error) {
 	logger.GetLogger(ctx).Infof("Executing MCP tool: %s from service: %s", t.mcpTool.Name, t.service.Name)
@@ -182,6 +201,31 @@ func (t *MCPTool) Execute(ctx context.Context, args json.RawMessage) (*types.Too
 		}
 	}
 
+	// BioDSA-style graph streaming: always server-generate session_id after
+	// approval so the model cannot forge/hijack the correlation key.
+	var graphStreamKey string
+	var graphRegToken uint64
+	if meta, ok := ToolExecFromContext(ctx); ok && meta != nil &&
+		meta.ToolCallID != "" && meta.AssistantMessageID != "" && t.declaresSessionID() {
+		if prev, present := input["session_id"]; present && prev != nil && fmt.Sprint(prev) != "" {
+			logger.Warnf(ctx, "[Tool][MCPTool] overriding caller session_id for graph stream correlation")
+		}
+		graphStreamKey = meta.AssistantMessageID + ":" + meta.ToolCallID
+		if len(graphStreamKey) > 200 {
+			graphStreamKey = graphStreamKey[:200]
+		}
+		input["session_id"] = graphStreamKey
+		graphRegToken = graphstream.Register(graphStreamKey, &graphstream.Sink{
+			Ctx:                context.WithoutCancel(ctx),
+			EventBus:           meta.EventBus,
+			SessionID:          meta.SessionID,
+			AssistantMessageID: meta.AssistantMessageID,
+			ToolCallID:         meta.ToolCallID,
+			ServiceID:          t.service.ID,
+		})
+		defer graphstream.Unregister(graphStreamKey, graphRegToken)
+	}
+
 	isStdio := t.service.TransportType == types.MCPTransportStdio
 	meta, _ := ToolExecFromContext(ctx)
 	oauthSess := oauthSessionFromToolExec(ctx, meta).withAuthWaitTimeout(t.authWaitTimeoutSeconds)
@@ -225,6 +269,9 @@ func (t *MCPTool) Execute(ctx context.Context, args json.RawMessage) (*types.Too
 
 	result, err := connectAndCall(ctx)
 	if err != nil {
+		if graphStreamKey != "" {
+			graphstream.FailRunIfHooked(context.WithoutCancel(ctx), graphStreamKey)
+		}
 		logger.GetLogger(ctx).Errorf("MCP tool call failed: %v", err)
 		return &types.ToolResult{
 			Success: false,
@@ -234,6 +281,9 @@ func (t *MCPTool) Execute(ctx context.Context, args json.RawMessage) (*types.Too
 
 	// Check if result indicates error
 	if result.IsError {
+		if graphStreamKey != "" {
+			graphstream.FailRunIfHooked(context.WithoutCancel(ctx), graphStreamKey)
+		}
 		errorMsg := extractContentText(result.Content)
 		logger.GetLogger(ctx).Warnf("MCP tool returned error: %s", errorMsg)
 		return &types.ToolResult{

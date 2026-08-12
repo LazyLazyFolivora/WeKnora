@@ -159,6 +159,8 @@ const (
 	// MCPOAuthResolved: authorization completed / timed out / canceled;
 	// informational for UI replay.
 	ResponseTypeMCPOAuthResolved ResponseType = "mcp_oauth_resolved"
+	// AgentGraph: incremental knowledge-graph event from a streaming MCP agent.
+	ResponseTypeAgentGraph ResponseType = "agent_graph"
 )
 
 // StreamResponse stream response

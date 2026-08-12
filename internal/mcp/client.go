@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Tencent/WeKnora/internal/graphstream"
 	"github.com/Tencent/WeKnora/internal/logger"
 	"github.com/Tencent/WeKnora/internal/types"
 	"github.com/Tencent/WeKnora/internal/types/interfaces"
@@ -234,6 +235,17 @@ func NewMCPClient(config *ClientConfig) (MCPClient, error) {
 			oauthConfig,
 		)
 	}
+	// Graph notifications arrive on the tools/call POST SSE stream. Route them
+	// back to the issuing agent turn via graphstream (MCP clients are shared).
+	mcpClient.OnNotification(func(n mcp.JSONRPCNotification) {
+		if n.Method != graphstream.NotificationMethod {
+			return
+		}
+		if !graphstream.Dispatch(n.Params.AdditionalFields) {
+			logger.Debugf(context.Background(),
+				"[MCP] dropped graph notification with no live tool call: service=%s", config.Service.Name)
+		}
+	})
 	mcpClient.OnConnectionLost(instance.onConnectionLost)
 	return instance, nil
 }
