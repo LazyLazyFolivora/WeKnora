@@ -89,6 +89,7 @@ type RouterParams struct {
 	GraphImportHandler           *handler.GraphImportHandler
 	GraphSyncHandler             *handler.GraphSyncHandler
 	EntityDictHandler            *handler.EntityDictHandler
+	AgentGraphHandler            *handler.AgentGraphHandler
 }
 
 // NewRouter 创建新的路由
@@ -275,6 +276,7 @@ func NewRouter(params RouterParams) *gin.Engine {
 		RegisterGraphImportRoutes(v1, params.GraphImportHandler, rbacGuards)
 		RegisterGraphSyncRoutes(v1, params.GraphSyncHandler, rbacGuards)
 		RegisterEntityDictRoutes(v1, params.EntityDictHandler, rbacGuards)
+		RegisterAgentGraphRoutes(v1, params.AgentGraphHandler, rbacGuards)
 		RegisterChunkerDebugRoutes(v1, rbacGuards)
 
 		// Fail fast if any declared API-key policy points at a route

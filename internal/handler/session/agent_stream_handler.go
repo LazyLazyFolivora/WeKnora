@@ -10,6 +10,7 @@ import (
 
 	agenttools "github.com/Tencent/WeKnora/internal/agent/tools"
 	"github.com/Tencent/WeKnora/internal/event"
+	"github.com/Tencent/WeKnora/internal/graphstream"
 	"github.com/Tencent/WeKnora/internal/logger"
 	"github.com/Tencent/WeKnora/internal/types"
 	"github.com/Tencent/WeKnora/internal/types/interfaces"
@@ -27,6 +28,7 @@ type AgentStreamHandler struct {
 	ttfbLogged         bool      // Guards one-shot TTFB log on first answer chunk
 	assistantMessage   *types.Message
 	streamManager      interfaces.StreamManager
+	agentGraphService  interfaces.AgentGraphService // optional; nil = SSE only
 
 	eventBus *event.EventBus
 
@@ -95,6 +97,12 @@ func NewAgentStreamHandler(
 	}
 }
 
+// SetAgentGraphService optionally wires persistence for incremental graph events.
+// Nil is fine (SSE-only / gray release) — keeps NewAgentStreamHandler non-invasive.
+func (h *AgentStreamHandler) SetAgentGraphService(s interfaces.AgentGraphService) {
+	h.agentGraphService = s
+}
+
 // Subscribe subscribes to all agent streaming events on the dedicated EventBus
 // No SessionID filtering needed since we have a dedicated EventBus per request
 func (h *AgentStreamHandler) Subscribe() {
@@ -112,6 +120,7 @@ func (h *AgentStreamHandler) Subscribe() {
 	h.eventBus.On(event.EventToolApprovalResolved, h.handleToolApprovalResolved)
 	h.eventBus.On(event.EventMCPOAuthRequired, h.handleMCPOAuthRequired)
 	h.eventBus.On(event.EventMCPOAuthResolved, h.handleMCPOAuthResolved)
+	h.eventBus.On(event.EventAgentGraph, h.handleAgentGraph)
 }
 
 // handleThought handles agent thought events
@@ -159,6 +168,60 @@ func (h *AgentStreamHandler) handleThought(ctx context.Context, evt event.Event)
 		logger.GetLogger(h.ctx).Error("Append thought event to stream failed", "error", err)
 	}
 
+	return nil
+}
+
+// handleAgentGraph forwards one incremental knowledge-graph event to the SSE
+// stream and persists it so the graph survives a page refresh.
+// Persistence failures are logged only — never fail the agent turn.
+func (h *AgentStreamHandler) handleAgentGraph(ctx context.Context, evt event.Event) error {
+	data, ok := evt.Data.(event.AgentGraphData)
+	if !ok {
+		return nil
+	}
+
+	ssePayload := data.Payload
+	if data.EventType == types.AgentGraphEventRunComplete {
+		ssePayload = graphstream.SummarizeRunCompletePayload(data.Payload)
+	}
+
+	if err := h.streamManager.AppendEvent(h.ctx, h.sessionID, h.assistantMessageID, interfaces.StreamEvent{
+		ID:        evt.ID,
+		Type:      types.ResponseTypeAgentGraph,
+		Content:   "",
+		Done:      false,
+		Timestamp: time.Now(),
+		Data: map[string]interface{}{
+			"seq":          data.Seq,
+			"graph_event":  data.EventType,
+			"tool_call_id": data.ToolCallID,
+			"payload":      ssePayload,
+		},
+	}); err != nil {
+		logger.GetLogger(h.ctx).Error("Append agent graph event to stream failed", "error", err)
+	}
+
+	if h.agentGraphService != nil {
+		timeout := 5 * time.Second
+		if data.EventType == types.AgentGraphEventRunComplete {
+			// RunComplete may reconcile a large entity/relation snapshot.
+			timeout = 30 * time.Second
+		}
+		persistCtx, cancel := context.WithTimeout(ctx, timeout)
+		defer cancel()
+		if data.TenantID > 0 {
+			if _, ok := types.TenantIDFromContext(persistCtx); !ok {
+				persistCtx = context.WithValue(persistCtx, types.TenantIDContextKey, data.TenantID)
+			}
+		}
+		if err := h.agentGraphService.Record(persistCtx, h.sessionID, h.assistantMessageID, data); err != nil {
+			logger.GetLogger(h.ctx).Error("Persist agent graph event failed",
+				"error", err, "seq", data.Seq, "type", data.EventType, "stream_key", data.StreamKey)
+		}
+	} else if data.Seq == 1 {
+		logger.Warnf(h.ctx, "[AgentGraph] agentGraphService is nil; SSE only (seq=%d stream_key=%s)",
+			data.Seq, data.StreamKey)
+	}
 	return nil
 }
 
