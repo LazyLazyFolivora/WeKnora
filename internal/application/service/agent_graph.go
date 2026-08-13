@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Tencent/WeKnora/internal/event"
@@ -262,7 +263,9 @@ func (s *agentGraphService) handleEntitySearching(
 		MessageID:    messageID,
 		StreamKey:    data.StreamKey,
 		EntityName:   name,
-		EntityType:   asString(data.Payload["entity_type"]),
+		EntityType: normalizeEntityType(firstNonEmpty(
+			asString(data.Payload["entity_type"]), asString(data.Payload["entityType"]),
+		)),
 		Status:       types.AgentGraphNodeStatusSearching,
 		SourceKB:     asString(data.Payload["source_kb"]),
 		Observations: types.JSON([]byte("[]")),
@@ -296,7 +299,9 @@ func (s *agentGraphService) handleEntityConfirmed(
 		MessageID:    messageID,
 		StreamKey:    data.StreamKey,
 		EntityName:   name,
-		EntityType:   asString(data.Payload["entity_type"]),
+		EntityType:   normalizeEntityType(firstNonEmpty(
+			asString(data.Payload["entity_type"]), asString(data.Payload["entityType"]),
+		)),
 		Status:       types.AgentGraphNodeStatusConfirmed,
 		Observations: types.JSON(obsJSON),
 		FirstSeq:     data.Seq,
@@ -412,7 +417,10 @@ func (s *agentGraphService) reconcileSnapshot(
 			MessageID:    messageID,
 			StreamKey:    data.StreamKey,
 			EntityName:   name,
-			EntityType:   firstNonEmpty(asString(m["entity_type"]), asString(m["type"])),
+			// BioDSA memory-graph snapshot uses camelCase entityType / GENE-style values.
+			EntityType:   normalizeEntityType(firstNonEmpty(
+				asString(m["entity_type"]), asString(m["entityType"]), asString(m["type"]),
+			)),
 			Status:       types.AgentGraphNodeStatusConfirmed,
 			Observations: types.JSON(obsJSON),
 			FirstSeq:     data.Seq,
@@ -430,8 +438,12 @@ func (s *agentGraphService) reconcileSnapshot(
 		if !ok {
 			continue
 		}
-		src := firstNonEmpty(asString(m["source_entity"]), asString(m["source"]))
-		tgt := firstNonEmpty(asString(m["target_entity"]), asString(m["target"]))
+		src := firstNonEmpty(
+			asString(m["source_entity"]), asString(m["source"]), asString(m["from"]),
+		)
+		tgt := firstNonEmpty(
+			asString(m["target_entity"]), asString(m["target"]), asString(m["to"]),
+		)
 		if src == "" || tgt == "" {
 			continue
 		}
@@ -443,7 +455,9 @@ func (s *agentGraphService) reconcileSnapshot(
 			StreamKey:    data.StreamKey,
 			SourceEntity: src,
 			TargetEntity: tgt,
-			RelationType: firstNonEmpty(asString(m["relation_type"]), asString(m["type"])),
+			RelationType: firstNonEmpty(
+				asString(m["relation_type"]), asString(m["relationType"]), asString(m["type"]),
+			),
 			FirstSeq:     data.Seq,
 			LastSeq:      data.Seq,
 			FirstMsgSeq:  msgSeq,
@@ -516,4 +530,41 @@ func firstNonEmpty(vals ...string) string {
 		}
 	}
 	return ""
+}
+
+// normalizeEntityType mirrors BioDSA ENTITY_TYPE_NORMALIZE so GET nodes and
+// SSE Confirmed payloads share one lowercase vocabulary for frontend coloring.
+func normalizeEntityType(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return ""
+	}
+	switch strings.ToUpper(raw) {
+	case "GENE", "PROTEIN":
+		return "gene"
+	case "VARIANT":
+		return "variant"
+	case "DRUG":
+		return "drug"
+	case "CHEMICAL":
+		return "compound"
+	case "DISEASE", "PHENOTYPE":
+		return "disease"
+	case "PATHWAY", "GENE_SET":
+		return "pathway"
+	case "PAPER":
+		return "literature"
+	case "FINDING":
+		return "finding"
+	case "CELL_LINE":
+		return "cell_line"
+	case "TISSUE":
+		return "tissue"
+	case "TARGET":
+		return "target"
+	case "COMPOUND":
+		return "compound"
+	default:
+		return strings.ToLower(raw)
+	}
 }

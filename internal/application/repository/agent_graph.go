@@ -182,7 +182,10 @@ func (r *agentGraphRepository) UpsertNode(ctx context.Context, node *types.Agent
 		return r.db.WithContext(ctx).Clauses(clause.OnConflict{
 			Columns: []clause.Column{{Name: "message_id"}, {Name: "entity_name"}},
 			DoUpdates: clause.Assignments(map[string]interface{}{
-				"entity_type":  node.EntityType,
+				"entity_type": gorm.Expr(
+					"CASE WHEN ? <> '' THEN ? ELSE agent_graph_nodes.entity_type END",
+					node.EntityType, node.EntityType,
+				),
 				"status":       types.AgentGraphNodeStatusConfirmed,
 				"observations": node.Observations,
 				"stream_key":   node.StreamKey,
@@ -237,7 +240,12 @@ func (r *agentGraphRepository) UpsertNodeReconcile(ctx context.Context, node *ty
 	return r.db.WithContext(ctx).Clauses(clause.OnConflict{
 		Columns: []clause.Column{{Name: "message_id"}, {Name: "entity_name"}},
 		DoUpdates: clause.Assignments(map[string]interface{}{
-			"entity_type":  node.EntityType,
+			// Never blank out a type we already have (RunComplete historically
+			// omitted camelCase entityType → empty overwrite).
+			"entity_type": gorm.Expr(
+				"CASE WHEN ? <> '' THEN ? ELSE agent_graph_nodes.entity_type END",
+				node.EntityType, node.EntityType,
+			),
 			"status":       types.AgentGraphNodeStatusConfirmed,
 			"observations": node.Observations,
 			"stream_key":   node.StreamKey,
