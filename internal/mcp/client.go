@@ -241,10 +241,24 @@ func NewMCPClient(config *ClientConfig) (MCPClient, error) {
 		if n.Method != graphstream.NotificationMethod {
 			return
 		}
-		if !graphstream.Dispatch(n.Params.AdditionalFields) {
-			logger.Debugf(context.Background(),
-				"[MCP] dropped graph notification with no live tool call: service=%s", config.Service.Name)
+		fields := n.Params.AdditionalFields
+		if fields == nil {
+			logger.Warnf(context.Background(),
+				"[MCP] graph notification with empty params: service=%s method=%s",
+				config.Service.Name, n.Method)
+			return
 		}
+		streamKey, _ := fields["session_id"].(string)
+		seq := fields["seq"]
+		if !graphstream.Dispatch(fields) {
+			logger.Warnf(context.Background(),
+				"[MCP] dropped graph notification with no live tool call: service=%s stream_key=%s seq=%v",
+				config.Service.Name, streamKey, seq)
+			return
+		}
+		logger.Debugf(context.Background(),
+			"[MCP] graph notification dispatched: service=%s stream_key=%s seq=%v",
+			config.Service.Name, streamKey, seq)
 	})
 	mcpClient.OnConnectionLost(instance.onConnectionLost)
 	return instance, nil
@@ -433,7 +447,14 @@ func (c *mcpGoClient) ListTools(ctx context.Context) ([]*types.MCPTool, error) {
 	// Convert to our types
 	tools := make([]*types.MCPTool, len(result.Tools))
 	for i, tool := range result.Tools {
-		data, _ := json.Marshal(tool.InputSchema)
+		data, err := json.Marshal(tool.InputSchema)
+		if err != nil || len(tool.RawInputSchema) > 0 {
+			// Prefer raw schema when structured marshal fails or server provided
+			// a non-struct schema (e.g. via RawInputSchema on some MCP stacks).
+			if len(tool.RawInputSchema) > 0 {
+				data = tool.RawInputSchema
+			}
+		}
 		tools[i] = &types.MCPTool{
 			Name:        tool.Name,
 			Description: tool.Description,

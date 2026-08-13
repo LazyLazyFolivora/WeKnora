@@ -209,6 +209,7 @@ type AgentGraphData struct {
 	SessionID          string         `json:"session_id"`
 	AssistantMessageID string         `json:"assistant_message_id"`
 	ToolCallID         string         `json:"tool_call_id,omitempty"`
+	TenantID           uint64         `json:"tenant_id,omitempty"`
 }
 
 // SessionTitleData represents session title update data

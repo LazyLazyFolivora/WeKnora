@@ -202,11 +202,25 @@ func (h *AgentStreamHandler) handleAgentGraph(ctx context.Context, evt event.Eve
 	}
 
 	if h.agentGraphService != nil {
-		persistCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-		defer cancel()
-		if err := h.agentGraphService.Record(persistCtx, h.sessionID, h.assistantMessageID, data); err != nil {
-			logger.GetLogger(h.ctx).Error("Persist agent graph event failed", "error", err)
+		timeout := 5 * time.Second
+		if data.EventType == types.AgentGraphEventRunComplete {
+			// RunComplete may reconcile a large entity/relation snapshot.
+			timeout = 30 * time.Second
 		}
+		persistCtx, cancel := context.WithTimeout(ctx, timeout)
+		defer cancel()
+		if data.TenantID > 0 {
+			if _, ok := types.TenantIDFromContext(persistCtx); !ok {
+				persistCtx = context.WithValue(persistCtx, types.TenantIDContextKey, data.TenantID)
+			}
+		}
+		if err := h.agentGraphService.Record(persistCtx, h.sessionID, h.assistantMessageID, data); err != nil {
+			logger.GetLogger(h.ctx).Error("Persist agent graph event failed",
+				"error", err, "seq", data.Seq, "type", data.EventType, "stream_key", data.StreamKey)
+		}
+	} else if data.Seq == 1 {
+		logger.Warnf(h.ctx, "[AgentGraph] agentGraphService is nil; SSE only (seq=%d stream_key=%s)",
+			data.Seq, data.StreamKey)
 	}
 	return nil
 }

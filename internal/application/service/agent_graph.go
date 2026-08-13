@@ -39,11 +39,19 @@ func (s *agentGraphService) Record(
 	ctx context.Context, sessionID, messageID string, data event.AgentGraphData,
 ) error {
 	tenantID, ok := types.TenantIDFromContext(ctx)
+	if (!ok || tenantID == 0) && data.TenantID > 0 {
+		tenantID = data.TenantID
+		ok = true
+		ctx = context.WithValue(ctx, types.TenantIDContextKey, tenantID)
+	}
 	if !ok || tenantID == 0 {
-		logger.Warnf(ctx, "[AgentGraph] skip record: tenant_id missing stream_key=%s seq=%d", data.StreamKey, data.Seq)
+		logger.Warnf(ctx, "[AgentGraph] skip record: tenant_id missing stream_key=%s seq=%d type=%s",
+			data.StreamKey, data.Seq, data.EventType)
 		return nil
 	}
 	if data.StreamKey == "" || data.Seq <= 0 {
+		logger.Warnf(ctx, "[AgentGraph] skip record: invalid key/seq stream_key=%q seq=%d type=%s",
+			data.StreamKey, data.Seq, data.EventType)
 		return nil
 	}
 	if sessionID == "" {
@@ -53,7 +61,7 @@ func (s *agentGraphService) Record(
 		messageID = data.AssistantMessageID
 	}
 
-	return s.repo.WithTx(ctx, func(tx interfaces.AgentGraphRepository) error {
+	err := s.repo.WithTx(ctx, func(tx interfaces.AgentGraphRepository) error {
 		if err := s.ensureRun(ctx, tx, tenantID, sessionID, messageID, data); err != nil {
 			return err
 		}
@@ -100,6 +108,7 @@ func (s *agentGraphService) Record(
 			return err
 		}
 		if !inserted {
+			logger.Debugf(ctx, "[AgentGraph] duplicate event skipped stream_key=%s seq=%d", data.StreamKey, data.Seq)
 			return nil
 		}
 
@@ -127,6 +136,16 @@ func (s *agentGraphService) Record(
 			return tx.AdvanceRunSeq(ctx, tenantID, data.StreamKey, data.Seq, msgSeq, nil)
 		}
 	})
+	if err != nil {
+		logger.Errorf(ctx, "[AgentGraph] record failed stream_key=%s seq=%d type=%s err=%v",
+			data.StreamKey, data.Seq, data.EventType, err)
+		return err
+	}
+	if data.Seq == 1 || data.Seq%25 == 0 || data.EventType == types.AgentGraphEventRunComplete {
+		logger.Infof(ctx, "[AgentGraph] recorded stream_key=%s seq=%d type=%s tenant=%d msg=%s",
+			data.StreamKey, data.Seq, data.EventType, tenantID, messageID)
+	}
+	return nil
 }
 
 func (s *agentGraphService) GetSnapshot(

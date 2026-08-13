@@ -22,6 +22,7 @@ type Sink struct {
 	AssistantMessageID string
 	ToolCallID         string
 	ServiceID          string
+	TenantID           uint64
 }
 
 var (
@@ -55,7 +56,10 @@ func Register(streamKey string, s *Sink) uint64 {
 	s.token = tok
 	mu.Lock()
 	sinks[streamKey] = s
+	n := len(sinks)
 	mu.Unlock()
+	logger.Infof(context.Background(), "[GraphStream] register stream_key=%s token=%d live=%d tenant=%d",
+		streamKey, tok, n, s.TenantID)
 	return tok
 }
 
@@ -68,6 +72,8 @@ func Unregister(streamKey string, token uint64) {
 	defer mu.Unlock()
 	if cur, ok := sinks[streamKey]; ok && cur != nil && cur.token == token {
 		delete(sinks, streamKey)
+		logger.Infof(context.Background(), "[GraphStream] unregister stream_key=%s token=%d live=%d",
+			streamKey, token, len(sinks))
 	}
 }
 
@@ -76,25 +82,35 @@ func Unregister(streamKey string, token uint64) {
 // Emit runs asynchronously so mcp-go's SSE reader is never blocked on DB/Redis.
 func Dispatch(params map[string]any) bool {
 	if params == nil {
+		logger.Warnf(context.Background(), "[GraphStream] dispatch drop: nil params")
 		return false
 	}
 
 	streamKey, _ := params["session_id"].(string)
 	if streamKey == "" {
-		return false
-	}
-
-	mu.RLock()
-	sink := sinks[streamKey]
-	mu.RUnlock()
-	if sink == nil || sink.EventBus == nil {
+		keys := make([]string, 0, len(params))
+		for k := range params {
+			keys = append(keys, k)
+		}
+		logger.Warnf(context.Background(), "[GraphStream] dispatch drop: empty session_id keys=%v", keys)
 		return false
 	}
 
 	seq := asInt64(params["seq"])
+
+	mu.RLock()
+	sink := sinks[streamKey]
+	live := len(sinks)
+	mu.RUnlock()
+	if sink == nil || sink.EventBus == nil {
+		logger.Warnf(context.Background(),
+			"[GraphStream] dispatch drop: no live sink stream_key=%s seq=%d live=%d", streamKey, seq, live)
+		return false
+	}
+
 	eventRaw, _ := params["event"].(map[string]any)
 	if eventRaw == nil {
-		logger.Debugf(sink.Ctx, "[GraphStream] missing event object stream_key=%s seq=%d", streamKey, seq)
+		logger.Warnf(sink.Ctx, "[GraphStream] dispatch drop: missing event object stream_key=%s seq=%d", streamKey, seq)
 		return false
 	}
 
@@ -107,7 +123,13 @@ func Dispatch(params map[string]any) bool {
 		payload[k] = v
 	}
 
-	logger.Debugf(sink.Ctx, "[GraphStream] recv seq=%d type=%s stream_key=%s", seq, eventType, streamKey)
+	// Info for first event, RunComplete, and every 25th — enough to reconcile
+	// with BioDSA STREAM sent=N without drowning logs on large runs.
+	if seq == 1 || seq%25 == 0 || eventType == "RunComplete" {
+		logger.Infof(sink.Ctx, "[GraphStream] recv seq=%d type=%s stream_key=%s", seq, eventType, streamKey)
+	} else {
+		logger.Debugf(sink.Ctx, "[GraphStream] recv seq=%d type=%s stream_key=%s", seq, eventType, streamKey)
+	}
 
 	evt := event.Event{
 		Type: event.EventAgentGraph,
@@ -121,6 +143,7 @@ func Dispatch(params map[string]any) bool {
 			SessionID:          sink.SessionID,
 			AssistantMessageID: sink.AssistantMessageID,
 			ToolCallID:         sink.ToolCallID,
+			TenantID:           sink.TenantID,
 		},
 	}
 	bus := sink.EventBus
@@ -131,7 +154,10 @@ func Dispatch(params map[string]any) bool {
 				logger.Errorf(ctx, "[GraphStream] emit panic: %v", r)
 			}
 		}()
-		_ = bus.Emit(ctx, evt)
+		if err := bus.Emit(ctx, evt); err != nil {
+			logger.Errorf(ctx, "[GraphStream] emit failed seq=%d type=%s stream_key=%s err=%v",
+				seq, eventType, streamKey, err)
+		}
 	}()
 	return true
 }
