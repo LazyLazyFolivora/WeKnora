@@ -92,7 +92,11 @@ function handleKGEvent(evt: Event) {
 
 onMounted(() => {
   window.addEventListener('kg-sse-event', handleKGEvent)
-  console.log('[KG-Component] mounted, listening for kg-sse-event')
+
+  // 历史消息：消息已完成时直接从后端拉取完整图谱
+  if (props.isCompleted && props.sessionId && props.messageId) {
+    fetchFullGraph(props.sessionId, props.messageId)
+  }
 })
 
 onUnmounted(() => {
