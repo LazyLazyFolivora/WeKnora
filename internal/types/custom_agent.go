@@ -30,6 +30,8 @@ const (
 	BuiltinWikiFixerID = "builtin-wiki-fixer"
 	// BuiltinAIDDID is the ID for the built-in AIDD drug discovery agent
 	BuiltinAIDDID = "builtin-aidd"
+	// BuiltinBioDSAID is the ID for the built-in BioDSA drug discovery agent
+	BuiltinBioDSAID = "builtin-biodsa"
 )
 
 // AgentMode constants for agent running mode
@@ -562,6 +564,7 @@ var builtinAgentIDsOrdered = []string{
 	BuiltinQuickAnswerID,
 	BuiltinSmartReasoningID,
 	BuiltinAIDDID,
+	BuiltinBioDSAID,
 	BuiltinWikiResearcherID,
 	BuiltinDeepResearcherID,
 	BuiltinDataAnalystID,
