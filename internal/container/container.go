@@ -176,6 +176,7 @@ func BuildContainer(container *dig.Container) *dig.Container {
 	must(container.Provide(repository.NewTaskDeadLetterRepository))
 	must(container.Provide(repository.NewGraphEntityRepository))
 	must(container.Provide(repository.NewGraphRelationRepository))
+	must(container.Provide(repository.NewAgentGraphRepository))
 
 	// MCP manager for managing MCP client connections
 	logger.Debugf(ctx, "[Container] Registering MCP manager...")
@@ -226,6 +227,7 @@ func BuildContainer(container *dig.Container) *dig.Container {
 	must(container.Provide(service.NewGraphImportService))
 	must(container.Provide(service.NewGraphProjectionService))
 	must(container.Provide(service.NewEntityDictService))
+	must(container.Provide(service.NewAgentGraphService))
 
 	// Web search service (needed by AgentService)
 	logger.Debugf(ctx, "[Container] Registering web search registry and providers...")
@@ -386,6 +388,7 @@ func BuildContainer(container *dig.Container) *dig.Container {
 	// 批量实体 / 关系导入 handler（新版 DB-backed）
 	must(container.Provide(handler.NewGraphSyncHandler))
 	must(container.Provide(handler.NewEntityDictHandler))
+	must(container.Provide(handler.NewAgentGraphHandler))
 	// IM integration
 	logger.Debugf(ctx, "[Container] Registering IM integration...")
 	must(container.Provide(imPkg.NewService))

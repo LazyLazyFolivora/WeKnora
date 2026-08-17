@@ -26,6 +26,12 @@
                     v-if="session.isAgentMode" :follow-up-loading="followUpLoading"
                     @render-complete-change="emit('render-complete-change', $event)" />
             </template>
+            <!-- 知识图谱：Agent 模式下渲染，完成后保持显示（v-show 不卸载组件） -->
+            <KnowledgeGraph v-show="session.isAgentMode || hasGraphData"
+                :session-id="sessionId"
+                :message-id="session.id"
+                :agent-event-stream="session.agentEventStream"
+                :is-completed="session.is_completed" />
             <deepThink :deepSession="session" v-if="session.showThink && !session.isAgentMode"></deepThink>
         </div>
         <!-- 非 Agent 模式下才显示传统的 markdown 渲染 -->
@@ -78,6 +84,7 @@ import docInfo from './docInfo.vue';
 import deepThink from './deepThink.vue';
 import AgentStreamDisplay from './AgentStreamDisplay.vue';
 import RagPipelineProgress from './RagPipelineProgress.vue';
+import KnowledgeGraph from '@/components/KnowledgeGraph/KnowledgeGraph.vue';
 import ChatRequestInfoButton from '@/components/ChatRequestInfoButton.vue';
 import ChatCitationFloat from '@/components/ChatCitationFloat.vue';
 import picturePreview from '@/components/picture-preview.vue';
@@ -121,6 +128,12 @@ const mentionTagIcon = (item) => {
 
 const emit = defineEmits(['scroll-bottom', 'render-complete-change'])
 const { t } = useI18n()
+
+// 知识图谱数据是否存在（用于 v-show 保持组件不被卸载）
+const hasGraphData = computed(() => {
+  const stream = props.session?.agentEventStream
+  return !!stream?.some((e) => e.type === 'agent_graph')
+})
 const uiStore = useUIStore();
 let parentMd = ref()
 const { float: citationFloat, rebind: rebindCitations, cancelClose: cancelCitationClose, scheduleClose: scheduleCitationClose } = useChatCitationPopover(parentMd, {
