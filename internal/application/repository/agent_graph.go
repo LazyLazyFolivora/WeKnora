@@ -197,7 +197,8 @@ func (r *agentGraphRepository) UpsertNode(ctx context.Context, node *types.Agent
 		}).Create(node).Error
 	}
 
-	// EntitySearching: never downgrade confirmed rows.
+	// EntityPlanned / EntitySearching: status only advances planned → searching →
+	// confirmed, never downgrades an already-advanced node.
 	return r.db.WithContext(ctx).Clauses(clause.OnConflict{
 		Columns: []clause.Column{{Name: "message_id"}, {Name: "entity_name"}},
 		DoUpdates: clause.Assignments(map[string]interface{}{
@@ -211,12 +212,13 @@ func (r *agentGraphRepository) UpsertNode(ctx context.Context, node *types.Agent
 				node.LastMsgSeq, node.LastMsgSeq,
 			),
 			"entity_type": gorm.Expr(
-				"CASE WHEN agent_graph_nodes.status = ? THEN agent_graph_nodes.entity_type ELSE ? END",
-				types.AgentGraphNodeStatusConfirmed, node.EntityType,
+				"CASE WHEN ? <> '' THEN ? ELSE agent_graph_nodes.entity_type END",
+				node.EntityType, node.EntityType,
 			),
 			"status": gorm.Expr(
-				"CASE WHEN agent_graph_nodes.status = ? THEN agent_graph_nodes.status ELSE ? END",
-				types.AgentGraphNodeStatusConfirmed, node.Status,
+				"CASE WHEN agent_graph_nodes.status = 'confirmed' OR ? = 'confirmed' THEN 'confirmed' "+
+					"WHEN agent_graph_nodes.status = 'searching' OR ? = 'searching' THEN 'searching' ELSE 'planned' END",
+				node.Status, node.Status,
 			),
 			"source_kb": gorm.Expr(
 				"CASE WHEN agent_graph_nodes.source_kb = '' AND ? <> '' THEN ? ELSE agent_graph_nodes.source_kb END",

@@ -114,6 +114,8 @@ func (s *agentGraphService) Record(
 		}
 
 		switch data.EventType {
+		case types.AgentGraphEventEntityPlanned:
+			return s.handleEntityPlanned(ctx, tx, tenantID, sessionID, messageID, msgSeq, data)
 		case types.AgentGraphEventEntitySearching:
 			return s.handleEntitySearching(ctx, tx, tenantID, sessionID, messageID, msgSeq, data)
 		case types.AgentGraphEventEntityConfirmed:
@@ -246,6 +248,37 @@ func (s *agentGraphService) ensureRun(
 		ToolCallID: data.ToolCallID,
 		Status:     types.AgentGraphRunStatusRunning,
 	})
+}
+
+func (s *agentGraphService) handleEntityPlanned(
+	ctx context.Context, repo interfaces.AgentGraphRepository,
+	tenantID uint64, sessionID, messageID string, msgSeq int64, data event.AgentGraphData,
+) error {
+	name := asString(data.Payload["entity_name"])
+	if name == "" {
+		return repo.AdvanceRunSeq(ctx, tenantID, data.StreamKey, data.Seq, msgSeq, nil)
+	}
+	if err := repo.UpsertNode(ctx, &types.AgentGraphNode{
+		ID:           uuid.NewString(),
+		TenantID:     tenantID,
+		SessionID:    sessionID,
+		MessageID:    messageID,
+		StreamKey:    data.StreamKey,
+		EntityName:   name,
+		EntityType: normalizeEntityType(firstNonEmpty(
+			asString(data.Payload["entity_type"]), asString(data.Payload["entityType"]),
+		)),
+		Status:       types.AgentGraphNodeStatusPlanned,
+		SourceKB:     asString(data.Payload["source_kb"]),
+		Observations: types.JSON([]byte("[]")),
+		FirstSeq:     data.Seq,
+		LastSeq:      data.Seq,
+		FirstMsgSeq:  msgSeq,
+		LastMsgSeq:   msgSeq,
+	}, false); err != nil {
+		return err
+	}
+	return repo.AdvanceRunSeq(ctx, tenantID, data.StreamKey, data.Seq, msgSeq, nil)
 }
 
 func (s *agentGraphService) handleEntitySearching(

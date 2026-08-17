@@ -9,14 +9,17 @@ const (
 	AgentGraphRunStatusFailed    = "failed"
 )
 
-// Agent graph node status values.
+// Agent graph node status values. Nodes only move forward:
+// planned → searching → confirmed (never downgraded).
 const (
+	AgentGraphNodeStatusPlanned   = "planned"
 	AgentGraphNodeStatusSearching = "searching"
 	AgentGraphNodeStatusConfirmed = "confirmed"
 )
 
 // BioDSA narrative event type names (class names from NarrativeEvent).
 const (
+	AgentGraphEventEntityPlanned       = "EntityPlanned"
 	AgentGraphEventEntitySearching     = "EntitySearching"
 	AgentGraphEventLiteratureSearching = "LiteratureSearching"
 	AgentGraphEventEntityConfirmed     = "EntityConfirmed"

@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS agent_graph_nodes (
     stream_key    TEXT     NOT NULL,
     entity_name   TEXT     NOT NULL,
     entity_type   TEXT     NOT NULL DEFAULT '',
-    status        TEXT     NOT NULL DEFAULT 'searching',
+    status        TEXT     NOT NULL DEFAULT 'searching',  -- planned|searching|confirmed
     source_kb     TEXT     NOT NULL DEFAULT '',
     observations  TEXT     NOT NULL DEFAULT '[]',
     first_seq     INTEGER  NOT NULL,

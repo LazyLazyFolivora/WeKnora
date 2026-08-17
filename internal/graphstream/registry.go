@@ -26,10 +26,10 @@ type Sink struct {
 }
 
 var (
-	mu         sync.RWMutex
-	sinks      = make(map[string]*Sink) // streamKey -> sink
-	tokenSeq   uint64
-	runFailer  func(ctx context.Context, streamKey string)
+	mu        sync.RWMutex
+	sinks     = make(map[string]*Sink) // streamKey -> sink
+	tokenSeq  uint64
+	runFailer func(ctx context.Context, streamKey string)
 )
 
 // SetRunFailer registers an optional hook used when a tool call ends in error
