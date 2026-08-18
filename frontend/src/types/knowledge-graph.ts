@@ -15,11 +15,11 @@ export type EntityType =
 export const ENTITY_COLORS: Record<EntityType, string> = {
   gene: '#2F6FED',
   variant: '#7C5CFC',
-  drug: '#0F9F6E',
+  drug: '#E11D48',
   compound: '#0D9488',
-  disease: '#E11D48',
-  pathway: '#D97706',
-  target: '#2563EB',
+  disease: '#D97706',
+  pathway: '#0F9F6E',
+  target: '#C2410C',
   literature: '#64748B',
   finding: '#DB2777',
   cell_line: '#0891B2',
@@ -60,6 +60,8 @@ export interface GraphNodeView {
   y?: number
   fx?: number | null
   fy?: number | null
+  /** 节点创建时间（performance.now，用于浮现动画） */
+  createdAt?: number
 }
 
 /** 图谱边（前端视图层，对齐协议 §0 GraphEdgeView） */
@@ -69,6 +71,8 @@ export interface GraphEdgeView {
   target: string | GraphNodeView
   relationType: string
   contradiction?: boolean // true = 与已有证据矛盾，红色虚线 + 闪烁
+  /** 边创建时间（performance.now，用于生长动画） */
+  createdAt?: number
 }
 
 /** 图谱数据（传给 force-graph） */

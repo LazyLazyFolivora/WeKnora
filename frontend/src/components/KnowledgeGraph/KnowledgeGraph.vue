@@ -12,6 +12,7 @@
         <GraphCanvas
           :graph-data="graphData"
           :refresh-key="refreshKey"
+          :current-phase="currentPhase"
           :start-entity-names="startEntityNames"
           @node-click="handleNodeClick"
           @node-hover="handleNodeHover"

@@ -4,6 +4,11 @@
       <span class="kg-phase" :class="phaseClass">
         {{ phaseText }}
       </span>
+      <Transition name="phase" mode="out-in">
+        <span :key="currentPhase" class="kg-phase" :class="currentPhase === 'broad_search' ? 'phase-breadth' : 'phase-depth'">
+          {{ currentPhase === 'broad_search' ? '🔍 广域检索中...' : '🎯 深入挖掘中...' }}
+        </span>
+      </Transition>
       <span class="kg-timer">{{ elapsedTime }}</span>
       <span class="kg-toggle-btn">{{ panelCollapsed ? '◂' : '▾' }}</span>
     </div>
@@ -131,6 +136,25 @@ onUnmounted(() => {
   font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
+  transition: background-color 0.3s ease, transform 0.25s ease, opacity 0.25s ease;
+}
+
+.phase-enter-active {
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.phase-leave-active {
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.phase-enter-from {
+  transform: scale(0.6);
+  opacity: 0;
+}
+
+.phase-leave-to {
+  transform: scale(1.15);
+  opacity: 0;
 }
 
 .phase-breadth {
