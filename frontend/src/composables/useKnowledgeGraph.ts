@@ -73,15 +73,17 @@ export function useKnowledgeGraph() {
         sourceKb: opts.sourceKb,
         x: Math.cos(angle) * dist,
         y: Math.sin(angle) * dist,
-        createdAt: performance.now(),
       })
     }
   }
   function upsertEdge(s: string, t: string, r: string, contradiction?: boolean) {
     const id = edgeId(s, t, r)
-    const existing = edgesMap.get(id)
-    // 后写覆盖同名边（允许 contradiction 状态更新），保留首次 createdAt 以维持生长动画
-    edgesMap.set(id, { id, source: s, target: t, relationType: r, contradiction, createdAt: existing?.createdAt ?? performance.now() })
+    if (edgesMap.has(id)) {
+      // 后写覆盖同名边（允许 contradiction 状态更新）
+      edgesMap.set(id, { id, source: s, target: t, relationType: r, contradiction })
+    } else {
+      edgesMap.set(id, { id, source: s, target: t, relationType: r, contradiction })
+    }
   }
   function applyAgentGraphEvent(payload: Record<string, any>) {
     const ev = payload.event_type as string
@@ -153,37 +155,19 @@ export function useKnowledgeGraph() {
     }
   }
   function replaceGraph(apiNodes: GraphNodeAPI[], apiEdges: GraphEdgeAPI[], apiRun: GraphRunView | null) {
-    const prevCreatedAt = new Map<string, number>()
-    for (const n of nodesMap.values()) prevCreatedAt.set(n.name, n.createdAt ?? performance.now())
-    const prevEdgeCreatedAt = new Map<string, number>()
-    for (const e of edgesMap.values()) prevEdgeCreatedAt.set(e.id, e.createdAt ?? performance.now())
     nodesMap.clear();edgesMap.clear()
-    const now = performance.now()
-    apiNodes.forEach((n, idx) => {
-      nodesMap.set(n.entity_name, {
-        id: n.entity_name, name: n.entity_name,
-        entityType: normalizeEntityType(n.entity_type),
-        status: n.status ?? "confirmed",
-        observations: n.observations ?? [],
-        sourceKb: n.source_kb,
-        createdAt: prevCreatedAt.get(n.entity_name) ?? now + idx * 15,
-      })
-    })
+    for(const n of apiNodes){nodesMap.set(n.entity_name,{id:n.entity_name,name:n.entity_name,entityType:normalizeEntityType(n.entity_type),status:n.status??"confirmed",observations:n.observations??[],sourceKb:n.source_kb})}
     // 补全边引用的缺失节点（后端 edges 可能引用了 nodes 中没有的实体）
     for(const e of apiEdges){
       if(e.source_entity && !nodesMap.has(e.source_entity)){
-        nodesMap.set(e.source_entity,{id:e.source_entity,name:e.source_entity,entityType:'unknown',status:'confirmed',observations:[],createdAt:now})
+        nodesMap.set(e.source_entity,{id:e.source_entity,name:e.source_entity,entityType:'unknown',status:'confirmed',observations:[]})
       }
       if(e.target_entity && !nodesMap.has(e.target_entity)){
-        nodesMap.set(e.target_entity,{id:e.target_entity,name:e.target_entity,entityType:'unknown',status:'confirmed',observations:[],createdAt:now})
+        nodesMap.set(e.target_entity,{id:e.target_entity,name:e.target_entity,entityType:'unknown',status:'confirmed',observations:[]})
       }
-      const id=edgeId(e.source_entity,e.target_entity,e.relation_type)
-      edgesMap.set(id,{id,source:e.source_entity,target:e.target_entity,relationType:e.relation_type,contradiction:e.contradiction,createdAt:prevEdgeCreatedAt.get(id) ?? now})
+      const id=edgeId(e.source_entity,e.target_entity,e.relation_type);edgesMap.set(id,{id,source:e.source_entity,target:e.target_entity,relationType:e.relation_type,contradiction:e.contradiction})
     }
-    if(apiRun){
-      run.value={phase:apiRun.phase,phaseSubtitle:apiRun.phase_subtitle,step:apiRun.step,totalSteps:apiRun.total_steps,entitiesFound:apiRun.entities_found,relationsFound:apiRun.relations_found,isComplete:apiRun.is_complete,startedAt:apiRun.started_at ? new Date(apiRun.started_at).getTime() : undefined}
-      if(apiRun.phase)currentPhase.value=apiRun.phase
-      if(apiRun.phase_subtitle)phaseDescription.value=apiRun.phase_subtitle
+    if(apiRun){run.value={phase:apiRun.phase,phaseSubtitle:apiRun.phase_subtitle,step:apiRun.step,totalSteps:apiRun.total_steps,entitiesFound:apiRun.entities_found,relationsFound:apiRun.relations_found,isComplete:apiRun.is_complete,startedAt:apiRun.started_at};if(apiRun.phase)currentPhase.value=apiRun.phase;if(apiRun.phase_subtitle)phaseDescription.value=apiRun.phase_subtitle
       // 同步顶层 isComplete（供 GraphProgressPanel 计时停止）
       if(apiRun.is_complete) isComplete.value = true
       // 用后端 started_at 还原计时起点（RFC3339 字符串 → ms）
