@@ -1,8 +1,8 @@
 <template>
   <div class="kg-progress-panel" :class="{ 'is-collapsed': panelCollapsed }">
     <div class="kg-panel-header" @click="panelCollapsed = !panelCollapsed">
-      <span class="kg-phase" :class="currentPhase === 'broad_search' ? 'phase-breadth' : 'phase-depth'">
-        {{ currentPhase === 'broad_search' ? '🔍 广域检索中...' : '🎯 深入挖掘中...' }}
+      <span class="kg-phase" :class="phaseClass">
+        {{ phaseText }}
       </span>
       <span class="kg-timer">{{ elapsedTime }}</span>
       <span class="kg-toggle-btn">{{ panelCollapsed ? '◂' : '▾' }}</span>
@@ -25,7 +25,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import type { KGPhase, EntityType } from '@/types/knowledge-graph'
 import { ENTITY_COLORS, ENTITY_TYPE_NAMES } from '@/types/knowledge-graph'
 
@@ -34,25 +34,56 @@ interface Props {
   startTime: number
   entityCounts: Record<string, number>
   recentDiscoveries: Array<{ time: string; text: string }>
+  isComplete?: boolean
+  frozenElapsed?: number | null
 }
 
 const props = defineProps<Props>()
 
 const now = ref(Date.now())
+const frozenTime = ref<number | null>(null) // 完成时冻结的最终时间
 const panelCollapsed = ref(false)
 let timer: ReturnType<typeof setInterval> | null = null
 
+const phaseText = computed(() => {
+  if (props.isComplete) return '✅ 完成'
+  return props.currentPhase === 'broad_search' ? '🔍 广域检索中...' : '🎯 深入挖掘中...'
+})
+
+const phaseClass = computed(() => {
+  if (props.isComplete) return 'phase-done'
+  return props.currentPhase === 'broad_search' ? 'phase-breadth' : 'phase-depth'
+})
+
 const elapsedTime = computed(() => {
-  const elapsed = Math.floor((now.value - props.startTime) / 1000)
+  // 优先使用预计算的冻结时长（历史消息）
+  if (props.frozenElapsed != null) {
+    const min = String(Math.floor(props.frozenElapsed / 60)).padStart(2, '0')
+    const sec = String(props.frozenElapsed % 60).padStart(2, '0')
+    return `用时 ${min}:${sec}`
+  }
+  // 实时计时
+  const end = frozenTime.value ?? now.value
+  const elapsed = Math.max(0, Math.floor((end - props.startTime) / 1000))
   const min = String(Math.floor(elapsed / 60)).padStart(2, '0')
   const sec = String(elapsed % 60).padStart(2, '0')
-  return `${min}:${sec}`
+  return props.isComplete ? `用时 ${min}:${sec}` : `${min}:${sec}`
 })
 
 const entityColors = ENTITY_COLORS
 
+// 完成时冻结计时器
+watch(() => props.isComplete, (done) => {
+  if (done) {
+    frozenTime.value = Date.now()
+    if (timer) { clearInterval(timer); timer = null }
+  }
+}, { immediate: true })
+
 onMounted(() => {
-  timer = setInterval(() => { now.value = Date.now() }, 1000)
+  if (!props.isComplete) {
+    timer = setInterval(() => { now.value = Date.now() }, 1000)
+  }
 })
 
 onUnmounted(() => {
@@ -109,6 +140,11 @@ onUnmounted(() => {
 
 .phase-depth {
   background: #8b5cf6;
+  color: white;
+}
+
+.phase-done {
+  background: #22c55e;
   color: white;
 }
 

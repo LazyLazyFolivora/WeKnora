@@ -45,7 +45,7 @@ export const ENTITY_TYPE_NAMES: Record<EntityType, string> = {
 
 // ─── 图谱节点 / 边视图 ──────────────────────────────────────
 
-export type NodeStatus = 'searching' | 'confirmed'
+export type NodeStatus = 'planned' | 'searching' | 'confirmed'
 
 /** 图谱节点（前端视图层，对齐协议 §0 GraphNodeView） */
 export interface GraphNodeView {
@@ -68,6 +68,7 @@ export interface GraphEdgeView {
   source: string | GraphNodeView
   target: string | GraphNodeView
   relationType: string
+  contradiction?: boolean // true = 与已有证据矛盾，红色虚线 + 闪烁
 }
 
 /** 图谱数据（传给 force-graph） */
@@ -97,6 +98,7 @@ export interface GraphRunView {
   entitiesFound?: number
   relationsFound?: number
   isComplete?: boolean
+  startedAt?: number  // Unix 秒，后端 started_at
 }
 
 // ─── SSE 事件类型（对齐后端协议 §2.2 / §4） ─────────────────
@@ -110,6 +112,7 @@ export interface AgentGraphSSEData {
 }
 
 export type GraphEventType =
+  | 'EntityPlanned'
   | 'EntitySearching'
   | 'EntityConfirmed'
   | 'RelationFound'
@@ -132,6 +135,7 @@ export interface GraphEdgeAPI {
   source_entity: string
   target_entity: string
   relation_type: string
+  contradiction?: boolean
 }
 
 export interface GraphRunAPI {
@@ -142,6 +146,7 @@ export interface GraphRunAPI {
   entities_found?: number
   relations_found?: number
   is_complete?: boolean
+  started_at?: string  // RFC3339, e.g. "2026-08-17T12:00:00Z"
 }
 
 export interface GraphFullResponse {

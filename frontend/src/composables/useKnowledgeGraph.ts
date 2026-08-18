@@ -1,4 +1,4 @@
-﻿import { ref, computed, watch } from 'vue'
+﻿import { ref, computed } from 'vue'
 import { get as httpGet } from '@/utils/request'
 import type {
   GraphNodeView, GraphEdgeView, GraphRunView, KGData,
@@ -22,6 +22,10 @@ export function useKnowledgeGraph() {
   const startTime = ref(Date.now())
   const recentDiscoveries = ref<Array<{ time: string; text: string }>>([])
   const entityCounts = ref<Record<string, number>>({})
+  // 历史消息预计算时长（秒），非 null 时 GraphProgressPanel 直接显示此值
+  const frozenElapsed = ref<number | null>(null)
+  // 记录最先出现的实体名称（用户问题涉及的起始实体）
+  const startEntityNames = ref<string[]>([])
   const totalNodes = computed(() => nodes.value.length)
   const totalLinks = computed(() => links.value.length)
   const graphData = computed<KGData>(() => ({ nodes: nodes.value, links: links.value }))
@@ -43,25 +47,58 @@ export function useKnowledgeGraph() {
   function addDiscovery(text: string, ts?: number) {
     recentDiscoveries.value = [{ time: formatTime(ts), text }, ...recentDiscoveries.value].slice(0, 8)
   }
-  function upsertNode(name: string, opts: { entityType?: string; status?: "searching" | "confirmed"; observations?: string[]; sourceKb?: string }) {
+  // 状态等级：只升级不降级
+  const STATUS_RANK: Record<string, number> = { planned: 0, searching: 1, confirmed: 2 }
+
+  function upsertNode(name: string, opts: { entityType?: string; status?: "planned" | "searching" | "confirmed"; observations?: string[]; sourceKb?: string }) {
     const existing = nodesMap.get(name)
     const nt = normalizeEntityType(opts.entityType)
     if (existing) {
       if (opts.entityType) existing.entityType = nt
-      if (opts.status) existing.status = opts.status
+      if (opts.status) {
+        const cur = STATUS_RANK[existing.status] ?? -1
+        const next = STATUS_RANK[opts.status] ?? -1
+        if (next >= cur) existing.status = opts.status // 只升不降
+      }
       if (opts.observations) existing.observations = opts.observations
       if (opts.sourceKb) existing.sourceKb = opts.sourceKb
     } else {
-      nodesMap.set(name, { id: name, name, entityType: nt, status: opts.status ?? "searching", observations: opts.observations ?? [], sourceKb: opts.sourceKb })
+      // 新节点给随机初始位置，避免全部堆在 (0,0)
+      const angle = Math.random() * 2 * Math.PI
+      const dist = 80 + Math.random() * 120
+      nodesMap.set(name, {
+        id: name, name, entityType: nt,
+        status: opts.status ?? "planned",
+        observations: opts.observations ?? [],
+        sourceKb: opts.sourceKb,
+        x: Math.cos(angle) * dist,
+        y: Math.sin(angle) * dist,
+      })
     }
   }
-  function upsertEdge(s: string, t: string, r: string) {
+  function upsertEdge(s: string, t: string, r: string, contradiction?: boolean) {
     const id = edgeId(s, t, r)
-    if (!edgesMap.has(id)) edgesMap.set(id, { id, source: s, target: t, relationType: r })
+    if (edgesMap.has(id)) {
+      // 后写覆盖同名边（允许 contradiction 状态更新）
+      edgesMap.set(id, { id, source: s, target: t, relationType: r, contradiction })
+    } else {
+      edgesMap.set(id, { id, source: s, target: t, relationType: r, contradiction })
+    }
   }
   function applyAgentGraphEvent(payload: Record<string, any>) {
     const ev = payload.event_type as string
     switch (ev) {
+      case "EntityPlanned": {
+        const n = payload.entity_name as string
+        if (n) {
+          upsertNode(n, { entityType: payload.entity_type, status: "planned", sourceKb: payload.source_kb })
+          // EntityPlanned = 用户问题中的关键实体，记录为起始节点
+          if (!startEntityNames.value.includes(n)) {
+            startEntityNames.value.push(n)
+          }
+        }
+        break
+      }
       case "EntitySearching": {
         const n = payload.entity_name as string
         if (n) upsertNode(n, { entityType: payload.entity_type, status: "searching", sourceKb: payload.source_kb })
@@ -74,7 +111,8 @@ export function useKnowledgeGraph() {
       }
       case "RelationFound": {
         const s=payload.source_entity as string, t=payload.target_entity as string, r=payload.relation_type as string
-        if(s&&t&&r){upsertEdge(s,t,r);addDiscovery(`${s} → ${r} → ${t}`,payload.timestamp)}
+        const contradiction = payload.contradiction === true || payload.is_contradiction === true
+        if(s&&t&&r){upsertEdge(s,t,r,contradiction);addDiscovery(`${contradiction?'⚠️ 矛盾: ':''}${s} → ${r} → ${t}`,payload.timestamp)}
         break
       }
       case "PhaseChange": {
@@ -101,20 +139,53 @@ export function useKnowledgeGraph() {
       const data = (res as any).data ?? res
       replaceGraph(data.nodes ?? [], data.edges ?? [], data.run)
       lastSeq.value = data.last_seq ?? 0
-    } catch (err) { console.error("[KG] fetchFullGraph failed:", err) }
+      // 历史消息：计算真实时长并冻结（仅在 agent 已完成时）
+      if (data.run && (data.nodes?.length ?? 0) > 0 && props.isCompleted) {
+        isComplete.value = true
+        if (data.run.started_at) {
+          const startMs = new Date(data.run.started_at).getTime()
+          frozenElapsed.value = Math.max(0, Math.floor((Date.now() - startMs) / 1000))
+          startTime.value = startMs
+        }
+      }
+    } catch (err: any) {
+      const status = err?.status || err?.response?.status || 'unknown'
+      const msg = err?.message || err?.response?.data?.message || String(err)
+      console.error(`[KG] fetchFullGraph failed: status=${status} msg=${msg}`)
+    }
   }
   function replaceGraph(apiNodes: GraphNodeAPI[], apiEdges: GraphEdgeAPI[], apiRun: GraphRunView | null) {
     nodesMap.clear();edgesMap.clear()
     for(const n of apiNodes){nodesMap.set(n.entity_name,{id:n.entity_name,name:n.entity_name,entityType:normalizeEntityType(n.entity_type),status:n.status??"confirmed",observations:n.observations??[],sourceKb:n.source_kb})}
-    for(const e of apiEdges){const id=edgeId(e.source_entity,e.target_entity,e.relation_type);edgesMap.set(id,{id,source:e.source_entity,target:e.target_entity,relationType:e.relation_type})}
-    if(apiRun){run.value={phase:apiRun.phase,phaseSubtitle:apiRun.phase_subtitle,step:apiRun.step,totalSteps:apiRun.total_steps,entitiesFound:apiRun.entities_found,relationsFound:apiRun.relations_found,isComplete:apiRun.is_complete};if(apiRun.phase)currentPhase.value=apiRun.phase;if(apiRun.phase_subtitle)phaseDescription.value=apiRun.phase_subtitle}
+    // 补全边引用的缺失节点（后端 edges 可能引用了 nodes 中没有的实体）
+    for(const e of apiEdges){
+      if(e.source_entity && !nodesMap.has(e.source_entity)){
+        nodesMap.set(e.source_entity,{id:e.source_entity,name:e.source_entity,entityType:'unknown',status:'confirmed',observations:[]})
+      }
+      if(e.target_entity && !nodesMap.has(e.target_entity)){
+        nodesMap.set(e.target_entity,{id:e.target_entity,name:e.target_entity,entityType:'unknown',status:'confirmed',observations:[]})
+      }
+      const id=edgeId(e.source_entity,e.target_entity,e.relation_type);edgesMap.set(id,{id,source:e.source_entity,target:e.target_entity,relationType:e.relation_type,contradiction:e.contradiction})
+    }
+    if(apiRun){run.value={phase:apiRun.phase,phaseSubtitle:apiRun.phase_subtitle,step:apiRun.step,totalSteps:apiRun.total_steps,entitiesFound:apiRun.entities_found,relationsFound:apiRun.relations_found,isComplete:apiRun.is_complete,startedAt:apiRun.started_at};if(apiRun.phase)currentPhase.value=apiRun.phase;if(apiRun.phase_subtitle)phaseDescription.value=apiRun.phase_subtitle
+      // 同步顶层 isComplete（供 GraphProgressPanel 计时停止）
+      if(apiRun.is_complete) isComplete.value = true
+      // 用后端 started_at 还原计时起点（RFC3339 字符串 → ms）
+      if(apiRun.started_at) {
+        const t = new Date(apiRun.started_at).getTime()
+        if (t > 0) startTime.value = t
+      }
+    }
     updateEntityCounts();syncToRefs()
   }
   function reset() {
     nodesMap.clear();edgesMap.clear();run.value=null;lastSeq.value=0;isComplete.value=false
     currentPhase.value="broad_search";phaseDescription.value="正在广域检索生物医学实体..."
+    startEntityNames.value=[];frozenElapsed.value=null
     startTime.value=Date.now();recentDiscoveries.value=[];entityCounts.value={};syncToRefs()
   }
-  watch([nodes,links],()=>{refreshKey.value++},{deep:true})
-  return { nodes,links,graphData,run,currentPhase,phaseDescription,startTime,isComplete,recentDiscoveries,entityCounts,totalNodes,totalLinks,refreshKey,applyAgentGraphEvent,patchRun,fetchFullGraph,replaceGraph,reset }
+  // 注意：不要 deep watch nodes/links，force-graph 拖拽会修改 node.x/y
+  // 导致 refreshKey 无限递增 → scheduleUpdate 重置力布局 → 图谱消失
+  // refreshKey 已在 syncToRefs() 中正确递增
+  return { nodes,links,graphData,run,currentPhase,phaseDescription,startTime,isComplete,frozenElapsed,recentDiscoveries,entityCounts,totalNodes,totalLinks,refreshKey,startEntityNames,applyAgentGraphEvent,patchRun,fetchFullGraph,replaceGraph,reset }
 }
