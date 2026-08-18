@@ -12,6 +12,7 @@
         <GraphCanvas
           :graph-data="graphData"
           :refresh-key="refreshKey"
+          :start-entity-names="startEntityNames"
           @node-click="handleNodeClick"
           @node-hover="handleNodeHover"
         />
@@ -20,6 +21,8 @@
           :start-time="startTime"
           :entity-counts="entityCounts"
           :recent-discoveries="recentDiscoveries"
+          :is-complete="isComplete"
+          :frozen-elapsed="frozenElapsed"
           class="kg-progress-overlay"
         />
       </div>
@@ -54,9 +57,9 @@ interface Props {
 const props = defineProps<Props>()
 
 const {
-  graphData, currentPhase, startTime,
+  graphData, currentPhase, startTime, isComplete, frozenElapsed,
   recentDiscoveries, entityCounts,
-  totalNodes, totalLinks, refreshKey,
+  totalNodes, totalLinks, refreshKey, startEntityNames,
   applyAgentGraphEvent, fetchFullGraph, reset,
 } = useKnowledgeGraph()
 
@@ -85,7 +88,6 @@ function handleNodeHover(node: GraphNodeView | null) {
 function handleKGEvent(evt: Event) {
   const e = (evt as CustomEvent).detail
   if (e?.type === 'agent_graph' && e.payload) {
-    console.log('[KG-Component] received kg-sse-event:', e.graph_event)
     applyAgentGraphEvent(e.payload)
   }
 }
@@ -93,8 +95,11 @@ function handleKGEvent(evt: Event) {
 onMounted(() => {
   window.addEventListener('kg-sse-event', handleKGEvent)
 
-  // 历史消息：消息已完成时直接从后端拉取完整图谱
-  if (props.isCompleted && props.sessionId && props.messageId) {
+  // 1. 先从 agentEventStream 回放已有事件
+  replayGraphEvents()
+
+  // 2. 有 sessionId/messageId 时从后端拉取完整图谱（覆盖回放结果，确保数据完整）
+  if (props.sessionId && props.messageId) {
     fetchFullGraph(props.sessionId, props.messageId)
   }
 })
@@ -103,15 +108,50 @@ onUnmounted(() => {
   window.removeEventListener('kg-sse-event', handleKGEvent)
 })
 
-// 当消息完成时，触发全量 GET 对齐
+// 从 agentEventStream 回放图谱事件重建图谱
+function replayGraphEvents() {
+  const stream = props.agentEventStream as any[] | undefined
+  if (!stream?.length) return
+  for (const evt of stream) {
+    if (evt.type === 'agent_graph' && evt.payload) {
+      applyAgentGraphEvent(evt.payload)
+    }
+  }
+}
+
+// 当消息完成时：停止计时
 watch(
   () => props.isCompleted,
   (completed) => {
-    if (completed && props.sessionId && props.messageId) {
-      fetchFullGraph(props.sessionId, props.messageId)
+    if (completed) {
+      isComplete.value = true
     }
   },
 )
+// 监听 agentEventStream 变化回放图谱事件 + 检测 stop
+watch(
+  () => props.agentEventStream,
+  (stream) => {
+    if (stream?.some((e: any) => e.type === 'stop')) {
+      isComplete.value = true
+    }
+    // 回放重建图谱
+    replayGraphEvents()
+  },
+  { deep: true, immediate: true },
+)
+// 三重保险：轮询检测 is_completed 属性（应对 Vue 深层响应式丢失）
+let pollTimer: ReturnType<typeof setInterval> | null = null
+onMounted(() => {
+  pollTimer = setInterval(() => {
+    if (props.isCompleted && !isComplete.value) {
+      isComplete.value = true
+    }
+  }, 500)
+})
+onUnmounted(() => {
+  if (pollTimer) clearInterval(pollTimer)
+})
 </script>
 
 <style scoped>
@@ -162,7 +202,7 @@ watch(
 .kg-canvas-wrapper {
   position: relative;
   width: 100%;
-  height: 400px;
+  height: 550px;
   border-radius: 8px;
   overflow: hidden;
   background: rgba(15, 15, 35, 0.4);

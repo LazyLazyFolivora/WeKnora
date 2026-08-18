@@ -22,16 +22,16 @@
             </div>
             <template v-else>
                 <docInfo v-if="session.knowledge_references?.length" :session="session"></docInfo>
+                <!-- 知识图谱放在回答之前 -->
+                <KnowledgeGraph v-show="session.isAgentMode || hasGraphData"
+                    :session-id="sessionId"
+                    :message-id="session.id"
+                    :agent-event-stream="session.agentEventStream"
+                    :is-completed="session.is_completed" />
                 <AgentStreamDisplay :session="session" :session-id="sessionId" :user-query="userQuery"
                     v-if="session.isAgentMode" :follow-up-loading="followUpLoading"
                     @render-complete-change="emit('render-complete-change', $event)" />
             </template>
-            <!-- 知识图谱：Agent 模式下渲染，完成后保持显示（v-show 不卸载组件） -->
-            <KnowledgeGraph v-show="session.isAgentMode || hasGraphData"
-                :session-id="sessionId"
-                :message-id="session.id"
-                :agent-event-stream="session.agentEventStream"
-                :is-completed="session.is_completed" />
             <deepThink :deepSession="session" v-if="session.showThink && !session.isAgentMode"></deepThink>
         </div>
         <!-- 非 Agent 模式下才显示传统的 markdown 渲染 -->
