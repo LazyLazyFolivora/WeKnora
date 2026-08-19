@@ -60,6 +60,8 @@ export interface GraphNodeView {
   y?: number
   fx?: number | null
   fy?: number | null
+  /** 节点创建时间戳（ms），用于浮现动画。历史回放节点不设置。 */
+  _createdAt?: number
 }
 
 /** 图谱边（前端视图层，对齐协议 §0 GraphEdgeView） */
@@ -69,6 +71,8 @@ export interface GraphEdgeView {
   target: string | GraphNodeView
   relationType: string
   contradiction?: boolean // true = 与已有证据矛盾，红色虚线 + 闪烁
+  /** 边创建时间戳（ms），用于生长动画。历史回放边不设置。 */
+  _createdAt?: number
 }
 
 /** 图谱数据（传给 force-graph） */

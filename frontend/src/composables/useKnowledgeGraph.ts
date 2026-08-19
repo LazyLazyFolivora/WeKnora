@@ -19,7 +19,7 @@ export function useKnowledgeGraph() {
   const refreshKey = ref(0)
   const currentPhase = ref<KGPhase>("broad_search")
   const phaseDescription = ref("正在广域检索生物医学实体...")
-  const startTime = ref(Date.now())
+  const startTime = ref<number | null>(null) // null = 尚未开始，图谱有数据后才启动计时
   const recentDiscoveries = ref<Array<{ time: string; text: string }>>([])
   const entityCounts = ref<Record<string, number>>({})
   // 历史消息预计算时长（秒），非 null 时 GraphProgressPanel 直接显示此值
@@ -73,6 +73,7 @@ export function useKnowledgeGraph() {
         sourceKb: opts.sourceKb,
         x: Math.cos(angle) * dist,
         y: Math.sin(angle) * dist,
+        _createdAt: Date.now(), // 记录创建时间，用于浮现动画
       })
     }
   }
@@ -80,9 +81,10 @@ export function useKnowledgeGraph() {
     const id = edgeId(s, t, r)
     if (edgesMap.has(id)) {
       // 后写覆盖同名边（允许 contradiction 状态更新）
-      edgesMap.set(id, { id, source: s, target: t, relationType: r, contradiction })
+      const existing = edgesMap.get(id)!
+      if (contradiction !== undefined) existing.contradiction = contradiction
     } else {
-      edgesMap.set(id, { id, source: s, target: t, relationType: r, contradiction })
+      edgesMap.set(id, { id, source: s, target: t, relationType: r, contradiction, _createdAt: Date.now() })
     }
   }
   function applyAgentGraphEvent(payload: Record<string, any>) {
@@ -127,6 +129,10 @@ export function useKnowledgeGraph() {
       case "LiteratureSearching": addDiscovery("正在检索相关文献...",payload.timestamp);break
       case "RunComplete": isComplete.value=true;if(run.value){run.value.isComplete=true;if(payload.total_steps!==undefined)run.value.totalSteps=payload.total_steps}addDiscovery("✅ 图谱构建完成",payload.timestamp);break
     }
+    // 首个 SSE 事件到达时，记录图谱开始生长的时刻作为计时起点
+    if (startTime.value === null) {
+      startTime.value = Date.now()
+    }
     updateEntityCounts();syncToRefs()
   }
   function patchRun(payload: Record<string, any>) {
@@ -146,6 +152,14 @@ export function useKnowledgeGraph() {
           const startMs = new Date(data.run.started_at).getTime()
           frozenElapsed.value = Math.max(0, Math.floor((Date.now() - startMs) / 1000))
           startTime.value = startMs
+        }
+      }
+      // 如果 startEntityNames 为空，从 API 响应中提取 status="planned" 的节点作为起始节点
+      if (startEntityNames.value.length === 0 && data.nodes?.length) {
+        for (const n of data.nodes) {
+          if (n.status === 'planned' && !startEntityNames.value.includes(n.entity_name)) {
+            startEntityNames.value.push(n.entity_name)
+          }
         }
       }
     } catch (err: any) {
@@ -182,7 +196,7 @@ export function useKnowledgeGraph() {
     nodesMap.clear();edgesMap.clear();run.value=null;lastSeq.value=0;isComplete.value=false
     currentPhase.value="broad_search";phaseDescription.value="正在广域检索生物医学实体..."
     startEntityNames.value=[];frozenElapsed.value=null
-    startTime.value=Date.now();recentDiscoveries.value=[];entityCounts.value={};syncToRefs()
+    startTime.value=null;recentDiscoveries.value=[];entityCounts.value={};syncToRefs()
   }
   // 注意：不要 deep watch nodes/links，force-graph 拖拽会修改 node.x/y
   // 导致 refreshKey 无限递增 → scheduleUpdate 重置力布局 → 图谱消失
