@@ -199,33 +199,39 @@ func (r *agentGraphRepository) UpsertNode(ctx context.Context, node *types.Agent
 
 	// EntityPlanned / EntitySearching: status only advances planned → searching →
 	// confirmed, never downgrades an already-advanced node.
+	updates := map[string]interface{}{
+		"stream_key": node.StreamKey,
+		"last_seq": gorm.Expr(
+			"CASE WHEN agent_graph_nodes.last_seq < ? THEN ? ELSE agent_graph_nodes.last_seq END",
+			node.LastSeq, node.LastSeq,
+		),
+		"last_msg_seq": gorm.Expr(
+			"CASE WHEN agent_graph_nodes.last_msg_seq < ? THEN ? ELSE agent_graph_nodes.last_msg_seq END",
+			node.LastMsgSeq, node.LastMsgSeq,
+		),
+		"entity_type": gorm.Expr(
+			"CASE WHEN ? <> '' THEN ? ELSE agent_graph_nodes.entity_type END",
+			node.EntityType, node.EntityType,
+		),
+		"status": gorm.Expr(
+			"CASE WHEN agent_graph_nodes.status = 'confirmed' OR ? = 'confirmed' THEN 'confirmed' "+
+				"WHEN agent_graph_nodes.status = 'searching' OR ? = 'searching' THEN 'searching' ELSE 'planned' END",
+			node.Status, node.Status,
+		),
+		"source_kb": gorm.Expr(
+			"CASE WHEN agent_graph_nodes.source_kb = '' AND ? <> '' THEN ? ELSE agent_graph_nodes.source_kb END",
+			node.SourceKB, node.SourceKB,
+		),
+		"updated_at": now,
+	}
+	// Only EntityPlanned carries confidence; searching/confirmed pass nil, so omit
+	// the column here to avoid nulling out a score set at plan time.
+	if node.Confidence != nil {
+		updates["confidence"] = *node.Confidence
+	}
 	return r.db.WithContext(ctx).Clauses(clause.OnConflict{
-		Columns: []clause.Column{{Name: "message_id"}, {Name: "entity_name"}},
-		DoUpdates: clause.Assignments(map[string]interface{}{
-			"stream_key": node.StreamKey,
-			"last_seq": gorm.Expr(
-				"CASE WHEN agent_graph_nodes.last_seq < ? THEN ? ELSE agent_graph_nodes.last_seq END",
-				node.LastSeq, node.LastSeq,
-			),
-			"last_msg_seq": gorm.Expr(
-				"CASE WHEN agent_graph_nodes.last_msg_seq < ? THEN ? ELSE agent_graph_nodes.last_msg_seq END",
-				node.LastMsgSeq, node.LastMsgSeq,
-			),
-			"entity_type": gorm.Expr(
-				"CASE WHEN ? <> '' THEN ? ELSE agent_graph_nodes.entity_type END",
-				node.EntityType, node.EntityType,
-			),
-			"status": gorm.Expr(
-				"CASE WHEN agent_graph_nodes.status = 'confirmed' OR ? = 'confirmed' THEN 'confirmed' "+
-					"WHEN agent_graph_nodes.status = 'searching' OR ? = 'searching' THEN 'searching' ELSE 'planned' END",
-				node.Status, node.Status,
-			),
-			"source_kb": gorm.Expr(
-				"CASE WHEN agent_graph_nodes.source_kb = '' AND ? <> '' THEN ? ELSE agent_graph_nodes.source_kb END",
-				node.SourceKB, node.SourceKB,
-			),
-			"updated_at": now,
-		}),
+		Columns:   []clause.Column{{Name: "message_id"}, {Name: "entity_name"}},
+		DoUpdates: clause.Assignments(updates),
 	}).Create(node).Error
 }
 
@@ -293,6 +299,7 @@ func (r *agentGraphRepository) UpsertEdge(ctx context.Context, edge *types.Agent
 		},
 		DoUpdates: clause.Assignments(map[string]interface{}{
 			"stream_key": edge.StreamKey,
+			"strength":   edge.Strength,
 			"last_seq": gorm.Expr(
 				"CASE WHEN agent_graph_edges.last_seq < ? THEN ? ELSE agent_graph_edges.last_seq END",
 				edge.LastSeq, edge.LastSeq,
@@ -321,6 +328,7 @@ func (r *agentGraphRepository) UpsertEdgeReconcile(ctx context.Context, edge *ty
 		},
 		DoUpdates: clause.Assignments(map[string]interface{}{
 			"stream_key": edge.StreamKey,
+			"strength":   edge.Strength,
 			"updated_at": now,
 		}),
 	}).Create(edge).Error

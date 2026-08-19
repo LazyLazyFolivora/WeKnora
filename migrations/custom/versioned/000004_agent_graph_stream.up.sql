@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS agent_graph_nodes (
     status       VARCHAR(32)  NOT NULL DEFAULT 'searching',  -- planned|searching|confirmed
     source_kb    VARCHAR(100) NOT NULL DEFAULT '',
     observations JSONB        NOT NULL DEFAULT '[]',
+    confidence   DOUBLE PRECISION,  -- EntityPlanned.confidence (0..1); NULL = not scored
     first_seq    BIGINT       NOT NULL,
     last_seq     BIGINT       NOT NULL,
     first_msg_seq BIGINT      NOT NULL DEFAULT 0,
@@ -81,6 +82,7 @@ CREATE TABLE IF NOT EXISTS agent_graph_edges (
     source_entity VARCHAR(500) NOT NULL,
     target_entity VARCHAR(500) NOT NULL,
     relation_type VARCHAR(200) NOT NULL DEFAULT '',
+    strength      DOUBLE PRECISION NOT NULL DEFAULT 0.5,  -- RelationFound.strength (0..1)
     first_seq     BIGINT       NOT NULL,
     last_seq      BIGINT       NOT NULL,
     first_msg_seq BIGINT       NOT NULL DEFAULT 0,
