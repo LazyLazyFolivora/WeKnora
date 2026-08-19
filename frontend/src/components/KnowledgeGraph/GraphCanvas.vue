@@ -20,7 +20,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, onUnmounted } from 'vue'
 import ForceGraph from 'force-graph'
-import type { GraphNodeView, KGData } from '@/types/knowledge-graph'
+import type { GraphNodeView, KGData, KGPhase } from '@/types/knowledge-graph'
 import { ENTITY_COLORS } from '@/types/knowledge-graph'
 
 interface Props {
@@ -28,11 +28,13 @@ interface Props {
   entityColors?: Record<string, string>
   refreshKey?: number
   startEntityNames?: string[]
+  currentPhase?: KGPhase
 }
 
 const props = withDefaults(defineProps<Props>(), {
   entityColors: () => ENTITY_COLORS,
   startEntityNames: () => [],
+  currentPhase: 'broad_search',
 })
 
 const emit = defineEmits<{
@@ -52,6 +54,48 @@ let blinkTimer: ReturnType<typeof setInterval> | null = null
 // ── 辅助：判断连线是否矛盾（force-graph 会将 source/target 解析为对象）──
 function isContradiction(l: any): boolean {
   return l.contradiction === true || (l as any).is_contradiction === true
+}
+
+// ── 节点浮现 / 边生长动画 ──
+const NODE_ANIM_MS = 600   // 节点从出现到完全可见的时长
+const EDGE_ANIM_MS = 800   // 边从出现到"生长完成"的时长
+const animatingNodeIds = new Set<string>()  // 正在浮现的节点 ID
+const animatingEdgeIds = new Set<string>()  // 正在生长的边 ID
+let animRafId = 0
+let prevNodeIds = new Set<string>()  // 上次 update 时的节点 ID 集合，用于检测新增
+let prevEdgeIds = new Set<string>()  // 上次 update 时的边 ID 集合
+
+/** easeOutCubic: 0→1 缓出 */
+function easeOutCubic(t: number): number { return 1 - Math.pow(1 - t, 3) }
+
+/** 将 #RRGGBB 转为 rgba(r,g,b,alpha) */
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return `rgba(${r},${g},${b},${alpha})`
+}
+
+/** 启动动画循环：在动画期间保持力模拟活跃以触发重绘 */
+function startAnimLoop() {
+  let lastWarm = 0
+  function tick() {
+    if (animatingNodeIds.size === 0 && animatingEdgeIds.size === 0) return
+    const now = Date.now()
+    // 每200ms 检查一次模拟是否冷却，若已冷却则给一个小 alpha 保持活跃
+    if (graph && now - lastWarm > 200) {
+      try {
+        const engine = (graph as any).Engine?.()
+        if (engine && typeof engine.alpha === 'function' && engine.alpha() < engine.alphaMin()) {
+          engine.alpha(0.05).restart()
+        }
+      } catch { /* Engine API 可能不存在，静默忽略 */ }
+      lastWarm = now
+    }
+    animRafId = requestAnimationFrame(tick)
+  }
+  cancelAnimationFrame(animRafId)
+  animRafId = requestAnimationFrame(tick)
 }
 
 // ── 起始节点标签（多标签 HTML 覆盖层）──
@@ -99,17 +143,58 @@ function isDimmed(n: any): boolean {
 let updatePending = false
 let lastNodeCount = 0
 let lastLinkCount = 0
+let hasRecentered = false // 是否已做首次居中（只在首批节点到达后执行一次）
 function scheduleUpdate(data: KGData) {
   if (updatePending) return
   // 只有节点数或连线数变化时才需要更新 force-graph
   if (data.nodes.length === lastNodeCount && data.links.length === lastLinkCount) return
   updatePending = true
+
+  // ── 检测新增节点/边，注册动画 ──
+  let hasNew = false
+  for (const n of data.nodes) {
+    if (!prevNodeIds.has(n.id)) {
+      animatingNodeIds.add(n.id)
+      hasNew = true
+      setTimeout(() => {
+        animatingNodeIds.delete(n.id)
+        if (animatingNodeIds.size === 0 && animatingEdgeIds.size === 0) cancelAnimationFrame(animRafId)
+      }, NODE_ANIM_MS + 50) // +50ms 余量
+    }
+  }
+  for (const l of data.links) {
+    if (!prevEdgeIds.has(l.id)) {
+      animatingEdgeIds.add(l.id)
+      hasNew = true
+      setTimeout(() => {
+        animatingEdgeIds.delete(l.id)
+        if (animatingNodeIds.size === 0 && animatingEdgeIds.size === 0) cancelAnimationFrame(animRafId)
+      }, EDGE_ANIM_MS + 50)
+    }
+  }
+  prevNodeIds = new Set(data.nodes.map(n => n.id))
+  prevEdgeIds = new Set(data.links.map(l => l.id))
+  if (hasNew) startAnimLoop()
+
   requestAnimationFrame(() => {
     updatePending = false
     if (!graph) return
     lastNodeCount = data.nodes.length
     lastLinkCount = data.links.length
     graph.graphData(data)
+
+    // 首批节点到达后，居中视口到节点实际中心（修正小地图视口矩形位置）
+    if (!hasRecentered && data.nodes.length > 0) {
+      hasRecentered = true
+      let cx = 0, cy = 0, cnt = 0
+      for (const n of data.nodes) {
+        if (n.x != null && n.y != null) { cx += n.x; cy += n.y; cnt++ }
+      }
+      if (cnt > 0) {
+        cx /= cnt; cy /= cnt
+        graph.centerAt(cx, cy, 400) // 400ms 平滑过渡到中心
+      }
+    }
   })
 }
 
@@ -178,23 +263,27 @@ function drawMinimap() {
     ctx.fill()
   }
 
-  // 绘制当前视口矩形
-  if (containerRef.value && nodes.length > 0) {
-    const el = containerRef.value
-    const cw = el.clientWidth
-    const ch = el.clientHeight
-    const zoom = graph.zoom()
-    // 以 graph center 为基准绘制视口矩形
-    const center = graph.centerAt()
-    const vl = center.x - cw / (2 * zoom)
-    const vt = center.y - ch / (2 * zoom)
-    const vr = center.x + cw / (2 * zoom)
-    const vb = center.y + ch / (2 * zoom)
-    const tl = toMM(vl, vt)
-    const br = toMM(vr, vb)
-    ctx.strokeStyle = 'rgba(96,165,250,0.7)'
-    ctx.lineWidth = 1.5
-    ctx.strokeRect(tl.x, tl.y, br.x - tl.x, br.y - tl.y)
+  // 绘制当前视口矩形（蓝色框 = 主画布可见区域）
+  if (containerRef.value) {
+    const cw = containerRef.value.clientWidth
+    const ch = containerRef.value.clientHeight
+    // 用 screen2GraphCoords 转换屏幕四角→图谱坐标，最可靠
+    const tl_g = graph.screen2GraphCoords(0, 0)
+    const br_g = graph.screen2GraphCoords(cw, ch)
+    const tl = toMM(tl_g.x, tl_g.y)
+    const br = toMM(br_g.x, br_g.y)
+    // 裁剪到小地图画布范围内
+    const x1 = Math.max(0, Math.min(MM_W, tl.x))
+    const y1 = Math.max(0, Math.min(MM_H, tl.y))
+    const x2 = Math.max(0, Math.min(MM_W, br.x))
+    const y2 = Math.max(0, Math.min(MM_H, br.y))
+    if (x2 > x1 && y2 > y1) {
+      ctx.fillStyle = 'rgba(96,165,250,0.12)'
+      ctx.fillRect(x1, y1, x2 - x1, y2 - y1)
+      ctx.strokeStyle = 'rgba(96,165,250,0.8)'
+      ctx.lineWidth = 1.5
+      ctx.strokeRect(x1, y1, x2 - x1, y2 - y1)
+    }
   }
 }
 
@@ -236,10 +325,22 @@ onMounted(() => {
 
   graph = ForceGraph()(containerRef.value)
     .backgroundColor('rgba(15, 15, 35, 0.4)')
-    .nodeVal(12)
-    // 内置渲染：nodeColor 按 status 区分视觉
+    .nodeVal((n: any) => {
+      // 节点浮现动画：从小到大
+      if (animatingNodeIds.has(n.id) && n._createdAt) {
+        const progress = Math.min(1, (Date.now() - n._createdAt) / NODE_ANIM_MS)
+        return 12 * easeOutCubic(progress)
+      }
+      return 12
+    })
+    // 内置渲染：nodeColor 按 status 区分视觉 + 浮现动画
     .nodeColor((n: any) => {
       const base = props.entityColors[n.entityType] || '#888'
+      // 节点浮现动画：从透明渐变到不透明
+      if (animatingNodeIds.has(n.id) && n._createdAt) {
+        const progress = Math.min(1, (Date.now() - n._createdAt) / NODE_ANIM_MS)
+        return hexToRgba(base, easeOutCubic(progress))
+      }
       if (isDimmed(n)) return base + '33'
       if (n.status === 'planned') return '#6b7280'     // 灰色：预生成
       if (n.status === 'searching') return base + 'aa'  // 淡色：搜索中
@@ -266,9 +367,21 @@ onMounted(() => {
         : 'rgba(255,255,255,0.04)'
     })
     .linkLineDash((l: any) => isContradiction(l) ? [6, 4] : null)
-    .linkDirectionalParticles((l: any) => isContradiction(l) ? 3 : 1)
+    .linkDirectionalParticles((l: any) => {
+      if (isContradiction(l)) return 3
+      // 边生长动画：新边用更多粒子模拟流动生长
+      if (animatingEdgeIds.has(l.id)) return 5
+      // 阶段差异化：广度检索更活跃，深度挖掘更沉稳
+      return PHASE_FORCE_CONFIG[props.currentPhase]?.particleCount ?? 1
+    })
     .linkDirectionalParticleWidth((l: any) => isContradiction(l) ? 2.5 : 1.5)
-    .linkDirectionalParticleSpeed(0.004)
+    .linkDirectionalParticleSpeed((l: any) => {
+      if (isContradiction(l)) return 0.004
+      // 边生长动画：新边粒子速度更快
+      if (animatingEdgeIds.has(l.id)) return 0.018
+      // 阶段差异化
+      return PHASE_FORCE_CONFIG[props.currentPhase]?.particleSpeed ?? 0.004
+    })
     .linkDirectionalParticleColor((l: any) => isContradiction(l)
       ? 'rgba(239,68,68,0.7)'
       : 'rgba(96,165,250,0.5)')
@@ -292,10 +405,16 @@ onMounted(() => {
     .cooldownTicks(100)
     .cooldownTime(3000)
 
-  graph.d3Force('charge')?.strength(-300)
-  graph.d3Force('link')?.distance(200)
+  // 根据初始 phase 设置力布局参数
+  applyPhaseForces(props.currentPhase)
 
   graph.graphData(props.graphData)
+
+  // 初始化动画追踪集合（初始数据不需要动画）
+  prevNodeIds = new Set(props.graphData.nodes.map(n => n.id))
+  prevEdgeIds = new Set(props.graphData.links.map(l => l.id))
+  lastNodeCount = props.graphData.nodes.length
+  lastLinkCount = props.graphData.links.length
 
   // 居中到节点实际中心（而非 0,0），避免力模拟偏移导致小地图不对齐
   const gNodes = props.graphData.nodes
@@ -324,9 +443,64 @@ watch(
   },
 )
 
+// 阶段切换时调整力布局参数
+watch(
+  () => props.currentPhase,
+  (phase) => {
+    if (phase) applyPhaseForces(phase)
+  },
+)
+
+// ── 阶段切换缩放脉冲：外部通过 ref 调用 ──
+function zoomPulse() {
+  if (!graph) return
+  const currentZoom = graph.zoom()
+  graph.zoom(currentZoom * 0.85, 400)   // 缩小
+  setTimeout(() => graph.zoom(currentZoom, 500), 420) // 恢复
+}
+
+// ── 广度/深度阶段差异化力布局参数 ──
+const PHASE_FORCE_CONFIG = {
+  broad_search: {
+    chargeStrength: -400,    // 强排斥 → 节点散开
+    linkDistance: 250,        // 远距离 → 大范围扫描感
+    alphaDecay: 0.015,       // 慢冷却 → 持续运动
+    particleCount: 2,        // 更多粒子 → 活跃流动感
+    particleSpeed: 0.006,    // 更快粒子
+  },
+  deep_dive: {
+    chargeStrength: -120,    // 弱排斥 → 节点紧凑聚焦
+    linkDistance: 120,        // 短距离 → 聚焦深入感
+    alphaDecay: 0.03,        // 快冷却 → 快速稳定
+    particleCount: 1,        // 更少粒子 → 沉稳
+    particleSpeed: 0.003,    // 更慢粒子
+  },
+}
+
+function applyPhaseForces(phase: KGPhase) {
+  if (!graph) return
+  const cfg = PHASE_FORCE_CONFIG[phase] ?? PHASE_FORCE_CONFIG.broad_search
+  graph.d3Force('charge')?.strength(cfg.chargeStrength)
+  graph.d3Force('link')?.distance(cfg.linkDistance)
+  // 通过 d3AlphaDecay 调整冷却速度；重新加热力模拟让节点响应新参数
+  graph.d3AlphaDecay(cfg.alphaDecay)
+  try {
+    // force-graph 内部的 d3-force simulation
+    const sim = (graph as any).d3Force?.()
+    if (sim && typeof sim.alpha === 'function') {
+      sim.alpha(0.3).restart()
+    }
+  } catch { /* 静默忽略 */ }
+}
+
+defineExpose({ zoomPulse })
+
 onUnmounted(() => {
   cancelAnimationFrame(labelRafId)
+  cancelAnimationFrame(animRafId)
   if (blinkTimer) clearInterval(blinkTimer)
+  animatingNodeIds.clear()
+  animatingEdgeIds.clear()
   if (graph) graph._destructor?.()
 })
 </script>

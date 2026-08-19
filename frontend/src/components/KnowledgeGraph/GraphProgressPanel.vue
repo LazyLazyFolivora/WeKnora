@@ -31,7 +31,7 @@ import { ENTITY_COLORS, ENTITY_TYPE_NAMES } from '@/types/knowledge-graph'
 
 interface Props {
   currentPhase: KGPhase
-  startTime: number
+  startTime: number | null
   entityCounts: Record<string, number>
   recentDiscoveries: Array<{ time: string; text: string }>
   isComplete?: boolean
@@ -41,7 +41,6 @@ interface Props {
 const props = defineProps<Props>()
 
 const now = ref(Date.now())
-const frozenTime = ref<number | null>(null) // 完成时冻结的最终时间
 const panelCollapsed = ref(false)
 let timer: ReturnType<typeof setInterval> | null = null
 
@@ -56,6 +55,12 @@ const phaseClass = computed(() => {
 })
 
 const elapsedTime = computed(() => {
+  // 依赖 now.value 以确保每秒触发重算
+  void now.value
+  // 已完成时隐藏计时
+  if (props.isComplete) return ''
+  // startTime 尚未就绪（null），不显示计时
+  if (props.startTime == null) return ''
   // 优先使用预计算的冻结时长（历史消息）
   if (props.frozenElapsed != null) {
     const min = String(Math.floor(props.frozenElapsed / 60)).padStart(2, '0')
@@ -63,31 +68,41 @@ const elapsedTime = computed(() => {
     return `用时 ${min}:${sec}`
   }
   // 实时计时
-  const end = frozenTime.value ?? now.value
-  const elapsed = Math.max(0, Math.floor((end - props.startTime) / 1000))
+  const elapsed = Math.max(0, Math.floor((Date.now() - props.startTime) / 1000))
   const min = String(Math.floor(elapsed / 60)).padStart(2, '0')
   const sec = String(elapsed % 60).padStart(2, '0')
-  return props.isComplete ? `用时 ${min}:${sec}` : `${min}:${sec}`
+  return `${min}:${sec}`
 })
 
 const entityColors = ENTITY_COLORS
 
-// 完成时冻结计时器
+function startTimer() {
+  if (timer) return
+  timer = setInterval(() => { now.value = Date.now() }, 1000)
+}
+
+function stopTimer() {
+  if (timer) { clearInterval(timer); timer = null }
+}
+
+// 完成时停止计时器
 watch(() => props.isComplete, (done) => {
-  if (done) {
-    frozenTime.value = Date.now()
-    if (timer) { clearInterval(timer); timer = null }
-  }
+  if (done) stopTimer()
+}, { immediate: true })
+
+// startTime 从 null → 有值时，启动计时器
+watch(() => props.startTime, (t) => {
+  if (t != null && !props.isComplete) startTimer()
 }, { immediate: true })
 
 onMounted(() => {
-  if (!props.isComplete) {
-    timer = setInterval(() => { now.value = Date.now() }, 1000)
+  if (props.startTime != null && !props.isComplete) {
+    startTimer()
   }
 })
 
 onUnmounted(() => {
-  if (timer) clearInterval(timer)
+  stopTimer()
 })
 </script>
 
