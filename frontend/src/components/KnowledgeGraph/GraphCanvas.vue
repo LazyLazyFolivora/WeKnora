@@ -342,7 +342,7 @@ onMounted(() => {
         return hexToRgba(base, easeOutCubic(progress))
       }
       if (isDimmed(n)) return base + '33'
-      if (n.status === 'planned') return '#6b7280'     // 灰色：预生成
+      if (n.status === 'planned') return '#B0B8C4'     // 灰色：预生成
       if (n.status === 'searching') return base + 'aa'  // 淡色：搜索中
       return base                                        // 实色：已确认
     })

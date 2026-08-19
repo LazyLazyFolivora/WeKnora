@@ -102,7 +102,7 @@ const {
 const graphCanvasRef = ref<InstanceType<typeof GraphCanvas> | null>(null)
 const hoveredNode = ref<GraphNodeView | null>(null)
 const detailNode = ref<GraphNodeView | null>(null)
-const collapsed = ref(false)
+const collapsed = ref(true)
 const entityColors = ENTITY_COLORS
 const hasEverHadData = ref(false)
 
@@ -120,10 +120,15 @@ watch(
   },
 )
 
-// 一旦有过数据，就永远保持可见（用户手动折叠）
+// 首次出现图谱数据时自动展开，之后保持用户手动折叠状态
 watch(
   () => totalNodes.value,
-  (n) => { if (n > 0) hasEverHadData.value = true },
+  (n) => {
+    if (n > 0 && !hasEverHadData.value) {
+      hasEverHadData.value = true
+      collapsed.value = false
+    }
+  },
   { immediate: true },
 )
 

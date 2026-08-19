@@ -23,7 +23,7 @@
             <template v-else>
                 <docInfo v-if="session.knowledge_references?.length" :session="session"></docInfo>
                 <!-- 知识图谱放在回答之前 -->
-                <KnowledgeGraph v-show="session.isAgentMode || hasGraphData"
+                <KnowledgeGraph v-show="hasGraphData"
                     :session-id="sessionId"
                     :message-id="session.id"
                     :agent-event-stream="session.agentEventStream"

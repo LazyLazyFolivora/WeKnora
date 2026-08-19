@@ -13,18 +13,18 @@ export type EntityType =
 
 /** 实体类型颜色映射（对齐后端协议 §4.1） */
 export const ENTITY_COLORS: Record<EntityType, string> = {
-  gene: '#2F6FED',
-  variant: '#7C5CFC',
-  drug: '#0F9F6E',
-  compound: '#0D9488',
-  disease: '#E11D48',
-  pathway: '#D97706',
-  target: '#2563EB',
-  literature: '#64748B',
-  finding: '#DB2777',
-  cell_line: '#0891B2',
-  tissue: '#CA8A04',
-  unknown: '#94A3B8',
+  gene: '#2563EB',
+  variant: '#EA404D',
+  drug: '#15803D',
+  compound: '#4FCC82',
+  disease: '#FF3B3B',
+  pathway: '#7DD3FC',
+  target: '#E3A3E7',
+  literature: '#FFFEF2',
+  finding: '#EAB308',
+  cell_line: '#D9F0A6',
+  tissue: '#8B5CF6',
+  unknown: '#F0A0C0',
 }
 
 /** 实体类型中文名 */
