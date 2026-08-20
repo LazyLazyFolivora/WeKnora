@@ -163,9 +163,9 @@ func (s *agentGraphService) GetSnapshot(
 	}
 
 	snap := &types.AgentGraphSnapshot{
-		Nodes:  []*types.AgentGraphNode{},
-		Edges:  []*types.AgentGraphEdge{},
-		Events: []*types.AgentGraphEvent{},
+		Nodes:   []*types.AgentGraphNode{},
+		Edges:   []*types.AgentGraphEdge{},
+		Events:  []*types.AgentGraphEvent{},
 		LastSeq: afterSeq,
 	}
 
@@ -259,18 +259,19 @@ func (s *agentGraphService) handleEntityPlanned(
 		return repo.AdvanceRunSeq(ctx, tenantID, data.StreamKey, data.Seq, msgSeq, nil)
 	}
 	if err := repo.UpsertNode(ctx, &types.AgentGraphNode{
-		ID:           uuid.NewString(),
-		TenantID:     tenantID,
-		SessionID:    sessionID,
-		MessageID:    messageID,
-		StreamKey:    data.StreamKey,
-		EntityName:   name,
+		ID:         uuid.NewString(),
+		TenantID:   tenantID,
+		SessionID:  sessionID,
+		MessageID:  messageID,
+		StreamKey:  data.StreamKey,
+		EntityName: name,
 		EntityType: normalizeEntityType(firstNonEmpty(
 			asString(data.Payload["entity_type"]), asString(data.Payload["entityType"]),
 		)),
 		Status:       types.AgentGraphNodeStatusPlanned,
 		SourceKB:     asString(data.Payload["source_kb"]),
 		Observations: types.JSON([]byte("[]")),
+		Confidence:   asFloat64Ptr(data.Payload["confidence"]),
 		FirstSeq:     data.Seq,
 		LastSeq:      data.Seq,
 		FirstMsgSeq:  msgSeq,
@@ -290,12 +291,12 @@ func (s *agentGraphService) handleEntitySearching(
 		return repo.AdvanceRunSeq(ctx, tenantID, data.StreamKey, data.Seq, msgSeq, nil)
 	}
 	if err := repo.UpsertNode(ctx, &types.AgentGraphNode{
-		ID:           uuid.NewString(),
-		TenantID:     tenantID,
-		SessionID:    sessionID,
-		MessageID:    messageID,
-		StreamKey:    data.StreamKey,
-		EntityName:   name,
+		ID:         uuid.NewString(),
+		TenantID:   tenantID,
+		SessionID:  sessionID,
+		MessageID:  messageID,
+		StreamKey:  data.StreamKey,
+		EntityName: name,
 		EntityType: normalizeEntityType(firstNonEmpty(
 			asString(data.Payload["entity_type"]), asString(data.Payload["entityType"]),
 		)),
@@ -326,13 +327,13 @@ func (s *agentGraphService) handleEntityConfirmed(
 	}
 	obsJSON, _ := json.Marshal(obs)
 	if err := repo.UpsertNode(ctx, &types.AgentGraphNode{
-		ID:           uuid.NewString(),
-		TenantID:     tenantID,
-		SessionID:    sessionID,
-		MessageID:    messageID,
-		StreamKey:    data.StreamKey,
-		EntityName:   name,
-		EntityType:   normalizeEntityType(firstNonEmpty(
+		ID:         uuid.NewString(),
+		TenantID:   tenantID,
+		SessionID:  sessionID,
+		MessageID:  messageID,
+		StreamKey:  data.StreamKey,
+		EntityName: name,
+		EntityType: normalizeEntityType(firstNonEmpty(
 			asString(data.Payload["entity_type"]), asString(data.Payload["entityType"]),
 		)),
 		Status:       types.AgentGraphNodeStatusConfirmed,
@@ -371,6 +372,7 @@ func (s *agentGraphService) handleRelationFound(
 		SourceEntity: src,
 		TargetEntity: tgt,
 		RelationType: asString(data.Payload["relation_type"]),
+		Strength:     asStrength(data.Payload["strength"]),
 		FirstSeq:     data.Seq,
 		LastSeq:      data.Seq,
 		FirstMsgSeq:  msgSeq,
@@ -444,14 +446,14 @@ func (s *agentGraphService) reconcileSnapshot(
 		}
 		obsJSON, _ := json.Marshal(obs)
 		if err := repo.UpsertNodeReconcile(ctx, &types.AgentGraphNode{
-			ID:           uuid.NewString(),
-			TenantID:     tenantID,
-			SessionID:    sessionID,
-			MessageID:    messageID,
-			StreamKey:    data.StreamKey,
-			EntityName:   name,
+			ID:         uuid.NewString(),
+			TenantID:   tenantID,
+			SessionID:  sessionID,
+			MessageID:  messageID,
+			StreamKey:  data.StreamKey,
+			EntityName: name,
 			// BioDSA memory-graph snapshot uses camelCase entityType / GENE-style values.
-			EntityType:   normalizeEntityType(firstNonEmpty(
+			EntityType: normalizeEntityType(firstNonEmpty(
 				asString(m["entity_type"]), asString(m["entityType"]), asString(m["type"]),
 			)),
 			Status:       types.AgentGraphNodeStatusConfirmed,
@@ -491,10 +493,11 @@ func (s *agentGraphService) reconcileSnapshot(
 			RelationType: firstNonEmpty(
 				asString(m["relation_type"]), asString(m["relationType"]), asString(m["type"]),
 			),
-			FirstSeq:     data.Seq,
-			LastSeq:      data.Seq,
-			FirstMsgSeq:  msgSeq,
-			LastMsgSeq:   msgSeq,
+			Strength:    asStrength(m["strength"]),
+			FirstSeq:    data.Seq,
+			LastSeq:     data.Seq,
+			FirstMsgSeq: msgSeq,
+			LastMsgSeq:  msgSeq,
 		}); err != nil {
 			return err
 		}
@@ -537,6 +540,47 @@ func asFloat64(v any) float64 {
 	default:
 		return 0
 	}
+}
+
+// asFloat64Ptr returns a pointer to the numeric value, or nil when v is not a
+// number. Used for optional event fields (EntityPlanned.confidence) that are
+// absent on the other node events, so we don't overwrite a stored value with 0.
+func asFloat64Ptr(v any) *float64 {
+	switch n := v.(type) {
+	case float64:
+		return &n
+	case float32:
+		f := float64(n)
+		return &f
+	case int:
+		f := float64(n)
+		return &f
+	case int64:
+		f := float64(n)
+		return &f
+	default:
+		return nil
+	}
+}
+
+// asStrength coerces a relation strength into a float clamped to [0,1], falling
+// back to a neutral 0.5 for missing/unparsable values (mirrors BioDSA's
+// normalize_strength in biodsa/memory/memory_graph/schema.py).
+func asStrength(v any) float64 {
+	if p := asFloat64Ptr(v); p != nil {
+		return clamp01(*p)
+	}
+	return 0.5
+}
+
+func clamp01(f float64) float64 {
+	if f < 0 {
+		return 0
+	}
+	if f > 1 {
+		return 1
+	}
+	return f
 }
 
 func asStringSlice(v any) []string {

@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS agent_graph_nodes (
     status        TEXT     NOT NULL DEFAULT 'searching',  -- planned|searching|confirmed
     source_kb     TEXT     NOT NULL DEFAULT '',
     observations  TEXT     NOT NULL DEFAULT '[]',
+    confidence    REAL,  -- EntityPlanned.confidence (0..1); NULL = not scored
     first_seq     INTEGER  NOT NULL,
     last_seq      INTEGER  NOT NULL,
     first_msg_seq INTEGER  NOT NULL DEFAULT 0,
@@ -73,6 +74,7 @@ CREATE TABLE IF NOT EXISTS agent_graph_edges (
     source_entity TEXT     NOT NULL,
     target_entity TEXT     NOT NULL,
     relation_type TEXT     NOT NULL DEFAULT '',
+    strength      REAL     NOT NULL DEFAULT 0.5,  -- RelationFound.strength (0..1)
     first_seq     INTEGER  NOT NULL,
     last_seq      INTEGER  NOT NULL,
     first_msg_seq INTEGER  NOT NULL DEFAULT 0,

@@ -73,42 +73,49 @@ func (AgentGraphEvent) TableName() string { return "agent_graph_events" }
 
 // AgentGraphNode is the projected node view for one assistant message.
 type AgentGraphNode struct {
-	ID           string    `json:"id" gorm:"type:varchar(36);primaryKey"`
-	TenantID     uint64    `json:"tenant_id"`
-	SessionID    string    `json:"session_id" gorm:"type:varchar(36)"`
-	MessageID    string    `json:"message_id" gorm:"type:varchar(36)"`
-	StreamKey    string    `json:"stream_key" gorm:"type:varchar(200)"`
-	EntityName   string    `json:"entity_name" gorm:"type:varchar(500)"`
-	EntityType   string    `json:"entity_type" gorm:"type:varchar(100)"`
-	Status       string    `json:"status" gorm:"type:varchar(32)"`
-	SourceKB     string    `json:"source_kb" gorm:"type:varchar(100);column:source_kb"`
-	Observations JSON      `json:"observations" gorm:"type:json"`
-	FirstSeq     int64     `json:"first_seq"`
-	LastSeq      int64     `json:"last_seq"`
-	FirstMsgSeq  int64     `json:"first_msg_seq"`
-	LastMsgSeq   int64     `json:"last_msg_seq"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID           string `json:"id" gorm:"type:varchar(36);primaryKey"`
+	TenantID     uint64 `json:"tenant_id"`
+	SessionID    string `json:"session_id" gorm:"type:varchar(36)"`
+	MessageID    string `json:"message_id" gorm:"type:varchar(36)"`
+	StreamKey    string `json:"stream_key" gorm:"type:varchar(200)"`
+	EntityName   string `json:"entity_name" gorm:"type:varchar(500)"`
+	EntityType   string `json:"entity_type" gorm:"type:varchar(100)"`
+	Status       string `json:"status" gorm:"type:varchar(32)"`
+	SourceKB     string `json:"source_kb" gorm:"type:varchar(100);column:source_kb"`
+	Observations JSON   `json:"observations" gorm:"type:json"`
+	// Confidence is the LLM-scored relevance of the entity to the question
+	// (EntityPlanned.confidence, 0..1). Nil means the entity was never planned
+	// with a score (e.g. created directly via EntityConfirmed or reconcile).
+	Confidence  *float64  `json:"confidence" gorm:"type:double precision"`
+	FirstSeq    int64     `json:"first_seq"`
+	LastSeq     int64     `json:"last_seq"`
+	FirstMsgSeq int64     `json:"first_msg_seq"`
+	LastMsgSeq  int64     `json:"last_msg_seq"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 func (AgentGraphNode) TableName() string { return "agent_graph_nodes" }
 
 // AgentGraphEdge is the projected edge view for one assistant message.
 type AgentGraphEdge struct {
-	ID           string    `json:"id" gorm:"type:varchar(36);primaryKey"`
-	TenantID     uint64    `json:"tenant_id"`
-	SessionID    string    `json:"session_id" gorm:"type:varchar(36)"`
-	MessageID    string    `json:"message_id" gorm:"type:varchar(36)"`
-	StreamKey    string    `json:"stream_key" gorm:"type:varchar(200)"`
-	SourceEntity string    `json:"source_entity" gorm:"type:varchar(500)"`
-	TargetEntity string    `json:"target_entity" gorm:"type:varchar(500)"`
-	RelationType string    `json:"relation_type" gorm:"type:varchar(200)"`
-	FirstSeq     int64     `json:"first_seq"`
-	LastSeq      int64     `json:"last_seq"`
-	FirstMsgSeq  int64     `json:"first_msg_seq"`
-	LastMsgSeq   int64     `json:"last_msg_seq"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID           string `json:"id" gorm:"type:varchar(36);primaryKey"`
+	TenantID     uint64 `json:"tenant_id"`
+	SessionID    string `json:"session_id" gorm:"type:varchar(36)"`
+	MessageID    string `json:"message_id" gorm:"type:varchar(36)"`
+	StreamKey    string `json:"stream_key" gorm:"type:varchar(200)"`
+	SourceEntity string `json:"source_entity" gorm:"type:varchar(500)"`
+	TargetEntity string `json:"target_entity" gorm:"type:varchar(500)"`
+	RelationType string `json:"relation_type" gorm:"type:varchar(200)"`
+	// Strength is the LLM-scored relation confidence (RelationFound.strength,
+	// 0..1, default 0.5). Higher strength renders a thicker edge.
+	Strength    float64   `json:"strength" gorm:"type:double precision;default:0.5"`
+	FirstSeq    int64     `json:"first_seq"`
+	LastSeq     int64     `json:"last_seq"`
+	FirstMsgSeq int64     `json:"first_msg_seq"`
+	LastMsgSeq  int64     `json:"last_msg_seq"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 func (AgentGraphEdge) TableName() string { return "agent_graph_edges" }
