@@ -55,6 +55,8 @@ export interface GraphNodeView {
   status: NodeStatus      // searching = 虚线/脉冲, confirmed = 实色
   observations: string[]
   sourceKb?: string
+  /** 置信度 (0..1)，LLM 评分的实体与问题相关性 */
+  confidence?: number
   // force-graph 渲染坐标（运行时赋值）
   x?: number
   y?: number
@@ -71,6 +73,8 @@ export interface GraphEdgeView {
   target: string | GraphNodeView
   relationType: string
   contradiction?: boolean // true = 与已有证据矛盾，红色虚线 + 闪烁
+  /** 证据强度 (0..1)，默认 0.5。用于计算边宽度 */
+  strength?: number
   /** 边创建时间戳（ms），用于生长动画。历史回放边不设置。 */
   _createdAt?: number
 }
@@ -133,6 +137,7 @@ export interface GraphNodeAPI {
   status: NodeStatus
   observations?: string[]
   source_kb?: string
+  confidence?: number
 }
 
 export interface GraphEdgeAPI {
@@ -140,6 +145,7 @@ export interface GraphEdgeAPI {
   target_entity: string
   relation_type: string
   contradiction?: boolean
+  strength?: number
 }
 
 export interface GraphRunAPI {
