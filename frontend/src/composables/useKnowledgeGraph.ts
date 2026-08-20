@@ -50,7 +50,7 @@ export function useKnowledgeGraph() {
   // 状态等级：只升级不降级
   const STATUS_RANK: Record<string, number> = { planned: 0, searching: 1, confirmed: 2 }
 
-  function upsertNode(name: string, opts: { entityType?: string; status?: "planned" | "searching" | "confirmed"; observations?: string[]; sourceKb?: string }) {
+  function upsertNode(name: string, opts: { entityType?: string; status?: "planned" | "searching" | "confirmed"; observations?: string[]; sourceKb?: string; confidence?: number }) {
     const existing = nodesMap.get(name)
     const nt = normalizeEntityType(opts.entityType)
     if (existing) {
@@ -62,6 +62,7 @@ export function useKnowledgeGraph() {
       }
       if (opts.observations) existing.observations = opts.observations
       if (opts.sourceKb) existing.sourceKb = opts.sourceKb
+      if (opts.confidence !== undefined) existing.confidence = opts.confidence
     } else {
       // 新节点给随机初始位置，避免全部堆在 (0,0)
       const angle = Math.random() * 2 * Math.PI
@@ -71,20 +72,22 @@ export function useKnowledgeGraph() {
         status: opts.status ?? "planned",
         observations: opts.observations ?? [],
         sourceKb: opts.sourceKb,
+        confidence: opts.confidence,
         x: Math.cos(angle) * dist,
         y: Math.sin(angle) * dist,
         _createdAt: Date.now(), // 记录创建时间，用于浮现动画
       })
     }
   }
-  function upsertEdge(s: string, t: string, r: string, contradiction?: boolean) {
+  function upsertEdge(s: string, t: string, r: string, opts?: { contradiction?: boolean; strength?: number }) {
     const id = edgeId(s, t, r)
     if (edgesMap.has(id)) {
-      // 后写覆盖同名边（允许 contradiction 状态更新）
+      // 后写覆盖同名边（允许 contradiction/strength 状态更新）
       const existing = edgesMap.get(id)!
-      if (contradiction !== undefined) existing.contradiction = contradiction
+      if (opts?.contradiction !== undefined) existing.contradiction = opts.contradiction
+      if (opts?.strength !== undefined) existing.strength = opts.strength
     } else {
-      edgesMap.set(id, { id, source: s, target: t, relationType: r, contradiction, _createdAt: Date.now() })
+      edgesMap.set(id, { id, source: s, target: t, relationType: r, contradiction: opts?.contradiction, strength: opts?.strength ?? 0.5, _createdAt: Date.now() })
     }
   }
   function applyAgentGraphEvent(payload: Record<string, any>) {
@@ -93,7 +96,8 @@ export function useKnowledgeGraph() {
       case "EntityPlanned": {
         const n = payload.entity_name as string
         if (n) {
-          upsertNode(n, { entityType: payload.entity_type, status: "planned", sourceKb: payload.source_kb })
+          const confidence = typeof payload.confidence === 'number' ? payload.confidence : undefined
+          upsertNode(n, { entityType: payload.entity_type, status: "planned", sourceKb: payload.source_kb, confidence })
           // EntityPlanned = 用户问题中的关键实体，记录为起始节点
           if (!startEntityNames.value.includes(n)) {
             startEntityNames.value.push(n)
@@ -103,7 +107,11 @@ export function useKnowledgeGraph() {
       }
       case "EntitySearching": {
         const n = payload.entity_name as string
-        if (n) upsertNode(n, { entityType: payload.entity_type, status: "searching", sourceKb: payload.source_kb })
+        if (n) {
+          const confidence = typeof payload.confidence === 'number' ? payload.confidence : undefined
+          upsertNode(n, { entityType: payload.entity_type, status: "searching", sourceKb: payload.source_kb, confidence })
+          // EntitySearching 不记录为起始节点，只有 EntityPlanned 才是起始节点
+        }
         break
       }
       case "EntityConfirmed": {
@@ -114,7 +122,10 @@ export function useKnowledgeGraph() {
       case "RelationFound": {
         const s=payload.source_entity as string, t=payload.target_entity as string, r=payload.relation_type as string
         const contradiction = payload.contradiction === true || payload.is_contradiction === true
-        if(s&&t&&r){upsertEdge(s,t,r,contradiction);addDiscovery(`${contradiction?'⚠️ 矛盾: ':''}${s} → ${r} → ${t}`,payload.timestamp)}
+        const strength = typeof payload.strength === 'number' ? payload.strength : undefined
+        // 调试日志：验证后端是否发送 strength
+        console.log('[KG] RelationFound:', { source: s, target: t, relation: r, strength, contradiction, payload })
+        if(s&&t&&r){upsertEdge(s,t,r,{ contradiction, strength });addDiscovery(`${contradiction?'⚠️ 矛盾: ':''}${s} → ${r} → ${t}`,payload.timestamp)}
         break
       }
       case "PhaseChange": {
@@ -170,7 +181,7 @@ export function useKnowledgeGraph() {
   }
   function replaceGraph(apiNodes: GraphNodeAPI[], apiEdges: GraphEdgeAPI[], apiRun: GraphRunView | null) {
     nodesMap.clear();edgesMap.clear()
-    for(const n of apiNodes){nodesMap.set(n.entity_name,{id:n.entity_name,name:n.entity_name,entityType:normalizeEntityType(n.entity_type),status:n.status??"confirmed",observations:n.observations??[],sourceKb:n.source_kb})}
+    for(const n of apiNodes){nodesMap.set(n.entity_name,{id:n.entity_name,name:n.entity_name,entityType:normalizeEntityType(n.entity_type),status:n.status??"confirmed",observations:n.observations??[],sourceKb:n.source_kb,confidence:n.confidence})}
     // 补全边引用的缺失节点（后端 edges 可能引用了 nodes 中没有的实体）
     for(const e of apiEdges){
       if(e.source_entity && !nodesMap.has(e.source_entity)){
@@ -179,7 +190,7 @@ export function useKnowledgeGraph() {
       if(e.target_entity && !nodesMap.has(e.target_entity)){
         nodesMap.set(e.target_entity,{id:e.target_entity,name:e.target_entity,entityType:'unknown',status:'confirmed',observations:[]})
       }
-      const id=edgeId(e.source_entity,e.target_entity,e.relation_type);edgesMap.set(id,{id,source:e.source_entity,target:e.target_entity,relationType:e.relation_type,contradiction:e.contradiction})
+      const id=edgeId(e.source_entity,e.target_entity,e.relation_type);edgesMap.set(id,{id,source:e.source_entity,target:e.target_entity,relationType:e.relation_type,contradiction:e.contradiction,strength:e.strength??0.5})
     }
     if(apiRun){run.value={phase:apiRun.phase,phaseSubtitle:apiRun.phase_subtitle,step:apiRun.step,totalSteps:apiRun.total_steps,entitiesFound:apiRun.entities_found,relationsFound:apiRun.relations_found,isComplete:apiRun.is_complete,startedAt:apiRun.started_at};if(apiRun.phase)currentPhase.value=apiRun.phase;if(apiRun.phase_subtitle)phaseDescription.value=apiRun.phase_subtitle
       // 同步顶层 isComplete（供 GraphProgressPanel 计时停止）

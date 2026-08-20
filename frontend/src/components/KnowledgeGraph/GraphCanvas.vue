@@ -105,10 +105,11 @@ function updateStartLabels() {
   if (!graph || !containerRef.value) { labelRafId = requestAnimationFrame(updateStartLabels); return }
   const gNodes = graph.graphData().nodes
   const names = props.startEntityNames
-  // 标签：只有 EntityPlanned 事件提供的起始实体才显示
-  if (names.length === 0) { startLabels.value = [] }
-  else {
-    const result: Array<{ name: string; x: number; y: number; text: string }> = []
+  
+  const result: Array<{ name: string; x: number; y: number; text: string }> = []
+  
+  // 优先显示 startEntityNames 中的节点
+  if (names.length > 0) {
     for (const name of names) {
       const node = gNodes.find((n: any) => n.name === name)
       if (node && node.x != null && node.y != null) {
@@ -116,8 +117,24 @@ function updateStartLabels() {
         result.push({ name: node.name, x: pos.x, y: pos.y - 18, text: node.name })
       }
     }
-    startLabels.value = result
+  } else if (gNodes.length > 0) {
+    // 按置信度从高到低排序，显示前15%的节点标签
+    const sortedNodes = [...gNodes]
+      .filter(n => n.x != null && n.y != null)
+      .sort((a, b) => {
+        const confA = (a as any).confidence ?? 0.5
+        const confB = (b as any).confidence ?? 0.5
+        return confB - confA
+      })
+    const topCount = Math.max(1, Math.ceil(sortedNodes.length * 0.15))
+    const nodesToShow = sortedNodes.slice(0, topCount)
+    for (const node of nodesToShow) {
+      const pos = graph.graph2ScreenCoords(node.x!, node.y!)
+      result.push({ name: node.name, x: pos.x, y: pos.y - 18, text: node.name })
+    }
   }
+  
+  startLabels.value = result
   // 小地图每帧都画，不受标签影响
   drawMinimap()
   labelRafId = requestAnimationFrame(updateStartLabels)
@@ -347,24 +364,40 @@ onMounted(() => {
       return base                                        // 实色：已确认
     })
     .nodeLabel(() => '')
-    // 链接样式：矛盾连线红色虚线 + 闪烁，hover 时高亮关联连线
+    // 链接样式：矛盾连线红色虚线 + 闪烁，hover 时高亮关联连线，宽度反映证据强度
     .linkWidth((l: any) => {
       if (isContradiction(l)) return 2
-      if (!hoveredNode) return 1.5
+      // 根据 strength (0..1) 计算边宽度，增强 0.8-0.9 区间的差异
+      const rawStrength = typeof l.strength === 'number' ? l.strength : 0.5
+      // 使用幂函数增强差异：(x - 0.5) * 2 将 [0.5, 1] 映射到 [0, 1]，再平方增强
+      const normalized = Math.pow(Math.max(0, (rawStrength - 0.5) * 2), 2)
+      const baseWidth = 0.8 + normalized * 3.2 // 0.8..4
+      if (!hoveredNode) return baseWidth
       const s = typeof l.source === 'object' ? (l.source as any).id : l.source
       const t = typeof l.target === 'object' ? (l.target as any).id : l.target
-      return (s === hoveredNode.id || t === hoveredNode.id) ? 2.5 : 0.5
+      if (s === hoveredNode.id || t === hoveredNode.id) {
+        // 高亮时根据 strength 显示不同宽度：强度越高越粗
+        return 0.8 + normalized * 3.2 // 保持与基础宽度一致
+      }
+      return 0.5 // 非关联边变细
     })
     .linkColor((l: any) => {
       if (isContradiction(l)) {
         return blinkOn.value ? 'rgba(239,68,68,0.8)' : 'rgba(239,68,68,0.25)'
       }
-      if (!hoveredNode) return 'rgba(255,255,255,0.12)'
+      // 根据 strength 调整透明度，增强 0.8-0.9 区间的差异
+      const rawStrength = typeof l.strength === 'number' ? l.strength : 0.5
+      const normalized = Math.pow(Math.max(0, (rawStrength - 0.5) * 2), 2)
+      const opacity = 0.08 + normalized * 0.52 // 0.08..0.6
+      if (!hoveredNode) return `rgba(255,255,255,${opacity})`
       const s = typeof l.source === 'object' ? (l.source as any).id : l.source
       const t = typeof l.target === 'object' ? (l.target as any).id : l.target
-      return (s === hoveredNode.id || t === hoveredNode.id)
-        ? 'rgba(96,165,250,0.6)'
-        : 'rgba(255,255,255,0.04)'
+      if (s === hoveredNode.id || t === hoveredNode.id) {
+        // 高亮时也根据 strength 显示不同亮度：强度越高越亮
+        const highlightOpacity = 0.3 + normalized * 0.5 // 0.3..0.8
+        return `rgba(96,165,250,${highlightOpacity})`
+      }
+      return `rgba(255,255,255,${opacity * 0.3})`
     })
     .linkLineDash((l: any) => isContradiction(l) ? [6, 4] : null)
     .linkDirectionalParticles((l: any) => {
