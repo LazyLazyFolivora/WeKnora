@@ -13,8 +13,8 @@ import {
 const BUFFER_MIN_MS = 5000   // 消费间隔下限（ms）
 const BUFFER_MAX_MS = 10000  // 消费间隔上限（ms）
 const SPRINT_MS = 250        // 收尾冲刺：完成信号后剩余缓冲的快速消费间隔
-const BUFFER_FAST_MS = 1500  // 缓冲堆积时的加速消费间隔（防止图谱落后回答太多）
-const BUFFER_HIGH_WATER = 4  // 缓冲水位阈值：待消费事件数超过此值则加速
+const BUFFER_FAST_MS = 3000  // 缓冲堆积时的加速消费间隔（防止图谱落后回答太多）
+const BUFFER_HIGH_WATER = 10 // 缓冲水位阈值：待消费事件数超过此值则加速
 const IMMEDIATE_EVENT_TYPES = new Set([
   'PhaseChange', 'Progress', 'LiteratureSearching', 'RunComplete',
 ])
