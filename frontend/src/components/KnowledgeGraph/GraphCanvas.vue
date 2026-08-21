@@ -68,6 +68,11 @@ function isContradiction(l: any): boolean {
   return l.contradiction === true || (l as any).is_contradiction === true
 }
 
+/** 图中是否存在矛盾边（用于决定是否持续温热力模拟，驱动闪烁持续重绘） */
+function hasContradiction(): boolean {
+  return props.graphData.links.some(isContradiction)
+}
+
 // ── 节点浮现 / 边生长动画 ──
 const NODE_ANIM_MS = 600   // 节点从出现到完全可见的时长
 const EDGE_ANIM_MS = 1200  // 边从出现到"生长完成"的时长
@@ -92,16 +97,15 @@ function hexToRgba(hex: string, alpha: number): string {
 function startAnimLoop() {
   let lastWarm = 0
   function tick() {
-    if (animatingNodeIds.size === 0 && animatingEdgeIds.size === 0) return
+    // 无浮现/生长动画且无矛盾边时停止温热（避免空转烧 CPU）
+    if (animatingNodeIds.size === 0 && animatingEdgeIds.size === 0 && !hasContradiction()) return
     const now = Date.now()
-    // 每200ms 检查一次模拟是否冷却，若已冷却则给一个小 alpha 保持活跃
+    // 每200ms 检查一次，若力模拟已冷却则重新温热，保持持续重绘
+    // （驱动节点浮现/边生长动画推进，以及矛盾边的 600ms 闪烁）
     if (graph && now - lastWarm > 200) {
       try {
-        const engine = (graph as any).Engine?.()
-        if (engine && typeof engine.alpha === 'function' && engine.alpha() < engine.alphaMin()) {
-          engine.alpha(0.05).restart()
-        }
-      } catch { /* Engine API 可能不存在，静默忽略 */ }
+        graph.d3ReheatSimulation?.(0.05)
+      } catch { /* d3ReheatSimulation 不存在时静默忽略 */ }
       lastWarm = now
     }
     animRafId = requestAnimationFrame(tick)
@@ -267,10 +271,13 @@ function scheduleUpdate(data: KGData) {
   if (data.nodes.length === lastNodeCount && data.links.length === lastLinkCount) return
   updatePending = true
 
-  // ── 检测新增节点/边，注册动画 ──
+  // ── 检测新增节点/边，注册动画（先收集新增 id，再覆盖 prev 集合）──
   let hasNew = false
+  const addedNodeIds = new Set<string>()
+  const addedEdgeIds = new Set<string>()
   for (const n of data.nodes) {
     if (!prevNodeIds.has(n.id)) {
+      addedNodeIds.add(n.id)
       animatingNodeIds.add(n.id)
       hasNew = true
       setTimeout(() => {
@@ -281,6 +288,7 @@ function scheduleUpdate(data: KGData) {
   }
   for (const l of data.links) {
     if (!prevEdgeIds.has(l.id)) {
+      addedEdgeIds.add(l.id)
       animatingEdgeIds.add(l.id)
       hasNew = true
       setTimeout(() => {
@@ -295,10 +303,10 @@ function scheduleUpdate(data: KGData) {
 
   // ── 自动追踪新节点/新边 ──
   if (hasNew) {
-    const newNodeList = data.nodes.filter(n => !prevNodeIds.has(n.id) || animatingNodeIds.has(n.id))
+    const newNodeList = data.nodes.filter(n => addedNodeIds.has(n.id))
     panToNewNodes(newNodeList)
     // 新边也触发追踪（边的两端中点）
-    const newEdgeList = data.links.filter(l => !prevEdgeIds.has(l.id))
+    const newEdgeList = data.links.filter(l => addedEdgeIds.has(l.id))
     if (newEdgeList.length > 0) panToNewEdges(newEdgeList)
   }
 
@@ -575,8 +583,14 @@ onMounted(() => {
   // 启动起始节点标签跟踪
   labelRafId = requestAnimationFrame(updateStartLabels)
 
-  // 启动矛盾连线闪烁
-  blinkTimer = setInterval(() => { blinkOn.value = !blinkOn.value }, 600)
+  // 启动矛盾连线闪烁：翻转亮度；存在矛盾边时重新温热力模拟以触发重绘
+  // （不依赖 startAnimLoop，确保历史回放/边属性更新等场景下也能持续闪烁）
+  blinkTimer = setInterval(() => {
+    blinkOn.value = !blinkOn.value
+    if (graph && hasContradiction()) {
+      try { graph.d3ReheatSimulation?.(0.05) } catch { /* 静默忽略 */ }
+    }
+  }, 600)
 })
 
 // refreshKey 变化时用防抖 + 冻结策略更新
