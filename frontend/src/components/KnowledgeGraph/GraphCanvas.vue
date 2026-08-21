@@ -174,12 +174,12 @@ function isDimmed(n: any): boolean {
 
 // ── 自动追踪新节点 ──
 const autoFollow = ref(true)
-let lastPanTime = 0
-const PAN_THROTTLE_MS = 1000 // 两次自动平移的最小间隔
 const FIT_OVERSCALE = 1.15 // 正常大小：图比可视区稍大（整体溢出倍数）
 const MIN_ZOOM_FACTOR = 0.5 // 缩小下限：正常大小的一半
 const MAX_ZOOM_FACTOR = 2 // 放大上限：正常大小的 2 倍
 const PAN_MARGIN_FACTOR = 0.5 // 平移边界：视图中心最多超出图包围盒半个视口（与缩小下限对应）
+// 待对焦的新节点（对象引用）：力模拟稳定后读实时坐标精确对准，避免用初始位置快照导致偏焦
+let pendingFocus: GraphNodeView[] = []
 
 /** 让整图处于「正常大小」（稍大于可视区）并居中，同时设缩小下限，避免缩成一小点 */
 function fitToView(duration = 600) {
@@ -224,55 +224,31 @@ function clampViewPan() {
 
 function toggleFollow() { autoFollow.value = !autoFollow.value }
 
-/** 对焦新节点/新边：镜头中心对准新节点质心，z 轴平滑缩放到「正常大小」（整图稍大于视图），均受缩放上下限约束 */
-function focusToPositions(positions: Array<{x: number, y: number}>) {
-  if (!graph || !autoFollow.value || positions.length === 0) return
-  const now = Date.now()
-  if (now - lastPanTime < PAN_THROTTLE_MS) return
-  lastPanTime = now
-
-  // 计算新节点质心（图坐标）
+/** 对焦：镜头中心对准节点实时质心 + z 轴平滑缩放到「正常大小」（整图稍大于视图），均受缩放上下限约束 */
+function focusToNodes(nodes: GraphNodeView[]) {
+  if (!graph || !autoFollow.value) return
+  // 读取节点「实时」坐标（力模拟稳定后即最终位置），而非初始快照，保证对准不偏焦
+  const positions = nodes.filter(n => n.x != null && n.y != null).map(n => ({ x: n.x!, y: n.y! }))
+  if (positions.length === 0) return
   let cx = 0, cy = 0
   for (const p of positions) { cx += p.x; cy += p.y }
   cx /= positions.length; cy /= positions.length
 
-  setTimeout(() => {
-    if (!graph || !autoFollow.value) return
-    // graphData 已在 rAF 更新后，基于含新节点的整图 bbox 计算「正常大小」缩放系数
-    const bbox = graph.getGraphBbox()
-    if (!bbox) return
-    const gw = (bbox.x[1] - bbox.x[0]) || 1
-    const gh = (bbox.y[1] - bbox.y[0]) || 1
-    const cw = containerRef.value?.clientWidth ?? 300
-    const ch = containerRef.value?.clientHeight ?? 300
-    const k = Math.min(cw / gw, ch / gh) * FIT_OVERSCALE
-    // 同步缩放上下限（图 bbox 变化后「正常大小」也变化）
-    graph.minZoom(k * MIN_ZOOM_FACTOR)
-    graph.maxZoom(k * MAX_ZOOM_FACTOR)
-    // 镜头平滑对准新节点 + z 轴平滑缩放到正常大小（有动画，非突变）
-    graph.centerAt(cx, cy, 600)
-    graph.zoom(k, 600)
-    drawMinimap()
-  }, 50)
-}
-
-/** 适配：将节点数组转为坐标列表传给 focusToPositions */
-function focusToNewNodes(newNodes: GraphNodeView[]) {
-  const positions = newNodes.filter(n => n.x != null && n.y != null).map(n => ({ x: n.x!, y: n.y! }))
-  focusToPositions(positions)
-}
-
-/** 适配：将新边列表转为坐标列表传给 focusToPositions */
-function focusToNewEdges(newEdges: { source: any; target: any }[]) {
-  const positions: Array<{x: number, y: number}> = []
-  for (const e of newEdges) {
-    const s = typeof e.source === 'object' ? e.source : null
-    const t = typeof e.target === 'object' ? e.target : null
-    if (s?.x != null && t?.x != null) {
-      positions.push({ x: (s.x + t.x) / 2, y: (s.y + t.y) / 2 })
-    }
-  }
-  focusToPositions(positions)
+  // 基于含新节点的整图 bbox 计算「正常大小」缩放系数
+  const bbox = graph.getGraphBbox()
+  if (!bbox) return
+  const gw = (bbox.x[1] - bbox.x[0]) || 1
+  const gh = (bbox.y[1] - bbox.y[0]) || 1
+  const cw = containerRef.value?.clientWidth ?? 300
+  const ch = containerRef.value?.clientHeight ?? 300
+  const k = Math.min(cw / gw, ch / gh) * FIT_OVERSCALE
+  // 同步缩放上下限（图 bbox 变化后「正常大小」也变化）
+  graph.minZoom(k * MIN_ZOOM_FACTOR)
+  graph.maxZoom(k * MAX_ZOOM_FACTOR)
+  // 镜头平滑对准 + z 轴平滑缩放到正常大小（有动画，非突变）
+  graph.centerAt(cx, cy, 600)
+  graph.zoom(k, 600)
+  drawMinimap()
 }
 
 /** 图谱生长完成后，缩放展示全貌并关闭追踪 */
@@ -325,13 +301,9 @@ function scheduleUpdate(data: KGData) {
   prevEdgeIds = new Set(data.links.map(l => l.id))
   if (hasNew) startAnimLoop()
 
-  // ── 对焦新节点/新边：镜头对准新节点 + 缩放到正常大小（不移动节点坐标） ──
+  // ── 记录待对焦的新节点：等力模拟稳定后（onEngineStop）读实时坐标精确对准 ──
   if (hasNew) {
-    const newNodeList = data.nodes.filter(n => addedNodeIds.has(n.id))
-    focusToNewNodes(newNodeList)
-    // 新边也触发对焦（边的两端中点）
-    const newEdgeList = data.links.filter(l => addedEdgeIds.has(l.id))
-    if (newEdgeList.length > 0) focusToNewEdges(newEdgeList)
+    pendingFocus = data.nodes.filter(n => addedNodeIds.has(n.id))
   }
 
   requestAnimationFrame(() => {
@@ -612,6 +584,11 @@ onMounted(() => {
       // 力模拟稳定后重算小地图包围盒，修正节点最终落位
       invalidateMinimapBBox()
       drawMinimap()
+      // 节点坐标已到最终位置：精确对焦新节点（读实时坐标，避免初始位置快照偏焦）
+      if (pendingFocus.length > 0) {
+        focusToNodes(pendingFocus)
+        pendingFocus = []
+      }
     })
     .onZoom(() => {
       // 用户拖拽/缩放时钳制平移范围，防止把图整体拖出屏幕
