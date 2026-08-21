@@ -74,7 +74,7 @@ function hasContradiction(): boolean {
 }
 
 // ── 节点浮现 / 边生长动画 ──
-const NODE_ANIM_MS = 600   // 节点从出现到完全可见的时长
+const NODE_ANIM_MS = 900   // 节点从出现到完全可见的时长（配合 5-10s 随机消费节奏，渐入更从容）
 const EDGE_ANIM_MS = 1200  // 边从出现到"生长完成"的时长
 const animatingNodeIds = new Set<string>()  // 正在浮现的节点 ID
 const animatingEdgeIds = new Set<string>()  // 正在生长的边 ID

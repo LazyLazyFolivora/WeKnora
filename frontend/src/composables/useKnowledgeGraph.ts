@@ -10,7 +10,8 @@ import {
 
 // ── 事件缓冲配置 ──
 // 解决后端事件流不均匀导致的节点批量冒出、关系瞬间连接等问题
-const BUFFER_CONSUME_MS = 1500  // 从缓冲队列消费事件的间隔（ms）
+const BUFFER_MIN_MS = 5000   // 消费间隔下限（ms）
+const BUFFER_MAX_MS = 10000  // 消费间隔上限（ms）
 const IMMEDIATE_EVENT_TYPES = new Set([
   'PhaseChange', 'Progress', 'LiteratureSearching', 'RunComplete',
 ])
@@ -35,7 +36,7 @@ export function useKnowledgeGraph() {
   const startEntityNames = ref<string[]>([])
   // ── 事件缓冲队列 ──
   const eventBuffer: Record<string, any>[] = []
-  let consumeTimer: ReturnType<typeof setInterval> | null = null
+  let consumeTimer: ReturnType<typeof setTimeout> | null = null
   const totalNodes = computed(() => nodes.value.length)
   const totalLinks = computed(() => links.value.length)
   const graphData = computed<KGData>(() => ({ nodes: nodes.value, links: links.value }))
@@ -101,15 +102,20 @@ export function useKnowledgeGraph() {
     }
   }
   // ── 缓冲消费者 ──
+  function randomConsumeDelay() {
+    return BUFFER_MIN_MS + Math.random() * (BUFFER_MAX_MS - BUFFER_MIN_MS)
+  }
   function startConsumer() {
     if (consumeTimer) return
-    consumeTimer = setInterval(() => {
+    const tick = () => {
       if (eventBuffer.length === 0) { stopConsumer(); return }
       processEventNow(eventBuffer.shift()!)
-    }, BUFFER_CONSUME_MS)
+      consumeTimer = setTimeout(tick, randomConsumeDelay())
+    }
+    consumeTimer = setTimeout(tick, randomConsumeDelay())
   }
   function stopConsumer() {
-    if (consumeTimer != null) { clearInterval(consumeTimer); consumeTimer = null }
+    if (consumeTimer != null) { clearTimeout(consumeTimer); consumeTimer = null }
   }
   function flushBuffer() {
     while (eventBuffer.length > 0) processEventNow(eventBuffer.shift()!)
