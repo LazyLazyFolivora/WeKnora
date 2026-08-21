@@ -179,28 +179,17 @@ const PAN_THROTTLE_MS = 1000 // 两次自动平移的最小间隔
 
 function toggleFollow() { autoFollow.value = !autoFollow.value }
 
-/** 将视口平滑平移到指定坐标列表的中心（延迟读取，等力模拟定位） */
+/** 追踪新节点/新边：等力模拟定位后适配全图（图质心锚定原点，全图可见即追踪到位） */
 function panToPositions(positions: Array<{x: number, y: number}>) {
   if (!graph || !autoFollow.value || positions.length === 0) return
   const now = Date.now()
   if (now - lastPanTime < PAN_THROTTLE_MS) return
   lastPanTime = now
-  // 节点少时缩小视口（给排斥力留容错空间），节点多时正常追踪
-  const nodeCount = graph.graphData()?.nodes?.length ?? 0
-  const zoomOut = nodeCount < 5 ? 0.6 : nodeCount < 10 ? 0.8 : 1.0
   setTimeout(() => {
-    if (!graph) return
-    let cx = 0, cy = 0
-    for (const p of positions) { cx += p.x; cy += p.y }
-    cx /= positions.length; cy /= positions.length
-    // 如果需要缩小，先缩再移；否则只移
-    if (zoomOut < 1) {
-      const curZoom = graph.zoom()
-      graph.zoom(curZoom * zoomOut, 600)
-    }
-    graph.centerAt(cx, cy, 800)
+    if (!graph || !autoFollow.value) return
+    graph.zoomToFit(500, 60)
     drawMinimap()
-  }, 300)
+  }, 400)
 }
 
 /** 适配：将节点数组转为坐标列表传给 panToPositions */
@@ -228,43 +217,15 @@ function fitGraphToView() {
   autoFollow.value = false
   setTimeout(() => {
     if (!graph) return
-    const gData = graph.graphData()
-    if (!gData?.nodes?.length) return
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
-    for (const n of gData.nodes) {
-      const x = n.x, y = n.y
-      if (x != null && isFinite(x) && y != null && isFinite(y)) {
-        if (x < minX) minX = x; if (x > maxX) maxX = x
-        if (y < minY) minY = y; if (y > maxY) maxY = y
-      }
-    }
-    if (minX === Infinity) return
-    const pad = 60
-    const gw = maxX - minX + pad * 2
-    const gh = maxY - minY + pad * 2
-    const cw = containerRef.value?.clientWidth ?? 300
-    const ch = containerRef.value?.clientHeight ?? 300
-    let k = Math.min(cw / gw, ch / gh)
-    k = Math.min(k, 1.5); k = Math.max(k, 0.1)
-    const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2
-    // 直接通过 graph API 设 zoom（无动画）
-    graph.zoom(k, 0)
-    // 等 2 帧让 d3-zoom 内部 transform 完全同步后再 centerAt
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        if (!graph) return
-        graph.centerAt(cx, cy, 1200)
-        drawMinimap()
-      })
-    })
-  }, 2000)
+    graph.zoomToFit(800, 80)
+    drawMinimap()
+  }, 100)
 }
 
 // ── 防抖更新：只在数据真正变化时才调用 graphData，避免拖拽时重置力模拟 ──
 let updatePending = false
 let lastNodeCount = 0
 let lastLinkCount = 0
-let hasRecentered = false // 是否已做首次居中（只在首批节点到达后执行一次）
 function scheduleUpdate(data: KGData) {
   if (updatePending) return
   // 只有节点数或连线数变化时才需要更新 force-graph
@@ -316,19 +277,7 @@ function scheduleUpdate(data: KGData) {
     lastNodeCount = data.nodes.length
     lastLinkCount = data.links.length
     graph.graphData(data)
-
-    // 首批节点到达后，居中视口到节点实际中心（修正小地图视口矩形位置）
-    if (!hasRecentered && data.nodes.length > 0) {
-      hasRecentered = true
-      let cx = 0, cy = 0, cnt = 0
-      for (const n of data.nodes) {
-        if (n.x != null && n.y != null) { cx += n.x; cy += n.y; cnt++ }
-      }
-      if (cnt > 0) {
-        cx /= cnt; cy /= cnt
-        graph.centerAt(cx, cy, 400) // 400ms 平滑过渡到中心
-      }
-    }
+    invalidateMinimapBBox()
   })
 }
 
@@ -336,30 +285,54 @@ function scheduleUpdate(data: KGData) {
 const MM_W = 150
 const MM_H = 100
 const MM_PAD = 10 // 内边距
+const MM_BBOX_PAD = 50 // 包围盒外扩边距（图谱坐标）
 
-function drawMinimap() {
-  if (!graph || !minimapRef.value) return
-  const ctx = minimapRef.value.getContext('2d')
-  if (!ctx) return
-  const nodes = graph.graphData().nodes
-  if (nodes.length === 0) { ctx.clearRect(0, 0, MM_W, MM_H); return }
+// 小地图包围盒缓存：只在数据变更 / 力模拟停止时重算，避免逐帧重算导致抖动
+let minimapBBox: { minX: number, maxX: number, minY: number, maxY: number } | null = null
 
-  ctx.clearRect(0, 0, MM_W, MM_H)
-
-  // 计算所有节点的包围盒
+/** 从当前图谱节点重算小地图包围盒（含外扩边距），无有效节点时返回 null */
+function computeMinimapBBox() {
+  const g = graph?.graphData()
+  if (!g?.nodes?.length) return null
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
-  for (const n of nodes) {
+  for (const n of g.nodes) {
     if (n.x == null || n.y == null) continue
     if (n.x < minX) minX = n.x
     if (n.x > maxX) maxX = n.x
     if (n.y < minY) minY = n.y
     if (n.y > maxY) maxY = n.y
   }
-  if (!isFinite(minX)) return
+  if (!isFinite(minX)) return null
+  return {
+    minX: minX - MM_BBOX_PAD,
+    maxX: maxX + MM_BBOX_PAD,
+    minY: minY - MM_BBOX_PAD,
+    maxY: maxY + MM_BBOX_PAD,
+  }
+}
 
-  // 扩展包围盒，留出边距
-  const pad = 50
-  minX -= pad; maxX += pad; minY -= pad; maxY += pad
+/** 取当前有效包围盒（缓存优先，缺失时重算） */
+function getMinimapBBox() {
+  if (!minimapBBox) minimapBBox = computeMinimapBBox()
+  return minimapBBox
+}
+
+/** 数据变更 / 力模拟停止后，重算包围盒缓存 */
+function invalidateMinimapBBox() {
+  minimapBBox = computeMinimapBBox()
+}
+
+function drawMinimap() {
+  if (!graph || !minimapRef.value) return
+  const ctx = minimapRef.value.getContext('2d')
+  if (!ctx) return
+
+  ctx.clearRect(0, 0, MM_W, MM_H)
+
+  const bbox = getMinimapBBox()
+  if (!bbox) return
+
+  const minX = bbox.minX, maxX = bbox.maxX, minY = bbox.minY, maxY = bbox.maxY
   const gw = maxX - minX || 1
   const gh = maxY - minY || 1
   const scale = Math.min((MM_W - MM_PAD * 2) / gw, (MM_H - MM_PAD * 2) / gh)
@@ -369,6 +342,8 @@ function drawMinimap() {
   function toMM(gx: number, gy: number) {
     return { x: ox + (gx - minX) * scale, y: oy + (gy - minY) * scale }
   }
+
+  const nodes = graph.graphData().nodes
 
   // 绘制连线（极淡）
   const links = graph.graphData().links
@@ -397,27 +372,28 @@ function drawMinimap() {
     ctx.fill()
   }
 
-  // 绘制当前视口矩形（蓝色框 = 主画布可见区域）
+  // 绘制当前视口矩形（蓝色框 = 主画布可见区域），用 canvas 裁剪代替逐角 clamp 避免边缘失真
   if (containerRef.value) {
     const cw = containerRef.value.clientWidth
     const ch = containerRef.value.clientHeight
-    // 用 screen2GraphCoords 转换屏幕四角→图谱坐标，最可靠
     const tl_g = graph.screen2GraphCoords(0, 0)
     const br_g = graph.screen2GraphCoords(cw, ch)
     const tl = toMM(tl_g.x, tl_g.y)
     const br = toMM(br_g.x, br_g.y)
-    // 裁剪到小地图画布范围内
-    const x1 = Math.max(0, Math.min(MM_W, tl.x))
-    const y1 = Math.max(0, Math.min(MM_H, tl.y))
-    const x2 = Math.max(0, Math.min(MM_W, br.x))
-    const y2 = Math.max(0, Math.min(MM_H, br.y))
-    if (x2 > x1 && y2 > y1) {
-      ctx.fillStyle = 'rgba(96,165,250,0.12)'
-      ctx.fillRect(x1, y1, x2 - x1, y2 - y1)
-      ctx.strokeStyle = 'rgba(96,165,250,0.8)'
-      ctx.lineWidth = 1.5
-      ctx.strokeRect(x1, y1, x2 - x1, y2 - y1)
-    }
+    const x1 = Math.min(tl.x, br.x)
+    const y1 = Math.min(tl.y, br.y)
+    const x2 = Math.max(tl.x, br.x)
+    const y2 = Math.max(tl.y, br.y)
+    ctx.save()
+    ctx.beginPath()
+    ctx.rect(MM_PAD, MM_PAD, MM_W - MM_PAD * 2, MM_H - MM_PAD * 2)
+    ctx.clip()
+    ctx.fillStyle = 'rgba(96,165,250,0.12)'
+    ctx.fillRect(x1, y1, x2 - x1, y2 - y1)
+    ctx.strokeStyle = 'rgba(96,165,250,0.8)'
+    ctx.lineWidth = 1.5
+    ctx.strokeRect(x1, y1, x2 - x1, y2 - y1)
+    ctx.restore()
   }
 }
 
@@ -427,21 +403,10 @@ function onMinimapClick(e: MouseEvent) {
   const mx = e.clientX - rect.left
   const my = e.clientY - rect.top
 
-  const nodes = graph.graphData().nodes
-  if (nodes.length === 0) return
+  const bbox = getMinimapBBox()
+  if (!bbox) return
 
-  // 与 drawMinimap 相同的坐标映射
-  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
-  for (const n of nodes) {
-    if (n.x == null || n.y == null) continue
-    if (n.x < minX) minX = n.x
-    if (n.x > maxX) maxX = n.x
-    if (n.y < minY) minY = n.y
-    if (n.y > maxY) maxY = n.y
-  }
-  if (!isFinite(minX)) return
-  const pad = 50
-  minX -= pad; maxX += pad; minY -= pad; maxY += pad
+  const minX = bbox.minX, maxX = bbox.maxX, minY = bbox.minY, maxY = bbox.maxY
   const gw = maxX - minX || 1
   const gh = maxY - minY || 1
   const scale = Math.min((MM_W - MM_PAD * 2) / gw, (MM_H - MM_PAD * 2) / gh)
@@ -580,11 +545,23 @@ onMounted(() => {
     .warmupTicks(30)
     .cooldownTicks(100)
     .cooldownTime(3000)
+    .onEngineStop(() => {
+      // 力模拟稳定后重算小地图包围盒，修正节点最终落位
+      invalidateMinimapBBox()
+      drawMinimap()
+    })
 
   // 根据初始 phase 设置力布局参数
   applyPhaseForces(props.currentPhase)
 
   graph.graphData(props.graphData)
+
+  // 锚定图质心到原点，防止力模拟漂移导致节点跑出可视区（“画布过大”根因）
+  const centerForce = graph.d3Force('center')
+  if (centerForce) {
+    centerForce.x(0)
+    centerForce.y(0)
+  }
 
   // 初始化动画追踪集合（初始数据不需要动画）
   prevNodeIds = new Set(props.graphData.nodes.map(n => n.id))
@@ -592,17 +569,12 @@ onMounted(() => {
   lastNodeCount = props.graphData.nodes.length
   lastLinkCount = props.graphData.links.length
 
-  // 居中到节点实际中心（而非 0,0），避免力模拟偏移导致小地图不对齐
-  const gNodes = props.graphData.nodes
-  if (gNodes.length > 0) {
-    let cx = 0, cy = 0
-    for (const n of gNodes) { if (n.x != null) cx += n.x; if (n.y != null) cy += n.y }
-    cx /= gNodes.length; cy /= gNodes.length
-    graph.centerAt(cx, cy, 0)
-  } else {
-    graph.centerAt(0, 0, 0)
-  }
-  graph.zoom(1.2, 0)
+  // 等力模拟 warmup 定位后，统一用 zoomToFit 适配全图（内部正确处理 zoom+pan 协同）
+  setTimeout(() => {
+    if (!graph) return
+    graph.zoomToFit(600, 80)
+    drawMinimap()
+  }, 600)
 
   // 启动起始节点标签跟踪
   labelRafId = requestAnimationFrame(updateStartLabels)
