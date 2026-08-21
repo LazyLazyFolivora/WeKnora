@@ -218,6 +218,7 @@ function clampViewPan() {
   const nx = Math.min(bbox.x[1] + mx, Math.max(bbox.x[0] - mx, c.x))
   const ny = Math.min(bbox.y[1] + my, Math.max(bbox.y[0] - my, c.y))
   if (nx !== c.x || ny !== c.y) {
+    console.log('[KG:clampPan] 拉回', { from: c, to: { x: nx, y: ny }, bbox, zoom })
     graph.centerAt(nx, ny)
   }
 }
@@ -245,9 +246,14 @@ function focusToNodes(nodes: GraphNodeView[]) {
   // 同步缩放上下限（图 bbox 变化后「正常大小」也变化）
   graph.minZoom(k * MIN_ZOOM_FACTOR)
   graph.maxZoom(k * MAX_ZOOM_FACTOR)
+  console.log('[KG:focus] 目标', { ids: nodes.map(n => n.id), positions, cx, cy, k, bbox, 视口: { cw, ch } })
   // 镜头平滑对准 + z 轴平滑缩放到正常大小（有动画，非突变）
   graph.centerAt(cx, cy, 600)
   graph.zoom(k, 600)
+  console.log('[KG:focus] centerAt后立即', { center: graph.centerAt(), zoom: graph.zoom() })
+  setTimeout(() => {
+    if (graph) console.log('[KG:focus] centerAt后700ms', { center: graph.centerAt(), zoom: graph.zoom() })
+  }, 700)
   drawMinimap()
 }
 
@@ -584,6 +590,10 @@ onMounted(() => {
       // 力模拟稳定后重算小地图包围盒，修正节点最终落位
       invalidateMinimapBBox()
       drawMinimap()
+      console.log('[KG:engineStop]', {
+        pending: pendingFocus.map(n => ({ id: n.id, x: n.x, y: n.y })),
+        当前center: graph.centerAt(), 当前zoom: graph.zoom(),
+      })
       // 节点坐标已到最终位置：精确对焦新节点（读实时坐标，避免初始位置快照偏焦）
       if (pendingFocus.length > 0) {
         focusToNodes(pendingFocus)
