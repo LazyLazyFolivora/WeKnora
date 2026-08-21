@@ -459,26 +459,49 @@ onMounted(() => {
 
   graph = ForceGraph()(containerRef.value)
     .backgroundColor('rgba(15, 15, 35, 0.4)')
-    .nodeVal((n: any) => {
-      // 节点浮现动画：从小到大
-      if (animatingNodeIds.has(n.id) && n._createdAt) {
-        const progress = Math.min(1, (Date.now() - n._createdAt) / NODE_ANIM_MS)
-        return 12 * easeOutCubic(progress)
-      }
-      return 12
-    })
-    // 内置渲染：nodeColor 按 status 区分视觉 + 浮现动画
-    .nodeColor((n: any) => {
+    // 节点值：force-graph 用 sqrt(nodeVal) 作为 hover 命中区域半径，144 → 12px
+    .nodeVal(() => 144)
+    // 自定义节点绘制：光圈套实心点 + 发光（照搬 obsidian graph 风格）
+    .nodeCanvasObject((n: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
       const base = props.entityColors[n.entityType] || '#888'
-      // 节点浮现动画：从透明渐变到不透明
+      // status 区分：planned 灰色 / searching 半透明 / confirmed 实色
+      let color = base
+      let statusAlpha = 1
+      if (n.status === 'planned') { color = '#94A3B8'; statusAlpha = 0.5 }
+      else if (n.status === 'searching') { statusAlpha = 0.6 }
+
+      // 节点浮现动画：透明度 + 半径从小到大缓出
+      let progress = 1
       if (animatingNodeIds.has(n.id) && n._createdAt) {
-        const progress = Math.min(1, (Date.now() - n._createdAt) / NODE_ANIM_MS)
-        return hexToRgba(base, easeOutCubic(progress))
+        progress = Math.min(1, (Date.now() - n._createdAt) / NODE_ANIM_MS)
       }
-      if (isDimmed(n)) return base + '33'
-      if (n.status === 'planned') return '#B0B8C4'     // 灰色：预生成
-      if (n.status === 'searching') return base + 'aa'  // 淡色：搜索中
-      return base                                        // 实色：已确认
+      const animAlpha = easeOutCubic(progress)
+      const animScale = 0.3 + 0.7 * easeOutCubic(progress)
+      // hover 非相邻节点淡出
+      const dimAlpha = isDimmed(n) ? 0.18 : 1
+      const alpha = animAlpha * dimAlpha * statusAlpha
+
+      const isHover = hoveredNode && hoveredNode.id === n.id
+      const r = (12 * (isHover ? 1.15 : 1) * animScale) / globalScale
+
+      // 外圈：半透明填充 + 实色描边 + 发光
+      ctx.save()
+      ctx.shadowColor = color
+      ctx.shadowBlur = 8 / globalScale
+      ctx.beginPath()
+      ctx.fillStyle = hexToRgba(color, 0.13 * alpha)
+      ctx.strokeStyle = hexToRgba(color, alpha)
+      ctx.lineWidth = 2 / globalScale
+      ctx.arc(n.x, n.y, r, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.stroke()
+      ctx.restore()
+
+      // 内点：实心小圆点（半径 = 外圈 0.3 倍）
+      ctx.beginPath()
+      ctx.fillStyle = hexToRgba(color, 0.85 * alpha)
+      ctx.arc(n.x, n.y, r * 0.3, 0, Math.PI * 2)
+      ctx.fill()
     })
     .nodeLabel(() => '')
     // 链接样式：矛盾连线红色虚线 + 闪烁，hover 时高亮关联连线，宽度反映证据强度
@@ -502,19 +525,20 @@ onMounted(() => {
       if (isContradiction(l)) {
         return blinkOn.value ? 'rgba(239,68,68,0.8)' : 'rgba(239,68,68,0.25)'
       }
-      // 根据 strength 调整透明度，增强 0.8-0.9 区间的差异
+      // 根据 strength 调整透明度（基础量级对齐 obsidian 的 ~0.5）
       const rawStrength = typeof l.strength === 'number' ? l.strength : 0.5
       const normalized = Math.pow(Math.max(0, (rawStrength - 0.5) * 2), 2)
-      const opacity = 0.08 + normalized * 0.52 // 0.08..0.6
-      if (!hoveredNode) return `rgba(255,255,255,${opacity})`
+      const opacity = 0.15 + normalized * 0.45 // 0.15..0.6
+      // 冷灰蓝边（近 obsidian 的 #aaa，带一点蓝）
+      if (!hoveredNode) return `rgba(160,175,200,${opacity})`
       const s = typeof l.source === 'object' ? (l.source as any).id : l.source
       const t = typeof l.target === 'object' ? (l.target as any).id : l.target
       if (s === hoveredNode.id || t === hoveredNode.id) {
-        // 高亮时也根据 strength 显示不同亮度：强度越高越亮
-        const highlightOpacity = 0.3 + normalized * 0.5 // 0.3..0.8
-        return `rgba(96,165,250,${highlightOpacity})`
+        // 相邻边高亮到 0.9（obsidian 焦点值）
+        return 'rgba(160,190,255,0.9)'
       }
-      return `rgba(255,255,255,${opacity * 0.3})`
+      // 非相邻边淡出到 0.08（obsidian 焦点值）
+      return 'rgba(160,175,200,0.08)'
     })
     .linkLineDash((l: any) => isContradiction(l) ? [6, 4] : null)
     .linkDirectionalParticles((l: any) => {
@@ -680,10 +704,13 @@ onUnmounted(() => {
   position: absolute;
   transform: translate(-50%, -100%);
   pointer-events: none;
-  font-size: 13px;
-  font-weight: 700;
-  color: #fff;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6), 0 0 8px rgba(0, 0, 0, 0.3);
+  font-size: 12px;
+  font-weight: 600;
+  color: #e8edf5;
+  background: rgba(17, 24, 39, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 2px 8px;
+  border-radius: 6px;
   white-space: nowrap;
   z-index: 5;
 }

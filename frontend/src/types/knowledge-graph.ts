@@ -11,20 +11,20 @@ export type EntityType =
   | 'pathway' | 'target' | 'literature' | 'finding'
   | 'cell_line' | 'tissue' | 'unknown'
 
-/** 实体类型颜色映射（对齐后端协议 §4.1） */
+/** 实体类型颜色映射（对齐后端协议 §4.1；tailwind 色系，12 色高区分度） */
 export const ENTITY_COLORS: Record<EntityType, string> = {
-  gene: '#2563EB',
-  variant: '#EA404D',
-  drug: '#15803D',
-  compound: '#4FCC82',
-  disease: '#FF3B3B',
-  pathway: '#7DD3FC',
-  target: '#E3A3E7',
-  literature: '#FFFEF2',
-  finding: '#EAB308',
-  cell_line: '#D9F0A6',
-  tissue: '#8B5CF6',
-  unknown: '#F0A0C0',
+  gene: '#3B82F6',       // blue-500 蓝
+  variant: '#EF4444',    // red-500 红
+  drug: '#10B981',       // emerald-500 绿
+  compound: '#14B8A6',   // teal-500 青绿
+  disease: '#EC4899',    // pink-500 粉
+  pathway: '#8B5CF6',    // violet-500 紫
+  target: '#F59E0B',     // amber-500 琥珀
+  literature: '#94A3B8', // slate-400 灰蓝（文献=来源，中性色）
+  finding: '#F97316',    // orange-500 橙
+  cell_line: '#06B6D4',  // cyan-500 青
+  tissue: '#E879F9',     // fuchsia-400 紫红
+  unknown: '#64748B',    // slate-500 灰
 }
 
 /** 实体类型中文名 */
