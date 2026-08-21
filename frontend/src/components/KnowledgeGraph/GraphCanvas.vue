@@ -203,6 +203,8 @@ function fitToView(duration = 600) {
 }
 
 // ── 平移边界：视图中心最多超出图包围盒半个视口，防止把图整体拖出屏幕（zoom 由 minZoom/maxZoom 限制，这里限制 centerAt 平移）──
+// 调试日志用：安全格式化数值（undefined → ?），打印纯文本而非结构体，方便复制
+const num = (v: any, d = 1) => (typeof v === 'number' && isFinite(v) ? v.toFixed(d) : '?')
 let isClampingPan = false
 function clampViewPan() {
   if (!graph) return
@@ -218,7 +220,7 @@ function clampViewPan() {
   const nx = Math.min(bbox.x[1] + mx, Math.max(bbox.x[0] - mx, c.x))
   const ny = Math.min(bbox.y[1] + my, Math.max(bbox.y[0] - my, c.y))
   if (nx !== c.x || ny !== c.y) {
-    console.log('[KG:clampPan] 拉回', { from: c, to: { x: nx, y: ny }, bbox, zoom })
+    console.log(`[KG:clampPan] 拉回 from=(${num(c.x)},${num(c.y)}) to=(${num(nx)},${num(ny)}) zoom=${num(zoom, 2)} bbox.x=[${num(bbox.x[0])},${num(bbox.x[1])}] bbox.y=[${num(bbox.y[0])},${num(bbox.y[1])}]`)
     graph.centerAt(nx, ny)
   }
 }
@@ -246,22 +248,17 @@ function focusToNodes(nodes: GraphNodeView[]) {
   // 同步缩放上下限（图 bbox 变化后「正常大小」也变化）
   graph.minZoom(k * MIN_ZOOM_FACTOR)
   graph.maxZoom(k * MAX_ZOOM_FACTOR)
-  console.log('[KG:focus] 目标', { ids: nodes.map(n => n.id), positions, cx, cy, k, bbox, 视口: { cw, ch } })
+  console.log(`[KG:focus] 目标 ids=${nodes.map(n => n.id).join(',')} 质心=(${num(cx)},${num(cy)}) k=${num(k, 3)} bbox.x=[${num(bbox.x[0])},${num(bbox.x[1])}] bbox.y=[${num(bbox.y[0])},${num(bbox.y[1])}] 视口=${cw}x${ch} 节点位置=[${positions.map(p => `(${num(p.x)},${num(p.y)})`).join(' ')}]`)
   // 镜头平滑对准 + z 轴平滑缩放到正常大小（有动画，非突变）
   graph.centerAt(cx, cy, 600)
   graph.zoom(k, 600)
-  console.log('[KG:focus] centerAt后立即', { center: graph.centerAt(), zoom: graph.zoom() })
+  const cImmediate = graph.centerAt()
+  console.log(`[KG:focus] centerAt后立即 center=(${num(cImmediate.x)},${num(cImmediate.y)}) zoom=${num(graph.zoom(), 3)}`)
   setTimeout(() => {
     if (!graph) return
     const center = graph.centerAt()
     const screenPos = graph.graph2ScreenCoords(cx, cy)
-    console.log('[KG:focus] centerAt后700ms', {
-      center, zoom: graph.zoom(),
-      目标: { cx, cy },
-      偏差: { dx: +(center.x - cx).toFixed(2), dy: +(center.y - cy).toFixed(2) },
-      节点屏幕坐标: { x: +screenPos.x.toFixed(1), y: +screenPos.y.toFixed(1) },
-      视口中心: { x: cw / 2, y: ch / 2 },
-    })
+    console.log(`[KG:focus] centerAt后700ms center=(${num(center.x)},${num(center.y)}) zoom=${num(graph.zoom(), 3)} 目标=(${num(cx)},${num(cy)}) 偏差=(${num(center.x - cx, 2)},${num(center.y - cy, 2)}) 节点屏幕=(${num(screenPos.x)},${num(screenPos.y)}) 视口中心=(${num(cw / 2)},${num(ch / 2)})`)
   }, 700)
   drawMinimap()
 }
@@ -326,6 +323,8 @@ function scheduleUpdate(data: KGData) {
     if (!graph) return
     lastNodeCount = data.nodes.length
     lastLinkCount = data.links.length
+    // 新节点加入后，按新规模更新边长/斥力，避免图变密后节点挤在一起
+    refreshForces(data.nodes.length)
     graph.graphData(data)
     invalidateMinimapBBox()
   })
@@ -599,10 +598,9 @@ onMounted(() => {
       // 力模拟稳定后重算小地图包围盒，修正节点最终落位
       invalidateMinimapBBox()
       drawMinimap()
-      console.log('[KG:engineStop]', {
-        pending: pendingFocus.map(n => ({ id: n.id, x: n.x, y: n.y })),
-        当前center: graph.centerAt(), 当前zoom: graph.zoom(),
-      })
+      const pendStr = pendingFocus.map(n => `${n.id}@(${num(n.x)},${num(n.y)})`).join(' ')
+      const cNow = graph.centerAt()
+      console.log(`[KG:engineStop] pending=[${pendStr}] center=(${num(cNow.x)},${num(cNow.y)}) zoom=${num(graph.zoom(), 3)}`)
       // 节点坐标已到最终位置：精确对焦新节点（读实时坐标，避免初始位置快照偏焦）
       if (pendingFocus.length > 0) {
         focusToNodes(pendingFocus)
@@ -619,6 +617,8 @@ onMounted(() => {
 
   // 根据初始 phase 设置力布局参数
   applyPhaseForces(props.currentPhase)
+  // 初始数据也按实际规模设力参数（applyPhaseForces 在无数据时按 0 规模设了偏小值）
+  refreshForces(props.graphData.nodes.length)
 
   graph.graphData(props.graphData)
 
@@ -681,28 +681,41 @@ function zoomPulse() {
 // ── 广度/深度阶段差异化力布局参数 ──
 const PHASE_FORCE_CONFIG = {
   broad_search: {
-    chargeStrength: -400,    // 强排斥 → 节点散开
-    linkDistance: 375,        // 远距离 → 大范围扫描感（边长加长 1.5 倍）
+    chargeStrength: -550,    // 强排斥 → 节点散开（图越大动态再放大）
+    linkDistance: 520,        // 远距离 → 大范围扫描感（图越大动态再加长）
     alphaDecay: 0.015,       // 慢冷却 → 持续运动
     particleCount: 2,        // 更多粒子 → 活跃流动感
     particleSpeed: 0.006,    // 更快粒子
   },
   deep_dive: {
-    chargeStrength: -120,    // 弱排斥 → 节点紧凑聚焦
-    linkDistance: 180,        // 短距离 → 聚焦深入感（边长加长 1.5 倍）
+    chargeStrength: -220,    // 弱排斥 → 节点紧凑聚焦（图越大动态再放大）
+    linkDistance: 280,        // 短距离 → 聚焦深入感（图越大动态再加长）
     alphaDecay: 0.03,        // 快冷却 → 快速稳定
     particleCount: 1,        // 更少粒子 → 沉稳
     particleSpeed: 0.003,    // 更慢粒子
   },
 }
 
+/** 图规模越大，边长与斥力越强，防止边多时节点挤成一团（以 8 节点为基准，缓增并封顶防参数爆炸） */
+function forceSpreadScale(nodeCount: number): number {
+  return Math.min(Math.pow(Math.max(1, nodeCount) / 8, 0.35), 2.2)
+}
+
+/** 依据当前图规模更新力参数（不 reheat，由 graphData/阶段切换触发重布局） */
+function refreshForces(nodeCount: number) {
+  if (!graph) return
+  const cfg = PHASE_FORCE_CONFIG[props.currentPhase] ?? PHASE_FORCE_CONFIG.broad_search
+  const s = forceSpreadScale(nodeCount)
+  graph.d3Force('link')?.distance(cfg.linkDistance * s)
+  graph.d3Force('charge')?.strength(cfg.chargeStrength * s)
+}
+
 function applyPhaseForces(phase: KGPhase) {
   if (!graph) return
   const cfg = PHASE_FORCE_CONFIG[phase] ?? PHASE_FORCE_CONFIG.broad_search
-  graph.d3Force('charge')?.strength(cfg.chargeStrength)
-  graph.d3Force('link')?.distance(cfg.linkDistance)
   // 通过 d3AlphaDecay 调整冷却速度；重新加热力模拟让节点响应新参数
   graph.d3AlphaDecay(cfg.alphaDecay)
+  refreshForces(graph.graphData()?.nodes?.length ?? 0)
   try {
     // force-graph 内部的 d3-force simulation
     const sim = (graph as any).d3Force?.()

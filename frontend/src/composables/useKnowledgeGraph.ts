@@ -176,7 +176,7 @@ export function useKnowledgeGraph() {
         const contradiction = payload.contradiction === true || payload.is_contradiction === true
         const strength = typeof payload.strength === 'number' ? payload.strength : undefined
         // 调试日志：验证后端是否发送 strength
-        console.log('[KG] RelationFound:', { source: s, target: t, relation: r, strength, contradiction, payload })
+        console.log(`[KG] RelationFound: ${s} -> ${r} -> ${t} strength=${strength} contradiction=${contradiction}`)
         if(s&&t&&r){upsertEdge(s,t,r,{ contradiction, strength });addDiscovery(`${contradiction?'⚠️ 矛盾: ':''}${s} → ${r} → ${t}`,payload.timestamp)}
         break
       }
