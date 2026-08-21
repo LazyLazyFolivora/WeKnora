@@ -58,6 +58,7 @@ const containerRef = ref<HTMLDivElement>()
 const minimapRef = ref<HTMLCanvasElement>()
 let graph: any = null
 let hoveredNode: GraphNodeView | null = null
+let resizeObserver: ResizeObserver | null = null
 
 // ── 矛盾发现闪烁：600ms 周期交替明暗 ──
 const blinkOn = ref(true)
@@ -258,7 +259,7 @@ function focusToNodes(nodes: GraphNodeView[]) {
     if (!graph) return
     const center = graph.centerAt()
     const screenPos = graph.graph2ScreenCoords(cx, cy)
-    console.log(`[KG:focus] centerAt后700ms center=(${num(center.x)},${num(center.y)}) zoom=${num(graph.zoom(), 3)} 目标=(${num(cx)},${num(cy)}) 偏差=(${num(center.x - cx, 2)},${num(center.y - cy, 2)}) 节点屏幕=(${num(screenPos.x)},${num(screenPos.y)}) 视口中心=(${num(cw / 2)},${num(ch / 2)})`)
+    console.log(`[KG:focus] centerAt后700ms center=(${num(center.x)},${num(center.y)}) zoom=${num(graph.zoom(), 3)} 目标=(${num(cx)},${num(cy)}) 偏差=(${num(center.x - cx, 2)},${num(center.y - cy, 2)}) 节点屏幕=(${num(screenPos.x)},${num(screenPos.y)}) 视口中心=(${num(cw / 2)},${num(ch / 2)}) 画布=${graph.width()}x${graph.height()}`)
   }, 700)
   drawMinimap()
 }
@@ -471,7 +472,14 @@ function onMinimapClick(e: MouseEvent) {
 onMounted(() => {
   if (!containerRef.value) return
 
+  // 显式设置画布尺寸为容器实际大小：force-graph 不显式设置时默认 window.innerWidth/innerHeight，
+  // 导致 centerAt 以错误的内尺寸取中，节点视觉上偏离可视区中心（画布内中心 ≠ 容器中心）
+  const cw = containerRef.value.clientWidth || 300
+  const ch = containerRef.value.clientHeight || 300
+
   graph = ForceGraph()(containerRef.value)
+    .width(cw)
+    .height(ch)
     .backgroundColor('rgba(15, 15, 35, 0.4)')
     // 节点值：force-graph 用 sqrt(nodeVal) 作为 hover 命中区域半径，144 → 12px
     .nodeVal(() => 144)
@@ -652,6 +660,18 @@ onMounted(() => {
       try { graph.d3ReheatSimulation?.(0.05) } catch { /* 静默忽略 */ }
     }
   }, 600)
+
+  // 容器尺寸变化时同步画布尺寸（宽度 100% 响应式，窗口缩放会改变容器宽度）
+  if (typeof ResizeObserver !== 'undefined') {
+    resizeObserver = new ResizeObserver(() => {
+      if (!graph || !containerRef.value) return
+      const w = containerRef.value.clientWidth || 300
+      const h = containerRef.value.clientHeight || 300
+      graph.width(w)
+      graph.height(h)
+    })
+    resizeObserver.observe(containerRef.value)
+  }
 })
 
 // refreshKey 变化时用防抖 + 冻结策略更新
@@ -731,6 +751,7 @@ onUnmounted(() => {
   cancelAnimationFrame(labelRafId)
   cancelAnimationFrame(animRafId)
   if (blinkTimer) clearInterval(blinkTimer)
+  if (resizeObserver) resizeObserver.disconnect()
   animatingNodeIds.clear()
   animatingEdgeIds.clear()
   if (graph) graph._destructor?.()
