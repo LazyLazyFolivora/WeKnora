@@ -224,30 +224,46 @@ function clampViewPan() {
 
 function toggleFollow() { autoFollow.value = !autoFollow.value }
 
-/** 追踪新节点/新边：平移到新节点中心（只平移不缩放，缩放保持在 minZoom/maxZoom 阈值内） */
-function panToPositions(positions: Array<{x: number, y: number}>) {
+/** 对焦新节点/新边：镜头中心对准新节点质心，z 轴平滑缩放到「正常大小」（整图稍大于视图），均受缩放上下限约束 */
+function focusToPositions(positions: Array<{x: number, y: number}>) {
   if (!graph || !autoFollow.value || positions.length === 0) return
   const now = Date.now()
   if (now - lastPanTime < PAN_THROTTLE_MS) return
   lastPanTime = now
+
+  // 计算新节点质心（图坐标）
   let cx = 0, cy = 0
   for (const p of positions) { cx += p.x; cy += p.y }
   cx /= positions.length; cy /= positions.length
+
   setTimeout(() => {
     if (!graph || !autoFollow.value) return
+    // graphData 已在 rAF 更新后，基于含新节点的整图 bbox 计算「正常大小」缩放系数
+    const bbox = graph.getGraphBbox()
+    if (!bbox) return
+    const gw = (bbox.x[1] - bbox.x[0]) || 1
+    const gh = (bbox.y[1] - bbox.y[0]) || 1
+    const cw = containerRef.value?.clientWidth ?? 300
+    const ch = containerRef.value?.clientHeight ?? 300
+    const k = Math.min(cw / gw, ch / gh) * FIT_OVERSCALE
+    // 同步缩放上下限（图 bbox 变化后「正常大小」也变化）
+    graph.minZoom(k * MIN_ZOOM_FACTOR)
+    graph.maxZoom(k * MAX_ZOOM_FACTOR)
+    // 镜头平滑对准新节点 + z 轴平滑缩放到正常大小（有动画，非突变）
     graph.centerAt(cx, cy, 600)
+    graph.zoom(k, 600)
     drawMinimap()
   }, 50)
 }
 
-/** 适配：将节点数组转为坐标列表传给 panToPositions */
-function panToNewNodes(newNodes: GraphNodeView[]) {
+/** 适配：将节点数组转为坐标列表传给 focusToPositions */
+function focusToNewNodes(newNodes: GraphNodeView[]) {
   const positions = newNodes.filter(n => n.x != null && n.y != null).map(n => ({ x: n.x!, y: n.y! }))
-  panToPositions(positions)
+  focusToPositions(positions)
 }
 
-/** 适配：将新边列表转为坐标列表传给 panToPositions */
-function panToNewEdges(newEdges: { source: any; target: any }[]) {
+/** 适配：将新边列表转为坐标列表传给 focusToPositions */
+function focusToNewEdges(newEdges: { source: any; target: any }[]) {
   const positions: Array<{x: number, y: number}> = []
   for (const e of newEdges) {
     const s = typeof e.source === 'object' ? e.source : null
@@ -256,7 +272,7 @@ function panToNewEdges(newEdges: { source: any; target: any }[]) {
       positions.push({ x: (s.x + t.x) / 2, y: (s.y + t.y) / 2 })
     }
   }
-  panToPositions(positions)
+  focusToPositions(positions)
 }
 
 /** 图谱生长完成后，缩放展示全貌并关闭追踪 */
@@ -309,28 +325,13 @@ function scheduleUpdate(data: KGData) {
   prevEdgeIds = new Set(data.links.map(l => l.id))
   if (hasNew) startAnimLoop()
 
-  // ── 把新节点放到当前视图中心（+ 小偏移避免重叠），让新节点一出现就在可视区中央 ──
-  if (addedNodeIds.size > 0 && graph) {
-    const cw = containerRef.value?.clientWidth ?? 300
-    const ch = containerRef.value?.clientHeight ?? 300
-    const center = graph.screen2GraphCoords(cw / 2, ch / 2)
-    const zoom = graph.zoom() || 1
-    const jitter = 40 // 屏幕像素偏移
-    for (const n of data.nodes) {
-      if (addedNodeIds.has(n.id)) {
-        n.x = center.x + ((Math.random() - 0.5) * 2 * jitter) / zoom
-        n.y = center.y + ((Math.random() - 0.5) * 2 * jitter) / zoom
-      }
-    }
-  }
-
-  // ── 自动追踪新节点/新边 ──
+  // ── 对焦新节点/新边：镜头对准新节点 + 缩放到正常大小（不移动节点坐标） ──
   if (hasNew) {
     const newNodeList = data.nodes.filter(n => addedNodeIds.has(n.id))
-    panToNewNodes(newNodeList)
-    // 新边也触发追踪（边的两端中点）
+    focusToNewNodes(newNodeList)
+    // 新边也触发对焦（边的两端中点）
     const newEdgeList = data.links.filter(l => addedEdgeIds.has(l.id))
-    if (newEdgeList.length > 0) panToNewEdges(newEdgeList)
+    if (newEdgeList.length > 0) focusToNewEdges(newEdgeList)
   }
 
   requestAnimationFrame(() => {
