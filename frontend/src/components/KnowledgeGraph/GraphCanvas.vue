@@ -176,6 +176,30 @@ function isDimmed(n: any): boolean {
 const autoFollow = ref(true)
 let lastPanTime = 0
 const PAN_THROTTLE_MS = 1000 // 两次自动平移的最小间隔
+const FIT_OVERSCALE = 1.15 // 正常大小：图比可视区稍大（整体溢出倍数）
+const MIN_ZOOM_FACTOR = 0.9 // 缩小下限：正常大小的 90%（≈ 刚好填满视图），向下滚轮很快到底
+const MAX_ZOOM_FACTOR = 3 // 放大上限：正常大小的 3 倍，防止无限放大失去方向
+
+/** 让整图处于「正常大小」（稍大于可视区）并居中，同时设缩小下限，避免缩成一小点 */
+function fitToView(duration = 600) {
+  if (!graph) return
+  const gData = graph.graphData()
+  if (!gData?.nodes?.length) return
+  const bbox = graph.getGraphBbox()
+  if (!bbox) return
+  const gw = (bbox.x[1] - bbox.x[0]) || 1
+  const gh = (bbox.y[1] - bbox.y[0]) || 1
+  const cw = containerRef.value?.clientWidth ?? 300
+  const ch = containerRef.value?.clientHeight ?? 300
+  const k = Math.min(cw / gw, ch / gh) * FIT_OVERSCALE
+  const cx = (bbox.x[0] + bbox.x[1]) / 2
+  const cy = (bbox.y[0] + bbox.y[1]) / 2
+  graph.minZoom(k * MIN_ZOOM_FACTOR)
+  graph.maxZoom(k * MAX_ZOOM_FACTOR)
+  graph.centerAt(cx, cy, duration)
+  graph.zoom(k, duration)
+  drawMinimap()
+}
 
 function toggleFollow() { autoFollow.value = !autoFollow.value }
 
@@ -187,8 +211,7 @@ function panToPositions(positions: Array<{x: number, y: number}>) {
   lastPanTime = now
   setTimeout(() => {
     if (!graph || !autoFollow.value) return
-    graph.zoomToFit(500, 60)
-    drawMinimap()
+    fitToView(500)
   }, 400)
 }
 
@@ -217,8 +240,7 @@ function fitGraphToView() {
   autoFollow.value = false
   setTimeout(() => {
     if (!graph) return
-    graph.zoomToFit(800, 80)
-    drawMinimap()
+    fitToView(800)
   }, 100)
 }
 
@@ -569,11 +591,10 @@ onMounted(() => {
   lastNodeCount = props.graphData.nodes.length
   lastLinkCount = props.graphData.links.length
 
-  // 等力模拟 warmup 定位后，统一用 zoomToFit 适配全图（内部正确处理 zoom+pan 协同）
+  // 等力模拟 warmup 定位后，进入「正常大小」并设缩小下限
   setTimeout(() => {
     if (!graph) return
-    graph.zoomToFit(600, 80)
-    drawMinimap()
+    fitToView(600)
   }, 600)
 
   // 启动起始节点标签跟踪
