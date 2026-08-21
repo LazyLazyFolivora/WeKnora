@@ -177,8 +177,9 @@ const autoFollow = ref(true)
 let lastPanTime = 0
 const PAN_THROTTLE_MS = 1000 // 两次自动平移的最小间隔
 const FIT_OVERSCALE = 1.15 // 正常大小：图比可视区稍大（整体溢出倍数）
-const MIN_ZOOM_FACTOR = 0.9 // 缩小下限：正常大小的 90%（≈ 刚好填满视图），向下滚轮很快到底
-const MAX_ZOOM_FACTOR = 3 // 放大上限：正常大小的 3 倍，防止无限放大失去方向
+const MIN_ZOOM_FACTOR = 0.5 // 缩小下限：正常大小的一半
+const MAX_ZOOM_FACTOR = 2 // 放大上限：正常大小的 2 倍
+const PAN_MARGIN_FACTOR = 0.5 // 平移边界：视图中心最多超出图包围盒半个视口（与缩小下限对应）
 
 /** 让整图处于「正常大小」（稍大于可视区）并居中，同时设缩小下限，避免缩成一小点 */
 function fitToView(duration = 600) {
@@ -201,18 +202,42 @@ function fitToView(duration = 600) {
   drawMinimap()
 }
 
+// ── 平移边界：视图中心最多超出图包围盒半个视口，防止把图整体拖出屏幕（zoom 由 minZoom/maxZoom 限制，这里限制 centerAt 平移）──
+let isClampingPan = false
+function clampViewPan() {
+  if (!graph) return
+  const bbox = graph.getGraphBbox()
+  if (!bbox) return
+  const c = graph.centerAt()
+  const zoom = graph.zoom() || 1
+  const cw = containerRef.value?.clientWidth ?? 300
+  const ch = containerRef.value?.clientHeight ?? 300
+  // 半个视口对应的图坐标距离，作为可拖出边界的最大余量（PAN_MARGIN_FACTOR）
+  const mx = (cw * PAN_MARGIN_FACTOR) / zoom
+  const my = (ch * PAN_MARGIN_FACTOR) / zoom
+  const nx = Math.min(bbox.x[1] + mx, Math.max(bbox.x[0] - mx, c.x))
+  const ny = Math.min(bbox.y[1] + my, Math.max(bbox.y[0] - my, c.y))
+  if (nx !== c.x || ny !== c.y) {
+    graph.centerAt(nx, ny)
+  }
+}
+
 function toggleFollow() { autoFollow.value = !autoFollow.value }
 
-/** 追踪新节点/新边：等力模拟定位后适配全图（图质心锚定原点，全图可见即追踪到位） */
+/** 追踪新节点/新边：平移到新节点中心（只平移不缩放，缩放保持在 minZoom/maxZoom 阈值内） */
 function panToPositions(positions: Array<{x: number, y: number}>) {
   if (!graph || !autoFollow.value || positions.length === 0) return
   const now = Date.now()
   if (now - lastPanTime < PAN_THROTTLE_MS) return
   lastPanTime = now
+  let cx = 0, cy = 0
+  for (const p of positions) { cx += p.x; cy += p.y }
+  cx /= positions.length; cy /= positions.length
   setTimeout(() => {
     if (!graph || !autoFollow.value) return
-    fitToView(500)
-  }, 400)
+    graph.centerAt(cx, cy, 600)
+    drawMinimap()
+  }, 50)
 }
 
 /** 适配：将节点数组转为坐标列表传给 panToPositions */
@@ -283,6 +308,21 @@ function scheduleUpdate(data: KGData) {
   prevNodeIds = new Set(data.nodes.map(n => n.id))
   prevEdgeIds = new Set(data.links.map(l => l.id))
   if (hasNew) startAnimLoop()
+
+  // ── 把新节点放到当前视图中心（+ 小偏移避免重叠），让新节点一出现就在可视区中央 ──
+  if (addedNodeIds.size > 0 && graph) {
+    const cw = containerRef.value?.clientWidth ?? 300
+    const ch = containerRef.value?.clientHeight ?? 300
+    const center = graph.screen2GraphCoords(cw / 2, ch / 2)
+    const zoom = graph.zoom() || 1
+    const jitter = 40 // 屏幕像素偏移
+    for (const n of data.nodes) {
+      if (addedNodeIds.has(n.id)) {
+        n.x = center.x + ((Math.random() - 0.5) * 2 * jitter) / zoom
+        n.y = center.y + ((Math.random() - 0.5) * 2 * jitter) / zoom
+      }
+    }
+  }
 
   // ── 自动追踪新节点/新边 ──
   if (hasNew) {
@@ -572,6 +612,13 @@ onMounted(() => {
       invalidateMinimapBBox()
       drawMinimap()
     })
+    .onZoom(() => {
+      // 用户拖拽/缩放时钳制平移范围，防止把图整体拖出屏幕
+      if (isClampingPan) return
+      isClampingPan = true
+      clampViewPan()
+      isClampingPan = false
+    })
 
   // 根据初始 phase 设置力布局参数
   applyPhaseForces(props.currentPhase)
@@ -638,14 +685,14 @@ function zoomPulse() {
 const PHASE_FORCE_CONFIG = {
   broad_search: {
     chargeStrength: -400,    // 强排斥 → 节点散开
-    linkDistance: 250,        // 远距离 → 大范围扫描感
+    linkDistance: 375,        // 远距离 → 大范围扫描感（边长加长 1.5 倍）
     alphaDecay: 0.015,       // 慢冷却 → 持续运动
     particleCount: 2,        // 更多粒子 → 活跃流动感
     particleSpeed: 0.006,    // 更快粒子
   },
   deep_dive: {
     chargeStrength: -120,    // 弱排斥 → 节点紧凑聚焦
-    linkDistance: 120,        // 短距离 → 聚焦深入感
+    linkDistance: 180,        // 短距离 → 聚焦深入感（边长加长 1.5 倍）
     alphaDecay: 0.03,        // 快冷却 → 快速稳定
     particleCount: 1,        // 更少粒子 → 沉稳
     particleSpeed: 0.003,    // 更慢粒子

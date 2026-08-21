@@ -96,7 +96,7 @@ const {
   graphData, currentPhase, startTime, isComplete, frozenElapsed,
   recentDiscoveries, entityCounts,
   totalNodes, totalLinks, refreshKey, startEntityNames,
-  applyAgentGraphEvent, fetchFullGraph, reset, destroy,
+  applyAgentGraphEvent, fetchFullGraph, reset, destroy, complete,
 } = useKnowledgeGraph()
 
 const graphCanvasRef = ref<InstanceType<typeof GraphCanvas> | null>(null)
@@ -187,7 +187,7 @@ watch(
   () => props.isCompleted,
   (completed) => {
     if (completed) {
-      isComplete.value = true
+      complete()
     }
   },
 )
@@ -197,7 +197,7 @@ watch(
   (stream) => {
     if (!stream?.length) return
     if (stream.some((e: any) => e.type === 'stop')) {
-      isComplete.value = true
+      complete()
     }
   },
   { deep: true },
@@ -212,7 +212,7 @@ let pollTimer: ReturnType<typeof setInterval> | null = null
 onMounted(() => {
   pollTimer = setInterval(() => {
     if (props.isCompleted && !isComplete.value) {
-      isComplete.value = true
+      complete()
     }
   }, 500)
 })

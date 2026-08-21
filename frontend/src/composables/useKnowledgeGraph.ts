@@ -12,6 +12,9 @@ import {
 // 解决后端事件流不均匀导致的节点批量冒出、关系瞬间连接等问题
 const BUFFER_MIN_MS = 5000   // 消费间隔下限（ms）
 const BUFFER_MAX_MS = 10000  // 消费间隔上限（ms）
+const SPRINT_MS = 250        // 收尾冲刺：完成信号后剩余缓冲的快速消费间隔
+const BUFFER_FAST_MS = 1500  // 缓冲堆积时的加速消费间隔（防止图谱落后回答太多）
+const BUFFER_HIGH_WATER = 4  // 缓冲水位阈值：待消费事件数超过此值则加速
 const IMMEDIATE_EVENT_TYPES = new Set([
   'PhaseChange', 'Progress', 'LiteratureSearching', 'RunComplete',
 ])
@@ -105,21 +108,38 @@ export function useKnowledgeGraph() {
   function randomConsumeDelay() {
     return BUFFER_MIN_MS + Math.random() * (BUFFER_MAX_MS - BUFFER_MIN_MS)
   }
+  // 消费间隔：平时随机 5-10s（生长感），缓冲堆积超过水位时加速（追赶回答进度）
+  function consumeDelay() {
+    return eventBuffer.length >= BUFFER_HIGH_WATER ? BUFFER_FAST_MS : randomConsumeDelay()
+  }
   function startConsumer() {
     if (consumeTimer) return
     const tick = () => {
       if (eventBuffer.length === 0) { stopConsumer(); return }
       processEventNow(eventBuffer.shift()!)
-      consumeTimer = setTimeout(tick, randomConsumeDelay())
+      consumeTimer = setTimeout(tick, consumeDelay())
     }
-    consumeTimer = setTimeout(tick, randomConsumeDelay())
+    consumeTimer = setTimeout(tick, consumeDelay())
   }
   function stopConsumer() {
     if (consumeTimer != null) { clearTimeout(consumeTimer); consumeTimer = null }
   }
+  // 收尾冲刺：以 SPRINT_MS 短间隔快速消费剩余缓冲，保留渐入生长感（而非瞬间全冒出来）
+  let isSprinting = false
   function flushBuffer() {
-    while (eventBuffer.length > 0) processEventNow(eventBuffer.shift()!)
+    if (isSprinting) return
+    isSprinting = true
     stopConsumer()
+    const sprint = () => {
+      if (eventBuffer.length === 0) { isSprinting = false; isComplete.value = true; return }
+      processEventNow(eventBuffer.shift()!)
+      consumeTimer = setTimeout(sprint, SPRINT_MS)
+    }
+    sprint()
+  }
+  // 完成信号（回答完毕 / 图谱 RunComplete）：冲刺消费剩余缓冲，清空后标记完成
+  function complete() {
+    flushBuffer()
   }
   // ── 立即处理（内部） ──
   function processEventNow(payload: Record<string, any>) {
@@ -170,7 +190,7 @@ export function useKnowledgeGraph() {
         break
       }
       case "LiteratureSearching": addDiscovery("正在检索相关文献...",payload.timestamp);break
-      case "RunComplete": isComplete.value=true;if(run.value){run.value.isComplete=true;if(payload.total_steps!==undefined)run.value.totalSteps=payload.total_steps}addDiscovery("✅ 图谱构建完成",payload.timestamp);break
+      case "RunComplete": if(run.value){run.value.isComplete=true;if(payload.total_steps!==undefined)run.value.totalSteps=payload.total_steps}addDiscovery("✅ 图谱构建完成",payload.timestamp);break
     }
     // 首个 SSE 事件到达时，记录图谱开始生长的时刻作为计时起点
     if (startTime.value === null) {
@@ -183,8 +203,8 @@ export function useKnowledgeGraph() {
     const ev = payload.event_type as string
     if (IMMEDIATE_EVENT_TYPES.has(ev) || options?.immediate) {
       processEventNow(payload)
-      // RunComplete: 刷新缓冲区中剩余事件
-      if (ev === 'RunComplete') flushBuffer()
+      // RunComplete: 冲刺消费缓冲区中剩余事件，清空后标记完成
+      if (ev === 'RunComplete') complete()
       return
     }
     // 节点/边事件进入缓冲队列，以固定节奏消费
@@ -264,5 +284,5 @@ export function useKnowledgeGraph() {
   // 注意：不要 deep watch nodes/links，force-graph 拖拽会修改 node.x/y
   // 导致 refreshKey 无限递增 → scheduleUpdate 重置力布局 → 图谱消失
   // refreshKey 已在 syncToRefs() 中正确递增
-  return { nodes,links,graphData,run,currentPhase,phaseDescription,startTime,isComplete,frozenElapsed,recentDiscoveries,entityCounts,totalNodes,totalLinks,refreshKey,startEntityNames,applyAgentGraphEvent,patchRun,fetchFullGraph,replaceGraph,reset,destroy,flushBuffer }
+  return { nodes,links,graphData,run,currentPhase,phaseDescription,startTime,isComplete,frozenElapsed,recentDiscoveries,entityCounts,totalNodes,totalLinks,refreshKey,startEntityNames,applyAgentGraphEvent,patchRun,fetchFullGraph,replaceGraph,reset,destroy,complete }
 }
