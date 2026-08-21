@@ -252,7 +252,16 @@ function focusToNodes(nodes: GraphNodeView[]) {
   graph.zoom(k, 600)
   console.log('[KG:focus] centerAt后立即', { center: graph.centerAt(), zoom: graph.zoom() })
   setTimeout(() => {
-    if (graph) console.log('[KG:focus] centerAt后700ms', { center: graph.centerAt(), zoom: graph.zoom() })
+    if (!graph) return
+    const center = graph.centerAt()
+    const screenPos = graph.graph2ScreenCoords(cx, cy)
+    console.log('[KG:focus] centerAt后700ms', {
+      center, zoom: graph.zoom(),
+      目标: { cx, cy },
+      偏差: { dx: +(center.x - cx).toFixed(2), dy: +(center.y - cy).toFixed(2) },
+      节点屏幕坐标: { x: +screenPos.x.toFixed(1), y: +screenPos.y.toFixed(1) },
+      视口中心: { x: cw / 2, y: ch / 2 },
+    })
   }, 700)
   drawMinimap()
 }
