@@ -96,7 +96,7 @@ const {
   graphData, currentPhase, startTime, isComplete, frozenElapsed,
   recentDiscoveries, entityCounts,
   totalNodes, totalLinks, refreshKey, startEntityNames,
-  applyAgentGraphEvent, fetchFullGraph, reset,
+  applyAgentGraphEvent, fetchFullGraph, reset, destroy,
 } = useKnowledgeGraph()
 
 const graphCanvasRef = ref<InstanceType<typeof GraphCanvas> | null>(null)
@@ -158,23 +158,26 @@ onMounted(() => {
   // 1. 先从 agentEventStream 回放已有事件
   replayGraphEvents()
 
-  // 2. 有 sessionId/messageId 时从后端拉取完整图谱（覆盖回放结果，确保数据完整）
+  // 2. 始终拉取图数据恢复计时器（started_at）
+  //    实时会话：仅恢复计时器，不加载节点（走 SSE 缓冲）
+  //    历史消息：全量加载图数据
   if (props.sessionId && props.messageId) {
-    fetchFullGraph(props.sessionId, props.messageId)
+    fetchFullGraph(props.sessionId, props.messageId, props.isCompleted)
   }
 })
 
 onUnmounted(() => {
   window.removeEventListener('kg-sse-event', handleKGEvent)
+  destroy()
 })
 
-// 从 agentEventStream 回放图谱事件重建图谱
+// 从 agentEventStream 回放图谱事件重建图谱（绕过缓冲，立即渲染）
 function replayGraphEvents() {
   const stream = props.agentEventStream as any[] | undefined
   if (!stream?.length) return
   for (const evt of stream) {
     if (evt.type === 'agent_graph' && evt.payload) {
-      applyAgentGraphEvent(evt.payload)
+      applyAgentGraphEvent(evt.payload, { immediate: true })
     }
   }
 }
@@ -188,17 +191,21 @@ watch(
     }
   },
 )
-// 监听 agentEventStream 变化回放图谱事件 + 检测 stop
+// 监听 agentEventStream 变化：检测 stop 事件（图谱事件通过 kg-sse-event 走缓冲）
 watch(
   () => props.agentEventStream,
   (stream) => {
-    if (stream?.some((e: any) => e.type === 'stop')) {
+    if (!stream?.length) return
+    if (stream.some((e: any) => e.type === 'stop')) {
       isComplete.value = true
     }
-    // 回放重建图谱
-    replayGraphEvents()
   },
-  { deep: true, immediate: true },
+  { deep: true },
+)
+// 图谱生长完成后：自动缩放展示全貌
+watch(
+  () => isComplete.value,
+  (done) => { if (done) graphCanvasRef.value?.fitGraphToView() },
 )
 // 三重保险：轮询检测 is_completed 属性（应对 Vue 深层响应式丢失）
 let pollTimer: ReturnType<typeof setInterval> | null = null

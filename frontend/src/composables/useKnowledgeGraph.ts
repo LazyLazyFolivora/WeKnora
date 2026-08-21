@@ -8,6 +8,13 @@ import {
   normalizeEntityType, edgeId, PHASE_NAMES,
 } from '@/types/knowledge-graph'
 
+// ── 事件缓冲配置 ──
+// 解决后端事件流不均匀导致的节点批量冒出、关系瞬间连接等问题
+const BUFFER_CONSUME_MS = 1500  // 从缓冲队列消费事件的间隔（ms）
+const IMMEDIATE_EVENT_TYPES = new Set([
+  'PhaseChange', 'Progress', 'LiteratureSearching', 'RunComplete',
+])
+
 export function useKnowledgeGraph() {
   const nodesMap = new Map<string, GraphNodeView>()
   const edgesMap = new Map<string, GraphEdgeView>()
@@ -26,6 +33,9 @@ export function useKnowledgeGraph() {
   const frozenElapsed = ref<number | null>(null)
   // 记录最先出现的实体名称（用户问题涉及的起始实体）
   const startEntityNames = ref<string[]>([])
+  // ── 事件缓冲队列 ──
+  const eventBuffer: Record<string, any>[] = []
+  let consumeTimer: ReturnType<typeof setInterval> | null = null
   const totalNodes = computed(() => nodes.value.length)
   const totalLinks = computed(() => links.value.length)
   const graphData = computed<KGData>(() => ({ nodes: nodes.value, links: links.value }))
@@ -90,7 +100,23 @@ export function useKnowledgeGraph() {
       edgesMap.set(id, { id, source: s, target: t, relationType: r, contradiction: opts?.contradiction, strength: opts?.strength ?? 0.5, _createdAt: Date.now() })
     }
   }
-  function applyAgentGraphEvent(payload: Record<string, any>) {
+  // ── 缓冲消费者 ──
+  function startConsumer() {
+    if (consumeTimer) return
+    consumeTimer = setInterval(() => {
+      if (eventBuffer.length === 0) { stopConsumer(); return }
+      processEventNow(eventBuffer.shift()!)
+    }, BUFFER_CONSUME_MS)
+  }
+  function stopConsumer() {
+    if (consumeTimer != null) { clearInterval(consumeTimer); consumeTimer = null }
+  }
+  function flushBuffer() {
+    while (eventBuffer.length > 0) processEventNow(eventBuffer.shift()!)
+    stopConsumer()
+  }
+  // ── 立即处理（内部） ──
+  function processEventNow(payload: Record<string, any>) {
     const ev = payload.event_type as string
     switch (ev) {
       case "EntityPlanned": {
@@ -146,23 +172,41 @@ export function useKnowledgeGraph() {
     }
     updateEntityCounts();syncToRefs()
   }
+  // ── 公开入口：带缓冲的事件处理 ──
+  function applyAgentGraphEvent(payload: Record<string, any>, options?: { immediate?: boolean }) {
+    const ev = payload.event_type as string
+    if (IMMEDIATE_EVENT_TYPES.has(ev) || options?.immediate) {
+      processEventNow(payload)
+      // RunComplete: 刷新缓冲区中剩余事件
+      if (ev === 'RunComplete') flushBuffer()
+      return
+    }
+    // 节点/边事件进入缓冲队列，以固定节奏消费
+    eventBuffer.push(payload)
+    startConsumer()
+  }
   function patchRun(payload: Record<string, any>) {
     if(!run.value){run.value={phase:payload.phase||"broad_search",phaseSubtitle:payload.subtitle,step:payload.step,totalSteps:payload.total_steps,entitiesFound:payload.entities_found,relationsFound:payload.relations_found}}
     else{if(payload.phase)run.value.phase=payload.phase;if(payload.subtitle!==undefined)run.value.phaseSubtitle=payload.subtitle;if(payload.step!==undefined)run.value.step=payload.step;if(payload.total_steps!==undefined)run.value.totalSteps=payload.total_steps;if(payload.entities_found!==undefined)run.value.entitiesFound=payload.entities_found;if(payload.relations_found!==undefined)run.value.relationsFound=payload.relations_found}
   }
-  async function fetchFullGraph(sessionId: string, messageId: string) {
+  async function fetchFullGraph(sessionId: string, messageId: string, completed?: boolean) {
     try {
       const res = await httpGet(`/api/v1/sessions/${sessionId}/messages/${messageId}/graph`, { params: { after_seq: 0 } })
       const data = (res as any).data ?? res
-      replaceGraph(data.nodes ?? [], data.edges ?? [], data.run)
+      // 仅在 agent 已完成时全量加载图数据（避免覆盖 SSE 缓冲中的实时数据）
+      if (completed) {
+        replaceGraph(data.nodes ?? [], data.edges ?? [], data.run)
+      }
       lastSeq.value = data.last_seq ?? 0
-      // 历史消息：计算真实时长并冻结（仅在 agent 已完成时）
-      if (data.run && (data.nodes?.length ?? 0) > 0 && props.isCompleted) {
-        isComplete.value = true
-        if (data.run.started_at) {
-          const startMs = new Date(data.run.started_at).getTime()
-          frozenElapsed.value = Math.max(0, Math.floor((Date.now() - startMs) / 1000))
+      // 始终从 started_at 恢复计时器（无论是否完成）
+      if (data.run?.started_at) {
+        const startMs = new Date(data.run.started_at).getTime()
+        if (startMs > 0) {
           startTime.value = startMs
+          if (data.run.is_complete) {
+            isComplete.value = true
+            frozenElapsed.value = Math.max(0, Math.floor((Date.now() - startMs) / 1000))
+          }
         }
       }
       // 如果 startEntityNames 为空，从 API 响应中提取 status="planned" 的节点作为起始节点
@@ -208,9 +252,11 @@ export function useKnowledgeGraph() {
     currentPhase.value="broad_search";phaseDescription.value="正在广域检索生物医学实体..."
     startEntityNames.value=[];frozenElapsed.value=null
     startTime.value=null;recentDiscoveries.value=[];entityCounts.value={};syncToRefs()
+    stopConsumer();eventBuffer.length=0
   }
+  function destroy() { stopConsumer();eventBuffer.length=0 }
   // 注意：不要 deep watch nodes/links，force-graph 拖拽会修改 node.x/y
   // 导致 refreshKey 无限递增 → scheduleUpdate 重置力布局 → 图谱消失
   // refreshKey 已在 syncToRefs() 中正确递增
-  return { nodes,links,graphData,run,currentPhase,phaseDescription,startTime,isComplete,frozenElapsed,recentDiscoveries,entityCounts,totalNodes,totalLinks,refreshKey,startEntityNames,applyAgentGraphEvent,patchRun,fetchFullGraph,replaceGraph,reset }
+  return { nodes,links,graphData,run,currentPhase,phaseDescription,startTime,isComplete,frozenElapsed,recentDiscoveries,entityCounts,totalNodes,totalLinks,refreshKey,startEntityNames,applyAgentGraphEvent,patchRun,fetchFullGraph,replaceGraph,reset,destroy,flushBuffer }
 }

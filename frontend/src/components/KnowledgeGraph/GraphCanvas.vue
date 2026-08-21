@@ -14,6 +14,18 @@
       height="100"
       @click="onMinimapClick"
     />
+    <!-- 自动追踪按钮 -->
+    <button
+      class="kg-follow-btn"
+      :class="{ active: autoFollow }"
+      @click="toggleFollow"
+      :title="autoFollow ? '自动追踪中（拖拽/缩放时暂停）' : '点击恢复自动追踪'"
+    >
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+      </svg>
+    </button>
   </div>
 </template>
 
@@ -58,7 +70,7 @@ function isContradiction(l: any): boolean {
 
 // ── 节点浮现 / 边生长动画 ──
 const NODE_ANIM_MS = 600   // 节点从出现到完全可见的时长
-const EDGE_ANIM_MS = 800   // 边从出现到"生长完成"的时长
+const EDGE_ANIM_MS = 1200  // 边从出现到"生长完成"的时长
 const animatingNodeIds = new Set<string>()  // 正在浮现的节点 ID
 const animatingEdgeIds = new Set<string>()  // 正在生长的边 ID
 let animRafId = 0
@@ -156,6 +168,94 @@ function isDimmed(n: any): boolean {
   return !!hoveredNode && n.id !== hoveredNode.id && !adjacentIds.has(n.id)
 }
 
+// ── 自动追踪新节点 ──
+const autoFollow = ref(true)
+let lastPanTime = 0
+const PAN_THROTTLE_MS = 1000 // 两次自动平移的最小间隔
+
+function toggleFollow() { autoFollow.value = !autoFollow.value }
+
+/** 将视口平滑平移到指定坐标列表的中心（延迟读取，等力模拟定位） */
+function panToPositions(positions: Array<{x: number, y: number}>) {
+  if (!graph || !autoFollow.value || positions.length === 0) return
+  const now = Date.now()
+  if (now - lastPanTime < PAN_THROTTLE_MS) return
+  lastPanTime = now
+  // 节点少时缩小视口（给排斥力留容错空间），节点多时正常追踪
+  const nodeCount = graph.graphData()?.nodes?.length ?? 0
+  const zoomOut = nodeCount < 5 ? 0.6 : nodeCount < 10 ? 0.8 : 1.0
+  setTimeout(() => {
+    if (!graph) return
+    let cx = 0, cy = 0
+    for (const p of positions) { cx += p.x; cy += p.y }
+    cx /= positions.length; cy /= positions.length
+    // 如果需要缩小，先缩再移；否则只移
+    if (zoomOut < 1) {
+      const curZoom = graph.zoom()
+      graph.zoom(curZoom * zoomOut, 600)
+    }
+    graph.centerAt(cx, cy, 800)
+    drawMinimap()
+  }, 300)
+}
+
+/** 适配：将节点数组转为坐标列表传给 panToPositions */
+function panToNewNodes(newNodes: GraphNodeView[]) {
+  const positions = newNodes.filter(n => n.x != null && n.y != null).map(n => ({ x: n.x!, y: n.y! }))
+  panToPositions(positions)
+}
+
+/** 适配：将新边列表转为坐标列表传给 panToPositions */
+function panToNewEdges(newEdges: { source: any; target: any }[]) {
+  const positions: Array<{x: number, y: number}> = []
+  for (const e of newEdges) {
+    const s = typeof e.source === 'object' ? e.source : null
+    const t = typeof e.target === 'object' ? e.target : null
+    if (s?.x != null && t?.x != null) {
+      positions.push({ x: (s.x + t.x) / 2, y: (s.y + t.y) / 2 })
+    }
+  }
+  panToPositions(positions)
+}
+
+/** 图谱生长完成后，缩放展示全貌并关闭追踪 */
+function fitGraphToView() {
+  if (!graph) return
+  autoFollow.value = false
+  setTimeout(() => {
+    if (!graph) return
+    const gData = graph.graphData()
+    if (!gData?.nodes?.length) return
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
+    for (const n of gData.nodes) {
+      const x = n.x, y = n.y
+      if (x != null && isFinite(x) && y != null && isFinite(y)) {
+        if (x < minX) minX = x; if (x > maxX) maxX = x
+        if (y < minY) minY = y; if (y > maxY) maxY = y
+      }
+    }
+    if (minX === Infinity) return
+    const pad = 60
+    const gw = maxX - minX + pad * 2
+    const gh = maxY - minY + pad * 2
+    const cw = containerRef.value?.clientWidth ?? 300
+    const ch = containerRef.value?.clientHeight ?? 300
+    let k = Math.min(cw / gw, ch / gh)
+    k = Math.min(k, 1.5); k = Math.max(k, 0.1)
+    const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2
+    // 直接通过 graph API 设 zoom（无动画）
+    graph.zoom(k, 0)
+    // 等 2 帧让 d3-zoom 内部 transform 完全同步后再 centerAt
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!graph) return
+        graph.centerAt(cx, cy, 1200)
+        drawMinimap()
+      })
+    })
+  }, 2000)
+}
+
 // ── 防抖更新：只在数据真正变化时才调用 graphData，避免拖拽时重置力模拟 ──
 let updatePending = false
 let lastNodeCount = 0
@@ -192,6 +292,15 @@ function scheduleUpdate(data: KGData) {
   prevNodeIds = new Set(data.nodes.map(n => n.id))
   prevEdgeIds = new Set(data.links.map(l => l.id))
   if (hasNew) startAnimLoop()
+
+  // ── 自动追踪新节点/新边 ──
+  if (hasNew) {
+    const newNodeList = data.nodes.filter(n => !prevNodeIds.has(n.id) || animatingNodeIds.has(n.id))
+    panToNewNodes(newNodeList)
+    // 新边也触发追踪（边的两端中点）
+    const newEdgeList = data.links.filter(l => !prevEdgeIds.has(l.id))
+    if (newEdgeList.length > 0) panToNewEdges(newEdgeList)
+  }
 
   requestAnimationFrame(() => {
     updatePending = false
@@ -431,6 +540,8 @@ onMounted(() => {
     .onNodeClick((node: any) => {
       emit('nodeClick', node)
     })
+    .onNodeDrag(() => { autoFollow.value = false }) // 拖拽时暂停追踪
+    .onNodeDragEnd(() => { autoFollow.value = true }) // 释放节点后立即恢复
     .enableNodeDrag(true)
     .d3AlphaDecay(0.02)
     .d3VelocityDecay(0.4)
@@ -526,7 +637,7 @@ function applyPhaseForces(phase: KGPhase) {
   } catch { /* 静默忽略 */ }
 }
 
-defineExpose({ zoomPulse })
+defineExpose({ zoomPulse, fitGraphToView })
 
 onUnmounted(() => {
   cancelAnimationFrame(labelRafId)
@@ -574,5 +685,32 @@ onUnmounted(() => {
   border: 1px solid rgba(255, 255, 255, 0.08);
   cursor: pointer;
   z-index: 10;
+}
+
+.kg-follow-btn {
+  position: absolute;
+  bottom: 116px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(15, 15, 35, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+.kg-follow-btn:hover {
+  background: rgba(30, 30, 60, 0.85);
+  color: rgba(255, 255, 255, 0.7);
+}
+.kg-follow-btn.active {
+  color: #60a5fa;
+  border-color: rgba(96, 165, 250, 0.3);
+  background: rgba(30, 30, 60, 0.85);
 }
 </style>
