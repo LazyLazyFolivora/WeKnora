@@ -59,6 +59,12 @@ const minimapRef = ref<HTMLCanvasElement>()
 let graph: any = null
 let hoveredNode: GraphNodeView | null = null
 let resizeObserver: ResizeObserver | null = null
+let initialFitDone = false // 容器首次可见后只执行一次 fitToView
+
+// ── Bug fix: 阻止 wheel 事件冒泡，防止缩放到极限时页面滚动 ──
+function onContainerWheel(e: WheelEvent) {
+  e.preventDefault()
+}
 
 // ── 矛盾发现闪烁：600ms 周期交替明暗 ──
 const blinkOn = ref(true)
@@ -122,11 +128,18 @@ function updateStartLabels() {
   if (!graph || !containerRef.value) { labelRafId = requestAnimationFrame(updateStartLabels); return }
   const gNodes = graph.graphData().nodes
   const names = props.startEntityNames
-  
+
   const result: Array<{ name: string; x: number; y: number; text: string }> = []
-  
-  // 优先显示 startEntityNames 中的节点
-  if (names.length > 0) {
+
+  // hover 时只显示被点亮节点自己的标签
+  if (hoveredNode) {
+    const node = gNodes.find((n: any) => n.id === hoveredNode!.id)
+    if (node && node.x != null && node.y != null) {
+      const pos = graph.graph2ScreenCoords(node.x, node.y)
+      result.push({ name: node.name, x: pos.x, y: pos.y - 18, text: node.name })
+    }
+  } else if (names.length > 0) {
+    // 无 hover：显示所有起始节点标签
     for (const name of names) {
       const node = gNodes.find((n: any) => n.name === name)
       if (node && node.x != null && node.y != null) {
@@ -135,7 +148,7 @@ function updateStartLabels() {
       }
     }
   } else if (gNodes.length > 0) {
-    // 按置信度从高到低排序，显示前15%的节点标签
+    // 降级：按置信度从高到低排序，显示前15%的节点标签
     const sortedNodes = [...gNodes]
       .filter(n => n.x != null && n.y != null)
       .sort((a, b) => {
@@ -150,7 +163,7 @@ function updateStartLabels() {
       result.push({ name: node.name, x: pos.x, y: pos.y - 18, text: node.name })
     }
   }
-  
+
   startLabels.value = result
   // 小地图每帧都画，不受标签影响
   drawMinimap()
@@ -228,7 +241,7 @@ function clampViewPan() {
 
 function toggleFollow() { autoFollow.value = !autoFollow.value }
 
-/** 对焦：镜头中心对准节点实时质心 + z 轴平滑缩放到「正常大小」（整图稍大于视图），均受缩放上下限约束 */
+/** 对焦：镜头中心对准节点实时质心，仅平移不缩放（避免图谱生长时因包围盒变大导致 zoom 下降＝卡片缩小） */
 function focusToNodes(nodes: GraphNodeView[]) {
   if (!graph || !autoFollow.value) return
   // 读取节点「实时」坐标（力模拟稳定后即最终位置），而非初始快照，保证对准不偏焦
@@ -238,21 +251,22 @@ function focusToNodes(nodes: GraphNodeView[]) {
   for (const p of positions) { cx += p.x; cy += p.y }
   cx /= positions.length; cy /= positions.length
 
-  // 基于含新节点的整图 bbox 计算「正常大小」缩放系数
-  const bbox = graph.getGraphBbox()
-  if (!bbox) return
-  const gw = (bbox.x[1] - bbox.x[0]) || 1
-  const gh = (bbox.y[1] - bbox.y[0]) || 1
   const cw = containerRef.value?.clientWidth ?? 300
   const ch = containerRef.value?.clientHeight ?? 300
-  const k = Math.min(cw / gw, ch / gh) * FIT_OVERSCALE
-  // 同步缩放上下限（图 bbox 变化后「正常大小」也变化）
-  graph.minZoom(k * MIN_ZOOM_FACTOR)
-  graph.maxZoom(k * MAX_ZOOM_FACTOR)
-  console.log(`[KG:focus] 目标 ids=${nodes.map(n => n.id).join(',')} 质心=(${num(cx)},${num(cy)}) k=${num(k, 3)} bbox.x=[${num(bbox.x[0])},${num(bbox.x[1])}] bbox.y=[${num(bbox.y[0])},${num(bbox.y[1])}] 视口=${cw}x${ch} 节点位置=[${positions.map(p => `(${num(p.x)},${num(p.y)})`).join(' ')}]`)
-  // 镜头平滑对准 + z 轴平滑缩放到正常大小（有动画，非突变）
+
+  // 仅更新 minZoom/maxZoom 边界（图 bbox 变化后允许用户缩放范围调整），不改变当前缩放级别
+  const bbox = graph.getGraphBbox()
+  if (bbox) {
+    const gw = (bbox.x[1] - bbox.x[0]) || 1
+    const gh = (bbox.y[1] - bbox.y[0]) || 1
+    const k = Math.min(cw / gw, ch / gh) * FIT_OVERSCALE
+    graph.minZoom(k * MIN_ZOOM_FACTOR)
+    graph.maxZoom(k * MAX_ZOOM_FACTOR)
+  }
+
+  console.log(`[KG:focus] 平移到新节点 ids=${nodes.map(n => n.id).join(',')} 质心=(${num(cx)},${num(cy)}) zoom保持=${num(graph.zoom(), 3)}`)
+  // 镜头平滑对准新节点质心，不调用 graph.zoom() 以保持当前缩放
   graph.centerAt(cx, cy, 600)
-  graph.zoom(k, 600)
   const cImmediate = graph.centerAt()
   console.log(`[KG:focus] centerAt后立即 center=(${num(cImmediate.x)},${num(cImmediate.y)}) zoom=${num(graph.zoom(), 3)}`)
   setTimeout(() => {
@@ -401,7 +415,7 @@ function drawMinimap() {
 
   // 绘制连线（极淡）
   const links = graph.graphData().links
-  ctx.strokeStyle = 'rgba(255,255,255,0.06)'
+  ctx.strokeStyle = 'rgba(42, 58, 92, 0.6)'
   ctx.lineWidth = 0.5
   for (const l of links) {
     if (l.synthetic) continue
@@ -485,7 +499,7 @@ onMounted(() => {
   graph = ForceGraph()(containerRef.value)
     .width(cw)
     .height(ch)
-    .backgroundColor('rgba(15, 15, 35, 0.4)')
+    .backgroundColor('transparent')
     // 节点值：force-graph 用 sqrt(nodeVal) 作为 hover 命中区域半径，144 → 12px
     .nodeVal(() => 144)
     // 自定义节点绘制：光圈套实心点 + 发光（照搬 obsidian graph 风格）
@@ -669,10 +683,9 @@ onMounted(() => {
   lastLinkCount = props.graphData.links.length
 
   // 等力模拟 warmup 定位后，进入「正常大小」并设缩小下限
-  setTimeout(() => {
-    if (!graph) return
-    fitToView(600)
-  }, 600)
+  // 注意：不在此处调用 fitToView，因为组件可能还被 v-show 隐藏，
+  // clientWidth=0 会走 fallback(300) 导致缩放系数偏大。
+  // 改由 ResizeObserver 检测到容器首次获得真实尺寸时触发 fitToView。
 
   // 启动起始节点标签跟踪
   labelRafId = requestAnimationFrame(updateStartLabels)
@@ -694,8 +707,22 @@ onMounted(() => {
       const h = containerRef.value.clientHeight || 300
       graph.width(w)
       graph.height(h)
+      // 容器首次变为可见（clientWidth > 0 说明不是 display:none 的 fallback），
+      // 执行初始 fitToView 确保缩放基于真实视口尺寸
+      if (!initialFitDone && containerRef.value.clientWidth > 0) {
+        initialFitDone = true
+        setTimeout(() => {
+          if (!graph) return
+          fitToView(600)
+        }, 100) // 短延迟确保 graph.width/height 已生效
+      }
     })
     resizeObserver.observe(containerRef.value)
+  }
+
+  // ── Bug fix: 阻止 wheel 冒泡，防止缩放到极限时页面滚动 ──
+  if (containerRef.value) {
+    containerRef.value.addEventListener('wheel', onContainerWheel, { passive: false })
   }
 })
 
@@ -777,6 +804,10 @@ onUnmounted(() => {
   cancelAnimationFrame(animRafId)
   if (blinkTimer) clearInterval(blinkTimer)
   if (resizeObserver) resizeObserver.disconnect()
+  // ── Bug fix: 移除 wheel 事件监听 ──
+  if (containerRef.value) {
+    containerRef.value.removeEventListener('wheel', onContainerWheel)
+  }
   animatingNodeIds.clear()
   animatingEdgeIds.clear()
   if (graph) graph._destructor?.()
@@ -804,7 +835,7 @@ onUnmounted(() => {
   font-weight: 600;
   color: #e8edf5;
   background: rgba(17, 24, 39, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid #2a3a5c;
   padding: 2px 8px;
   border-radius: 6px;
   white-space: nowrap;
@@ -817,9 +848,9 @@ onUnmounted(() => {
   right: 8px;
   width: 150px;
   height: 100px;
-  border-radius: 6px;
-  background: rgba(15, 15, 35, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(26, 34, 54, 0.88);
+  border: 1px solid rgba(42, 58, 92, 0.6);
   cursor: pointer;
   z-index: 10;
 }
@@ -830,9 +861,9 @@ onUnmounted(() => {
   right: 8px;
   width: 28px;
   height: 28px;
-  border-radius: 6px;
-  background: rgba(15, 15, 35, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(26, 34, 54, 0.88);
+  border: 1px solid rgba(42, 58, 92, 0.6);
   color: rgba(255, 255, 255, 0.4);
   cursor: pointer;
   z-index: 10;
@@ -842,12 +873,12 @@ onUnmounted(() => {
   transition: all 0.2s ease;
 }
 .kg-follow-btn:hover {
-  background: rgba(30, 30, 60, 0.85);
+  background: rgba(26, 34, 54, 0.94);
   color: rgba(255, 255, 255, 0.7);
 }
 .kg-follow-btn.active {
   color: #60a5fa;
   border-color: rgba(96, 165, 250, 0.3);
-  background: rgba(30, 30, 60, 0.85);
+  background: rgba(26, 34, 54, 0.94);
 }
 </style>
