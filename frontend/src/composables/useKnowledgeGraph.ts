@@ -7,6 +7,7 @@ import type {
 import {
   normalizeEntityType, edgeId, PHASE_NAMES,
 } from '@/types/knowledge-graph'
+import { synthesizeEdges } from '@/utils/syntheticEdges'
 
 // ── 事件缓冲配置 ──
 // 解决后端事件流不均匀导致的节点批量冒出、关系瞬间连接等问题
@@ -27,6 +28,8 @@ export function useKnowledgeGraph() {
   const isComplete = ref(false)
   const nodes = ref<GraphNodeView[]>([])
   const links = ref<GraphEdgeView[]>([])
+  // 是否显示「弱关系」合成补边（前端视觉填充，非后端真实关系）
+  const showSynthetic = ref(true)
   const refreshKey = ref(0)
   const currentPhase = ref<KGPhase>("broad_search")
   const phaseDescription = ref("正在广域检索生物医学实体...")
@@ -42,7 +45,15 @@ export function useKnowledgeGraph() {
   let consumeTimer: ReturnType<typeof setTimeout> | null = null
   const totalNodes = computed(() => nodes.value.length)
   const totalLinks = computed(() => links.value.length)
-  const graphData = computed<KGData>(() => ({ nodes: nodes.value, links: links.value }))
+  // 合成弱边：仅在完成时按「同类型弱连 + 种子补边」生成；同输入同序列，真实边后到会取代同对弱边
+  const syntheticLinks = computed<GraphEdgeView[]>(() =>
+    isComplete.value ? synthesizeEdges(nodes.value, links.value) : []
+  )
+  // 展示边 = 真实边 +（可选）合成弱边
+  const displayLinks = computed<GraphEdgeView[]>(() =>
+    showSynthetic.value ? [...links.value, ...syntheticLinks.value] : links.value
+  )
+  const graphData = computed<KGData>(() => ({ nodes: nodes.value, links: displayLinks.value }))
 
   function formatTime(ts?: number): string {
     const d = new Date(ts ?? Date.now())
@@ -131,7 +142,7 @@ export function useKnowledgeGraph() {
     isSprinting = true
     stopConsumer()
     const sprint = () => {
-      if (eventBuffer.length === 0) { isSprinting = false; isComplete.value = true; return }
+      if (eventBuffer.length === 0) { isSprinting = false; isComplete.value = true; refreshKey.value++; return }
       processEventNow(eventBuffer.shift()!)
       consumeTimer = setTimeout(sprint, SPRINT_MS)
     }
@@ -281,8 +292,13 @@ export function useKnowledgeGraph() {
     stopConsumer();eventBuffer.length=0
   }
   function destroy() { stopConsumer();eventBuffer.length=0 }
+  // 切换弱关系补边显示（触发 refreshKey 让 GraphCanvas 重读 displayLinks）
+  function toggleSynthetic() {
+    showSynthetic.value = !showSynthetic.value
+    refreshKey.value++
+  }
   // 注意：不要 deep watch nodes/links，force-graph 拖拽会修改 node.x/y
   // 导致 refreshKey 无限递增 → scheduleUpdate 重置力布局 → 图谱消失
   // refreshKey 已在 syncToRefs() 中正确递增
-  return { nodes,links,graphData,run,currentPhase,phaseDescription,startTime,isComplete,frozenElapsed,recentDiscoveries,entityCounts,totalNodes,totalLinks,refreshKey,startEntityNames,applyAgentGraphEvent,patchRun,fetchFullGraph,replaceGraph,reset,destroy,complete }
+  return { nodes,links,graphData,run,currentPhase,phaseDescription,startTime,isComplete,frozenElapsed,recentDiscoveries,entityCounts,totalNodes,totalLinks,refreshKey,startEntityNames,showSynthetic,toggleSynthetic,applyAgentGraphEvent,patchRun,fetchFullGraph,replaceGraph,reset,destroy,complete }
 }

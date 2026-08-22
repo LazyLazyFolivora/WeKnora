@@ -278,6 +278,7 @@ function fitGraphToView() {
 let updatePending = false
 let lastNodeCount = 0
 let lastLinkCount = 0
+let lastForceNodeCount = 0
 function scheduleUpdate(data: KGData) {
   if (updatePending) return
   // 只有节点数或连线数变化时才需要更新 force-graph
@@ -324,8 +325,11 @@ function scheduleUpdate(data: KGData) {
     if (!graph) return
     lastNodeCount = data.nodes.length
     lastLinkCount = data.links.length
-    // 新节点加入后，按新规模更新边长/斥力，避免图变密后节点挤在一起
-    refreshForces(data.nodes.length)
+    // 仅节点规模变化时才更新力参数，避免单纯边新增时改变 linkDistance/charge 引发抖动
+    if (data.nodes.length !== lastForceNodeCount) {
+      lastForceNodeCount = data.nodes.length
+      refreshForces(data.nodes.length)
+    }
     graph.graphData(data)
     invalidateMinimapBBox()
   })
@@ -400,6 +404,7 @@ function drawMinimap() {
   ctx.strokeStyle = 'rgba(255,255,255,0.06)'
   ctx.lineWidth = 0.5
   for (const l of links) {
+    if (l.synthetic) continue
     const s = typeof l.source === 'object' ? l.source : nodes.find((n: any) => n.id === l.source)
     const t = typeof l.target === 'object' ? l.target : nodes.find((n: any) => n.id === l.target)
     if (!s || !t || s.x == null || t.x == null) continue
@@ -545,6 +550,7 @@ onMounted(() => {
     .nodeLabel(() => '')
     // 链接样式：矛盾连线红色虚线 + 闪烁，hover 时高亮关联连线，宽度反映证据强度
     .linkWidth((l: any) => {
+      if (l.synthetic) return 0.4 + (typeof l.strength === 'number' ? l.strength : 0.5) * 1.2
       if (isContradiction(l)) return 2
       // 根据 strength (0..1) 计算边宽度，增强 0.8-0.9 区间的差异
       const rawStrength = typeof l.strength === 'number' ? l.strength : 0.5
@@ -561,6 +567,7 @@ onMounted(() => {
       return 0.5 // 非关联边变细
     })
     .linkColor((l: any) => {
+      if (l.synthetic) return 'rgba(160,175,200,0.10)'
       if (isContradiction(l)) {
         return blinkOn.value ? 'rgba(239,68,68,0.8)' : 'rgba(239,68,68,0.25)'
       }
@@ -579,8 +586,9 @@ onMounted(() => {
       // 非相邻边淡出到 0.08（obsidian 焦点值）
       return 'rgba(160,175,200,0.08)'
     })
-    .linkLineDash((l: any) => isContradiction(l) ? [6, 4] : null)
+    .linkLineDash((l: any) => l.synthetic ? [2, 4] : (isContradiction(l) ? [6, 4] : null))
     .linkDirectionalParticles((l: any) => {
+      if (l.synthetic) return 0
       if (isContradiction(l)) return 3
       // 边生长动画：新边用更多粒子模拟流动生长
       if (animatingEdgeIds.has(l.id)) return 5
@@ -598,7 +606,7 @@ onMounted(() => {
     .linkDirectionalParticleColor((l: any) => isContradiction(l)
       ? 'rgba(239,68,68,0.7)'
       : 'rgba(96,165,250,0.5)')
-    .linkLabel((l: any) => l.relationType)
+    .linkLabel((l: any) => l.synthetic ? '' : l.relationType)
     .linkDirectionalArrowLength(5)
     .linkDirectionalArrowRelPos(1)
     .linkCurvature(0.1)
@@ -616,7 +624,7 @@ onMounted(() => {
     .enableNodeDrag(true)
     .d3AlphaDecay(0.02)
     .d3VelocityDecay(0.4)
-    .warmupTicks(30)
+    .warmupTicks(0)
     .cooldownTicks(100)
     .cooldownTime(3000)
     .onEngineStop(() => {

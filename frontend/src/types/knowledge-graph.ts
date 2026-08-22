@@ -75,6 +75,8 @@ export interface GraphEdgeView {
   contradiction?: boolean // true = 与已有证据矛盾，红色虚线 + 闪烁
   /** 证据强度 (0..1)，默认 0.5。用于计算边宽度 */
   strength?: number
+  /** 合成弱边标记（前端视觉补边，非后端真实关系）。渲染为虚线弱关联 */
+  synthetic?: boolean
   /** 边创建时间戳（ms），用于生长动画。历史回放边不设置。 */
   _createdAt?: number
 }

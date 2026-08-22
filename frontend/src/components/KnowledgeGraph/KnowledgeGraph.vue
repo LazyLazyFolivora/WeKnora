@@ -3,6 +3,14 @@
     <div class="kg-header">
       <span class="kg-title">KnowledgeGraph</span>
       <span class="kg-stats">{{ totalNodes }} entities · {{ totalLinks }} relations</span>
+      <button
+        class="kg-weak-toggle"
+        :class="{ active: showSynthetic }"
+        :title="showSynthetic ? '隐藏弱关联补边' : '显示弱关联补边'"
+        @click="toggleSynthetic"
+      >
+        弱关联
+      </button>
       <button class="kg-toggle" @click="collapsed = !collapsed">
         {{ collapsed ? '▸' : '▾' }}
       </button>
@@ -96,6 +104,7 @@ const {
   graphData, currentPhase, startTime, isComplete, frozenElapsed,
   recentDiscoveries, entityCounts,
   totalNodes, totalLinks, refreshKey, startEntityNames,
+  showSynthetic, toggleSynthetic,
   applyAgentGraphEvent, fetchFullGraph, reset, destroy, complete,
 } = useKnowledgeGraph()
 
@@ -260,6 +269,26 @@ onUnmounted(() => {
 
 .kg-toggle:hover {
   color: #e5e7eb;
+}
+
+.kg-weak-toggle {
+  padding: 0 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  color: #6b7280;
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  line-height: 1.6;
+  border-radius: 4px;
+  margin-right: 4px;
+}
+.kg-weak-toggle:hover {
+  color: #e5e7eb;
+}
+.kg-weak-toggle.active {
+  color: #60a5fa;
+  border-color: rgba(96, 165, 250, 0.3);
 }
 
 .kg-body {
