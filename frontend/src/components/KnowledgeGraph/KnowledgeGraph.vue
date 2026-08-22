@@ -3,6 +3,14 @@
     <div class="kg-header">
       <span class="kg-title">KnowledgeGraph</span>
       <span class="kg-stats">{{ totalNodes }} entities · {{ totalLinks }} relations</span>
+      <button
+        class="kg-weak-toggle"
+        :class="{ active: showSynthetic }"
+        :title="showSynthetic ? '隐藏弱关联补边' : '显示弱关联补边'"
+        @click="toggleSynthetic"
+      >
+        弱关联
+      </button>
       <button class="kg-toggle" @click="collapsed = !collapsed">
         {{ collapsed ? '▸' : '▾' }}
       </button>
@@ -30,7 +38,7 @@
         <!-- 阶段切换标签动画 -->
         <Transition name="kg-phase-flash">
           <div v-if="phaseFlashVisible" class="kg-phase-flash" :key="currentPhase">
-            {{ currentPhase === 'broad_search' ? '🔍 广域检索' : '🎯 深入挖掘' }}
+            {{ currentPhase === 'broad_search' ? '广域检索' : '深入挖掘' }}
           </div>
         </Transition>
       </div>
@@ -60,7 +68,14 @@
           </div>
           <div class="kg-detail-meta">
             <span class="kg-detail-label">状态</span>
-            <span>{{ detailNode.status === 'confirmed' ? '已确认' : detailNode.status === 'searching' ? '搜索中' : '预生成' }}</span>
+            <span v-if="detailNode.status === 'planned'" class="kg-detail-status planned">
+              <svg class="kg-detail-status-icon" viewBox="0 0 16 16" width="12" height="12">
+                <polygon points="8,2 2,13 14,13" fill="none" stroke="#94A3B8" stroke-width="1.5" stroke-linejoin="round"/>
+              </svg>
+              预生成 — AI 从问题中预判的关键实体，待检索确认
+            </span>
+            <span v-else-if="detailNode.status === 'confirmed'">已确认</span>
+            <span v-else>搜索中</span>
           </div>
           <div v-if="detailNode.observations?.length" class="kg-detail-section">
             <div class="kg-detail-section-title">观测描述</div>
@@ -96,7 +111,8 @@ const {
   graphData, currentPhase, startTime, isComplete, frozenElapsed,
   recentDiscoveries, entityCounts,
   totalNodes, totalLinks, refreshKey, startEntityNames,
-  applyAgentGraphEvent, fetchFullGraph, reset, destroy,
+  showSynthetic, toggleSynthetic,
+  applyAgentGraphEvent, fetchFullGraph, reset, destroy, complete,
 } = useKnowledgeGraph()
 
 const graphCanvasRef = ref<InstanceType<typeof GraphCanvas> | null>(null)
@@ -187,7 +203,7 @@ watch(
   () => props.isCompleted,
   (completed) => {
     if (completed) {
-      isComplete.value = true
+      complete()
     }
   },
 )
@@ -197,7 +213,7 @@ watch(
   (stream) => {
     if (!stream?.length) return
     if (stream.some((e: any) => e.type === 'stop')) {
-      isComplete.value = true
+      complete()
     }
   },
   { deep: true },
@@ -212,7 +228,7 @@ let pollTimer: ReturnType<typeof setInterval> | null = null
 onMounted(() => {
   pollTimer = setInterval(() => {
     if (props.isCompleted && !isComplete.value) {
-      isComplete.value = true
+      complete()
     }
   }, 500)
 })
@@ -243,7 +259,7 @@ onUnmounted(() => {
 
 .kg-stats {
   font-size: 10px;
-  color: #6b7280;
+  color: #8899bb;
   margin-left: auto;
 }
 
@@ -251,7 +267,7 @@ onUnmounted(() => {
   padding: 0 4px;
   border: none;
   background: transparent;
-  color: #6b7280;
+  color: #5a6a8c;
   font-size: 12px;
   cursor: pointer;
   transition: color 0.2s;
@@ -259,7 +275,27 @@ onUnmounted(() => {
 }
 
 .kg-toggle:hover {
+  color: #e8edf5;
+}
+
+.kg-weak-toggle {
+  padding: 0 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  color: #6b7280;
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  line-height: 1.6;
+  border-radius: 4px;
+  margin-right: 4px;
+}
+.kg-weak-toggle:hover {
   color: #e5e7eb;
+}
+.kg-weak-toggle.active {
+  color: #60a5fa;
+  border-color: rgba(96, 165, 250, 0.3);
 }
 
 .kg-body {
@@ -272,7 +308,7 @@ onUnmounted(() => {
   height: 550px;
   border-radius: 8px;
   overflow: hidden;
-  background: rgba(15, 15, 35, 0.4);
+  background: linear-gradient(135deg, #0a0f1a 0%, #0f1729 50%, #0a1020 100%);
 }
 
 .kg-progress-overlay {
@@ -286,9 +322,9 @@ onUnmounted(() => {
   position: absolute;
   bottom: 12px;
   left: 12px;
-  background: rgba(15, 15, 35, 0.92);
+  background: rgba(17, 24, 39, 0.94);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid #2a3a5c;
   border-radius: 8px;
   padding: 8px 12px;
   z-index: 10;
@@ -298,7 +334,7 @@ onUnmounted(() => {
 .kg-tooltip-name {
   font-size: 14px;
   font-weight: 700;
-  color: #fff;
+  color: #e8edf5;
   margin-bottom: 4px;
 }
 
@@ -314,7 +350,7 @@ onUnmounted(() => {
 
 .kg-tooltip-desc {
   font-size: 11px;
-  color: #9ca3af;
+  color: #8899bb;
   line-height: 1.5;
 }
 
@@ -324,14 +360,14 @@ onUnmounted(() => {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(15, 15, 35, 0.88);
+  background: rgba(17, 24, 39, 0.94);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid #2a3a5c;
   border-radius: 12px;
   padding: 12px 24px;
   font-size: 18px;
   font-weight: 700;
-  color: #e5e7eb;
+  color: #e8edf5;
   z-index: 20;
   pointer-events: none;
   white-space: nowrap;
@@ -365,9 +401,9 @@ onUnmounted(() => {
   position: absolute;
   bottom: 12px;
   left: 12px;
-  background: rgba(15, 15, 35, 0.94);
+  background: rgba(17, 24, 39, 0.94);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid #2a3a5c;
   border-radius: 10px;
   padding: 14px 16px;
   z-index: 15;
@@ -387,7 +423,7 @@ onUnmounted(() => {
 .kg-detail-title {
   font-size: 15px;
   font-weight: 700;
-  color: #fff;
+  color: #e8edf5;
   line-height: 1.3;
   word-break: break-all;
 }
@@ -401,7 +437,7 @@ onUnmounted(() => {
   justify-content: center;
   border: none;
   background: rgba(255, 255, 255, 0.06);
-  color: #6b7280;
+  color: #5a6a8c;
   border-radius: 4px;
   font-size: 12px;
   cursor: pointer;
@@ -410,7 +446,7 @@ onUnmounted(() => {
 }
 .kg-detail-close:hover {
   background: rgba(255, 255, 255, 0.12);
-  color: #e5e7eb;
+  color: #e8edf5;
 }
 
 .kg-detail-type {
@@ -428,26 +464,36 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   font-size: 11px;
-  color: #9ca3af;
+  color: #8899bb;
   margin-bottom: 4px;
 }
 
 .kg-detail-label {
-  color: #6b7280;
+  color: #5a6a8c;
   font-weight: 600;
   min-width: 32px;
 }
 
+.kg-detail-status.planned {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #94A3B8;
+}
+.kg-detail-status-icon {
+  flex-shrink: 0;
+}
+
 .kg-detail-section {
   margin-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid #2a3a5c;
   padding-top: 8px;
 }
 
 .kg-detail-section-title {
   font-size: 10px;
   font-weight: 600;
-  color: #6b7280;
+  color: #5a6a8c;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 4px;
@@ -455,14 +501,14 @@ onUnmounted(() => {
 
 .kg-detail-obs {
   font-size: 11px;
-  color: #9ca3af;
+  color: #8899bb;
   line-height: 1.5;
   padding: 2px 0;
 }
 
 .kg-detail-empty {
   font-size: 11px;
-  color: #4b5563;
+  color: #5a6a8c;
   font-style: italic;
 }
 

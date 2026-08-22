@@ -7,10 +7,15 @@ import type {
 import {
   normalizeEntityType, edgeId, PHASE_NAMES,
 } from '@/types/knowledge-graph'
+import { synthesizeEdges } from '@/utils/syntheticEdges'
 
 // ── 事件缓冲配置 ──
 // 解决后端事件流不均匀导致的节点批量冒出、关系瞬间连接等问题
-const BUFFER_CONSUME_MS = 1500  // 从缓冲队列消费事件的间隔（ms）
+const BUFFER_MIN_MS = 5000   // 消费间隔下限（ms）
+const BUFFER_MAX_MS = 10000  // 消费间隔上限（ms）
+const SPRINT_MS = 250        // 收尾冲刺：完成信号后剩余缓冲的快速消费间隔
+const BUFFER_FAST_MS = 3000  // 缓冲堆积时的加速消费间隔（防止图谱落后回答太多）
+const BUFFER_HIGH_WATER = 10 // 缓冲水位阈值：待消费事件数超过此值则加速
 const IMMEDIATE_EVENT_TYPES = new Set([
   'PhaseChange', 'Progress', 'LiteratureSearching', 'RunComplete',
 ])
@@ -23,6 +28,8 @@ export function useKnowledgeGraph() {
   const isComplete = ref(false)
   const nodes = ref<GraphNodeView[]>([])
   const links = ref<GraphEdgeView[]>([])
+  // 是否显示「弱关系」合成补边（前端视觉填充，非后端真实关系）
+  const showSynthetic = ref(true)
   const refreshKey = ref(0)
   const currentPhase = ref<KGPhase>("broad_search")
   const phaseDescription = ref("正在广域检索生物医学实体...")
@@ -35,10 +42,18 @@ export function useKnowledgeGraph() {
   const startEntityNames = ref<string[]>([])
   // ── 事件缓冲队列 ──
   const eventBuffer: Record<string, any>[] = []
-  let consumeTimer: ReturnType<typeof setInterval> | null = null
+  let consumeTimer: ReturnType<typeof setTimeout> | null = null
   const totalNodes = computed(() => nodes.value.length)
   const totalLinks = computed(() => links.value.length)
-  const graphData = computed<KGData>(() => ({ nodes: nodes.value, links: links.value }))
+  // 合成弱边：仅在完成时按「同类型弱连 + 种子补边」生成；同输入同序列，真实边后到会取代同对弱边
+  const syntheticLinks = computed<GraphEdgeView[]>(() =>
+    isComplete.value ? synthesizeEdges(nodes.value, links.value) : []
+  )
+  // 展示边 = 真实边 +（可选）合成弱边
+  const displayLinks = computed<GraphEdgeView[]>(() =>
+    showSynthetic.value ? [...links.value, ...syntheticLinks.value] : links.value
+  )
+  const graphData = computed<KGData>(() => ({ nodes: nodes.value, links: displayLinks.value }))
 
   function formatTime(ts?: number): string {
     const d = new Date(ts ?? Date.now())
@@ -101,19 +116,41 @@ export function useKnowledgeGraph() {
     }
   }
   // ── 缓冲消费者 ──
+  function randomConsumeDelay() {
+    return BUFFER_MIN_MS + Math.random() * (BUFFER_MAX_MS - BUFFER_MIN_MS)
+  }
+  // 消费间隔：平时随机 5-10s（生长感），缓冲堆积超过水位时加速（追赶回答进度）
+  function consumeDelay() {
+    return eventBuffer.length >= BUFFER_HIGH_WATER ? BUFFER_FAST_MS : randomConsumeDelay()
+  }
   function startConsumer() {
     if (consumeTimer) return
-    consumeTimer = setInterval(() => {
+    const tick = () => {
       if (eventBuffer.length === 0) { stopConsumer(); return }
       processEventNow(eventBuffer.shift()!)
-    }, BUFFER_CONSUME_MS)
+      consumeTimer = setTimeout(tick, consumeDelay())
+    }
+    consumeTimer = setTimeout(tick, consumeDelay())
   }
   function stopConsumer() {
-    if (consumeTimer != null) { clearInterval(consumeTimer); consumeTimer = null }
+    if (consumeTimer != null) { clearTimeout(consumeTimer); consumeTimer = null }
   }
+  // 收尾冲刺：以 SPRINT_MS 短间隔快速消费剩余缓冲，保留渐入生长感（而非瞬间全冒出来）
+  let isSprinting = false
   function flushBuffer() {
-    while (eventBuffer.length > 0) processEventNow(eventBuffer.shift()!)
+    if (isSprinting) return
+    isSprinting = true
     stopConsumer()
+    const sprint = () => {
+      if (eventBuffer.length === 0) { isSprinting = false; isComplete.value = true; refreshKey.value++; return }
+      processEventNow(eventBuffer.shift()!)
+      consumeTimer = setTimeout(sprint, SPRINT_MS)
+    }
+    sprint()
+  }
+  // 完成信号（回答完毕 / 图谱 RunComplete）：冲刺消费剩余缓冲，清空后标记完成
+  function complete() {
+    flushBuffer()
   }
   // ── 立即处理（内部） ──
   function processEventNow(payload: Record<string, any>) {
@@ -150,7 +187,7 @@ export function useKnowledgeGraph() {
         const contradiction = payload.contradiction === true || payload.is_contradiction === true
         const strength = typeof payload.strength === 'number' ? payload.strength : undefined
         // 调试日志：验证后端是否发送 strength
-        console.log('[KG] RelationFound:', { source: s, target: t, relation: r, strength, contradiction, payload })
+        console.log(`[KG] RelationFound: ${s} -> ${r} -> ${t} strength=${strength} contradiction=${contradiction}`)
         if(s&&t&&r){upsertEdge(s,t,r,{ contradiction, strength });addDiscovery(`${contradiction?'⚠️ 矛盾: ':''}${s} → ${r} → ${t}`,payload.timestamp)}
         break
       }
@@ -164,7 +201,7 @@ export function useKnowledgeGraph() {
         break
       }
       case "LiteratureSearching": addDiscovery("正在检索相关文献...",payload.timestamp);break
-      case "RunComplete": isComplete.value=true;if(run.value){run.value.isComplete=true;if(payload.total_steps!==undefined)run.value.totalSteps=payload.total_steps}addDiscovery("✅ 图谱构建完成",payload.timestamp);break
+      case "RunComplete": if(run.value){run.value.isComplete=true;if(payload.total_steps!==undefined)run.value.totalSteps=payload.total_steps}addDiscovery("✅ 图谱构建完成",payload.timestamp);break
     }
     // 首个 SSE 事件到达时，记录图谱开始生长的时刻作为计时起点
     if (startTime.value === null) {
@@ -177,8 +214,8 @@ export function useKnowledgeGraph() {
     const ev = payload.event_type as string
     if (IMMEDIATE_EVENT_TYPES.has(ev) || options?.immediate) {
       processEventNow(payload)
-      // RunComplete: 刷新缓冲区中剩余事件
-      if (ev === 'RunComplete') flushBuffer()
+      // RunComplete: 冲刺消费缓冲区中剩余事件，清空后标记完成
+      if (ev === 'RunComplete') complete()
       return
     }
     // 节点/边事件进入缓冲队列，以固定节奏消费
@@ -255,8 +292,13 @@ export function useKnowledgeGraph() {
     stopConsumer();eventBuffer.length=0
   }
   function destroy() { stopConsumer();eventBuffer.length=0 }
+  // 切换弱关系补边显示（触发 refreshKey 让 GraphCanvas 重读 displayLinks）
+  function toggleSynthetic() {
+    showSynthetic.value = !showSynthetic.value
+    refreshKey.value++
+  }
   // 注意：不要 deep watch nodes/links，force-graph 拖拽会修改 node.x/y
   // 导致 refreshKey 无限递增 → scheduleUpdate 重置力布局 → 图谱消失
   // refreshKey 已在 syncToRefs() 中正确递增
-  return { nodes,links,graphData,run,currentPhase,phaseDescription,startTime,isComplete,frozenElapsed,recentDiscoveries,entityCounts,totalNodes,totalLinks,refreshKey,startEntityNames,applyAgentGraphEvent,patchRun,fetchFullGraph,replaceGraph,reset,destroy,flushBuffer }
+  return { nodes,links,graphData,run,currentPhase,phaseDescription,startTime,isComplete,frozenElapsed,recentDiscoveries,entityCounts,totalNodes,totalLinks,refreshKey,startEntityNames,showSynthetic,toggleSynthetic,applyAgentGraphEvent,patchRun,fetchFullGraph,replaceGraph,reset,destroy,complete }
 }
