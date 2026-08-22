@@ -486,11 +486,11 @@ onMounted(() => {
     // 自定义节点绘制：光圈套实心点 + 发光（照搬 obsidian graph 风格）
     .nodeCanvasObject((n: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
       const base = props.entityColors[n.entityType] || '#888'
-      // status 区分：planned 灰色 / searching 半透明 / confirmed 实色
-      let color = base
-      let statusAlpha = 1
-      if (n.status === 'planned') { color = '#94A3B8'; statusAlpha = 0.5 }
-      else if (n.status === 'searching') { statusAlpha = 0.6 }
+      // status 区分：planned 空心灰三角 / searching 半透明 / confirmed 实色发光
+      const isPlanned = n.status === 'planned'
+      const isSearching = n.status === 'searching'
+      const color = isPlanned ? '#94A3B8' : base
+      const statusAlpha = isPlanned ? 1 : (isSearching ? 0.6 : 1)
 
       // 节点浮现动画：透明度 + 半径从小到大缓出
       let progress = 1
@@ -505,6 +505,23 @@ onMounted(() => {
 
       const isHover = hoveredNode && hoveredNode.id === n.id
       const r = (12 * (isHover ? 1.15 : 1) * animScale) / globalScale
+
+      if (isPlanned) {
+        // 预生成节点：空心灰色三角形（指向上），不显示实体类型色，与已确认实体的圆形明确区分
+        const sin60 = Math.sqrt(3) / 2
+        ctx.save()
+        ctx.strokeStyle = hexToRgba(color, 0.7 * alpha)
+        ctx.lineWidth = 1.5 / globalScale
+        ctx.lineJoin = 'round'
+        ctx.beginPath()
+        ctx.moveTo(n.x, n.y - r)                    // 上顶点
+        ctx.lineTo(n.x - r * sin60, n.y + r * 0.5)  // 左下
+        ctx.lineTo(n.x + r * sin60, n.y + r * 0.5)  // 右下
+        ctx.closePath()
+        ctx.stroke()
+        ctx.restore()
+        return
+      }
 
       // 外圈：半透明填充 + 实色描边 + 发光
       ctx.save()
