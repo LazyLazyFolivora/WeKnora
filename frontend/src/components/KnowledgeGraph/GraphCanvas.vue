@@ -60,6 +60,7 @@ let graph: any = null
 let hoveredNode: GraphNodeView | null = null
 let resizeObserver: ResizeObserver | null = null
 let initialFitDone = false // 容器首次可见后只执行一次 fitToView
+let lastFitWidth = 0 // 上次 fitToView 时的容器宽度，用于检测显著尺寸变化
 
 // ── Bug fix: 阻止 wheel 事件冒泡，防止缩放到极限时页面滚动 ──
 function onContainerWheel(e: WheelEvent) {
@@ -189,8 +190,8 @@ function isDimmed(n: any): boolean {
 // ── 自动追踪新节点 ──
 const autoFollow = ref(true)
 const FIT_OVERSCALE = 1.15 // 正常大小：图比可视区稍大（整体溢出倍数）
-const MIN_ZOOM_FACTOR = 0.5 // 缩小下限：正常大小的一半
-const MAX_ZOOM_FACTOR = 2 // 放大上限：正常大小的 2 倍
+const MIN_ZOOM_FACTOR = 0.2 // 缩小下限：正常大小的五分之一
+const MAX_ZOOM_FACTOR = 5 // 放大上限：正常大小的 5 倍
 const PAN_MARGIN_FACTOR = 0.5 // 平移边界：视图中心最多超出图包围盒半个视口（与缩小下限对应）
 // 待对焦的新节点（对象引用）：力模拟稳定后读实时坐标精确对准，避免用初始位置快照导致偏焦
 let pendingFocus: GraphNodeView[] = []
@@ -703,18 +704,29 @@ onMounted(() => {
   if (typeof ResizeObserver !== 'undefined') {
     resizeObserver = new ResizeObserver(() => {
       if (!graph || !containerRef.value) return
-      const w = containerRef.value.clientWidth || 300
-      const h = containerRef.value.clientHeight || 300
+      // 用 getBoundingClientRect 拿真实尺寸（v-show 过渡期间 clientWidth 可能读到 0/中间值）
+      const rect = containerRef.value.getBoundingClientRect()
+      const w = rect.width
+      const h = rect.height
+      // 隐藏/折叠态尺寸为 0 时跳过，避免把画布锁成 300px 导致「宽度变窄」
+      if (w <= 0 || h <= 0) return
       graph.width(w)
       graph.height(h)
-      // 容器首次变为可见（clientWidth > 0 说明不是 display:none 的 fallback），
-      // 执行初始 fitToView 确保缩放基于真实视口尺寸
-      if (!initialFitDone && containerRef.value.clientWidth > 0) {
+      if (!initialFitDone) {
+        // 首次变为可见：基于真实视口尺寸做一次 fitToView
         initialFitDone = true
+        lastFitWidth = w
         setTimeout(() => {
           if (!graph) return
           fitToView(600)
         }, 100) // 短延迟确保 graph.width/height 已生效
+      } else if (!autoFollow.value && Math.abs(w - lastFitWidth) > 40) {
+        // 宽度显著变化（侧栏/窗口缩放）且非自动追踪中，重新适配全貌
+        lastFitWidth = w
+        setTimeout(() => {
+          if (!graph) return
+          fitToView(600)
+        }, 100)
       }
     })
     resizeObserver.observe(containerRef.value)
@@ -753,15 +765,15 @@ function zoomPulse() {
 // ── 广度/深度阶段差异化力布局参数 ──
 const PHASE_FORCE_CONFIG = {
   broad_search: {
-    chargeStrength: -550,    // 强排斥 → 节点散开（图越大动态再放大）
-    linkDistance: 520,        // 远距离 → 大范围扫描感（图越大动态再加长）
+    chargeStrength: -750,    // 强排斥 → 节点散开（图越大动态再放大）
+    linkDistance: 700,        // 远距离 → 大范围扫描感（图越大动态再加长）
     alphaDecay: 0.015,       // 慢冷却 → 持续运动
     particleCount: 2,        // 更多粒子 → 活跃流动感
     particleSpeed: 0.006,    // 更快粒子
   },
   deep_dive: {
-    chargeStrength: -220,    // 弱排斥 → 节点紧凑聚焦（图越大动态再放大）
-    linkDistance: 280,        // 短距离 → 聚焦深入感（图越大动态再加长）
+    chargeStrength: -300,    // 弱排斥 → 节点紧凑聚焦（图越大动态再放大）
+    linkDistance: 380,        // 短距离 → 聚焦深入感（图越大动态再加长）
     alphaDecay: 0.03,        // 快冷却 → 快速稳定
     particleCount: 1,        // 更少粒子 → 沉稳
     particleSpeed: 0.003,    // 更慢粒子
