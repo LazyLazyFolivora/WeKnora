@@ -426,7 +426,8 @@ onBeforeUnmount(() => {
     color: var(--td-text-color-primary);
     font-size: 16px;
     // padding: 10px 12px;
-    margin-right: auto;
+    flex: 1 1 0%;
+    min-width: 0;
     max-width: 100%;
     box-sizing: border-box;
 }
