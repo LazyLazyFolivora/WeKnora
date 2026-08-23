@@ -90,6 +90,15 @@ export function useKnowledgeGraph() {
     }
   }
   function upsertEdge(s: string, t: string, r: string, opts?: { contradiction?: boolean; strength?: number }) {
+    // 兜底：边的两端节点若尚未出现，先补占位节点，避免 force-graph 抛 "node not found"。
+    for (const endpoint of [s, t]) {
+      if (endpoint && !nodesMap.has(endpoint)) {
+        nodesMap.set(endpoint, {
+          id: endpoint, name: endpoint, entityType: 'unknown',
+          status: 'confirmed', observations: [], _createdAt: Date.now(),
+        })
+      }
+    }
     const id = edgeId(s, t, r)
     if (edgesMap.has(id)) {
       // 后写覆盖同名边（允许 contradiction/strength 状态更新）
