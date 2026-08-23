@@ -380,6 +380,14 @@ func (s *agentGraphService) handleRelationFound(
 	}); err != nil {
 		return err
 	}
+	// 补全边端点节点：RelationFound 只发关系、不保证端点已被单独 confirmed，
+	// 否则边会引用不存在的节点行（历史数据里已出现此类缺失实体）。
+	if err := s.ensureEndpointNode(ctx, repo, tenantID, sessionID, messageID, data.StreamKey, src, data.Seq, msgSeq); err != nil {
+		return err
+	}
+	if err := s.ensureEndpointNode(ctx, repo, tenantID, sessionID, messageID, data.StreamKey, tgt, data.Seq, msgSeq); err != nil {
+		return err
+	}
 	count, err := repo.CountEdges(ctx, tenantID, messageID)
 	if err != nil {
 		return err
@@ -387,6 +395,30 @@ func (s *agentGraphService) handleRelationFound(
 	return repo.AdvanceRunSeq(ctx, tenantID, data.StreamKey, data.Seq, msgSeq, map[string]interface{}{
 		"relation_count": count,
 	})
+}
+
+// ensureEndpointNode 为边的端点补一个节点行：RelationFound 只发关系、不保证
+// 端点已被单独 planned/searching/confirmed，否则边会引用不存在的节点。
+// 幂等：已存在的节点保留原有 status/entity_type/observations，仅 bump last_seq。
+func (s *agentGraphService) ensureEndpointNode(
+	ctx context.Context, repo interfaces.AgentGraphRepository,
+	tenantID uint64, sessionID, messageID, streamKey, name string, seq, msgSeq int64,
+) error {
+	return repo.UpsertNode(ctx, &types.AgentGraphNode{
+		ID:          uuid.NewString(),
+		TenantID:    tenantID,
+		SessionID:   sessionID,
+		MessageID:   messageID,
+		StreamKey:   streamKey,
+		EntityName:  name,
+		EntityType:  "",
+		Status:      types.AgentGraphNodeStatusConfirmed,
+		Observations: types.JSON([]byte("[]")),
+		FirstSeq:    seq,
+		LastSeq:     seq,
+		FirstMsgSeq: msgSeq,
+		LastMsgSeq:  msgSeq,
+	}, false)
 }
 
 func (s *agentGraphService) handleRunComplete(
