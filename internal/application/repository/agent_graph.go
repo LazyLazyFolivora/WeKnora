@@ -75,7 +75,22 @@ func (r *agentGraphRepository) GetLatestRunByMessage(
 }
 
 // BumpMsgSeq allocates a message-level monotonic cursor shared across tool calls.
+//
+// The run row is locked first (SELECT ... FOR UPDATE) so concurrent events from
+// the same stream serialize here. Without the lock, a burst of events (e.g. the
+// 16 EntityPlanned a BioDSA run emits back-to-back) all read the same
+// MAX(msg_seq), compute the same `next`, and collide on the (message_id, msg_seq)
+// unique index, dropping every event but one per round.
 func (r *agentGraphRepository) BumpMsgSeq(ctx context.Context, tenantID uint64, messageID, streamKey string) (int64, error) {
+	// Lock the run row to serialize msg_seq allocation across concurrent events.
+	var run types.AgentGraphRun
+	if err := r.db.WithContext(ctx).
+		Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("tenant_id = ? AND stream_key = ?", tenantID, streamKey).
+		First(&run).Error; err != nil {
+		return 0, err
+	}
+
 	var eventMax, runMax int64
 	if err := r.db.WithContext(ctx).Model(&types.AgentGraphEvent{}).
 		Where("tenant_id = ? AND message_id = ?", tenantID, messageID).
