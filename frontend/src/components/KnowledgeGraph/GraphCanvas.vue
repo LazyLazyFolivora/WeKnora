@@ -489,38 +489,12 @@ function onMinimapClick(e: MouseEvent) {
   graph.centerAt(gx, gy, 400) // 400ms 平滑过渡
 }
 
-// 计算图谱可用宽度：不能直接测 .graph-canvas-inner 或 .msg-with-avatar 的当前宽度，
-// 它们都是 shrink-to-fit，会随画布宽度反向缩窄，形成闭环（画布窄 → 行窄 → 量出来窄 → 永远涨不回）。
-// 改为读行的 max-width（85%，getComputedStyle 已解析成像素）——它来自稳定的 .msg_list，
-// 不随内容缩，得到的是行的最大可用宽度，减去头像与 gap 即图谱真实可用宽度。
-function measureGraphWidth(): number {
-  const el = containerRef.value
-  if (!el) return 0
-  const row = el.closest('.msg-with-avatar') as HTMLElement | null
-  if (row) {
-    const cs = getComputedStyle(row)
-    const gap = parseFloat(cs.columnGap || cs.gap) || 0
-    const avatar = row.querySelector('.msg-avatar') as HTMLElement | null
-    const avatarW = avatar ? avatar.offsetWidth : 0
-    // 行的最大可用宽度：max-width 可能是 "85%" 或已解析的 "816px"，两种情况都兼容
-    const maxW = cs.maxWidth
-    const pct = maxW.includes('%') ? parseFloat(maxW) / 100 : 0
-    const stableRowW = pct > 0
-      ? (row.parentElement?.clientWidth ?? row.clientWidth) * pct
-      : (parseFloat(maxW) || row.clientWidth)
-    const w = stableRowW - avatarW - gap
-    console.log('[KG:size] measure:', { row: row.clientWidth, parent: row.parentElement?.clientWidth, maxW: cs.maxWidth, avatarW, gap, stableRowW, w })
-    if (w > 0) return w
-  }
-  return el.getBoundingClientRect().width // 兜底：非聊天场景回落原逻辑
-}
-
-// 同步画布尺寸到真实容器：宽度用 measureGraphWidth（稳定祖先），高度用容器 rect。
+// 同步画布尺寸到真实容器：宽度用容器 rect.width，高度用容器 rect.height。
 // 抽成独立函数，供 ResizeObserver 与「首节点出现」双路调用。
 function syncGraphSize() {
   if (!graph || !containerRef.value) return
   const rect = containerRef.value.getBoundingClientRect()
-  const w = measureGraphWidth()
+  const w = rect.width // 容器真实宽度（头像在兄弟节点里，不占此宽度）
   const h = rect.height
   console.log('[KG:size] sync:', { w, h, rectW: rect.width, rectH: rect.height, graphW: graph.width(), graphH: graph.height() })
   // 隐藏/折叠态尺寸为 0 时跳过，避免把画布锁成 300px 导致「宽度变窄」
