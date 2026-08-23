@@ -547,7 +547,7 @@ onMounted(() => {
   graph = ForceGraph()(containerRef.value)
     .width(cw)
     .height(ch)
-    .backgroundColor('transparent')
+    .backgroundColor('rgba(15, 15, 35, 0.4)')
     // 节点值：force-graph 用 sqrt(nodeVal) 作为 hover 命中区域半径，144 → 12px
     .nodeVal(() => 144)
     // 自定义节点绘制：光圈套实心点 + 发光（照搬 obsidian graph 风格）
