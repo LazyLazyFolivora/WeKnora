@@ -30,7 +30,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, onUnmounted } from 'vue'
+import { ref, onMounted, watch, nextTick, onUnmounted } from 'vue'
 import ForceGraph from 'force-graph'
 import type { GraphNodeView, KGData, KGPhase } from '@/types/knowledge-graph'
 import { ENTITY_COLORS } from '@/types/knowledge-graph'
@@ -507,6 +507,35 @@ function measureGraphWidth(): number {
   return el.getBoundingClientRect().width // 兜底：非聊天场景回落原逻辑
 }
 
+// 同步画布尺寸到真实容器：宽度用 measureGraphWidth（稳定祖先），高度用容器 rect。
+// 抽成独立函数，供 ResizeObserver 与「首节点出现」双路调用。
+function syncGraphSize() {
+  if (!graph || !containerRef.value) return
+  const rect = containerRef.value.getBoundingClientRect()
+  const w = measureGraphWidth()
+  const h = rect.height
+  // 隐藏/折叠态尺寸为 0 时跳过，避免把画布锁成 300px 导致「宽度变窄」
+  if (w <= 0 || h <= 0) return
+  graph.width(w)
+  graph.height(h)
+  if (!initialFitDone) {
+    // 首次变为可见：基于真实视口尺寸做一次 fitToView
+    initialFitDone = true
+    lastFitWidth = w
+    setTimeout(() => {
+      if (!graph) return
+      fitToView(600)
+    }, 100) // 短延迟确保 graph.width/height 已生效
+  } else if (!autoFollow.value && Math.abs(w - lastFitWidth) > 40) {
+    // 宽度显著变化（侧栏/窗口缩放）且非自动追踪中，重新适配全貌
+    lastFitWidth = w
+    setTimeout(() => {
+      if (!graph) return
+      fitToView(600)
+    }, 100)
+  }
+}
+
 onMounted(() => {
   if (!containerRef.value) return
 
@@ -720,33 +749,7 @@ onMounted(() => {
 
   // 容器尺寸变化时同步画布尺寸（宽度 100% 响应式，窗口缩放会改变容器宽度）
   if (typeof ResizeObserver !== 'undefined') {
-    resizeObserver = new ResizeObserver(() => {
-      if (!graph || !containerRef.value) return
-      // 用 getBoundingClientRect 拿真实尺寸（v-show 过渡期间 clientWidth 可能读到 0/中间值）
-      const rect = containerRef.value.getBoundingClientRect()
-      const w = measureGraphWidth()
-      const h = rect.height
-      // 隐藏/折叠态尺寸为 0 时跳过，避免把画布锁成 300px 导致「宽度变窄」
-      if (w <= 0 || h <= 0) return
-      graph.width(w)
-      graph.height(h)
-      if (!initialFitDone) {
-        // 首次变为可见：基于真实视口尺寸做一次 fitToView
-        initialFitDone = true
-        lastFitWidth = w
-        setTimeout(() => {
-          if (!graph) return
-          fitToView(600)
-        }, 100) // 短延迟确保 graph.width/height 已生效
-      } else if (!autoFollow.value && Math.abs(w - lastFitWidth) > 40) {
-        // 宽度显著变化（侧栏/窗口缩放）且非自动追踪中，重新适配全貌
-        lastFitWidth = w
-        setTimeout(() => {
-          if (!graph) return
-          fitToView(600)
-        }, 100)
-      }
-    })
+    resizeObserver = new ResizeObserver(() => { syncGraphSize() })
     resizeObserver.observe(containerRef.value)
   }
 
@@ -761,6 +764,19 @@ watch(
   () => props.refreshKey,
   () => {
     if (graph) scheduleUpdate(props.graphData)
+  },
+)
+
+// 首节点出现 = 图谱从 v-show 隐藏变可见：ResizeObserver 在 display:none→可见 的首帧时序不稳，
+// 主动在 nextTick + 双 rAF（浏览器布局稳定后）补一次尺寸同步，避免画布停在挂载时的 300px。
+watch(
+  () => props.graphData.nodes.length,
+  (n, old) => {
+    if (n > 0 && old === 0) {
+      nextTick(() => {
+        requestAnimationFrame(() => requestAnimationFrame(() => syncGraphSize()))
+      })
+    }
   },
 )
 
