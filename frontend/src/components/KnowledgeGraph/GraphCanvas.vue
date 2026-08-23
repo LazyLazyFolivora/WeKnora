@@ -489,9 +489,10 @@ function onMinimapClick(e: MouseEvent) {
   graph.centerAt(gx, gy, 400) // 400ms 平滑过渡
 }
 
-// 计算图谱可用宽度：不能直接测 .graph-canvas-inner，它挂在 shrink-to-fit 的 .bot_msg 上，
-// 测出来的宽度会和画布宽度互相锁死（画布窄 → 消息窄 → 画布更窄，永远涨不回可用宽度）。
-// 改为测稳定的 .msg-with-avatar 消息行（max-width:85%），减去头像与 gap 得到真实可用宽度。
+// 计算图谱可用宽度：不能直接测 .graph-canvas-inner 或 .msg-with-avatar 的当前宽度，
+// 它们都是 shrink-to-fit，会随画布宽度反向缩窄，形成闭环（画布窄 → 行窄 → 量出来窄 → 永远涨不回）。
+// 改为读行的 max-width（85%，getComputedStyle 已解析成像素）——它来自稳定的 .msg_list，
+// 不随内容缩，得到的是行的最大可用宽度，减去头像与 gap 即图谱真实可用宽度。
 function measureGraphWidth(): number {
   const el = containerRef.value
   if (!el) return 0
@@ -501,7 +502,13 @@ function measureGraphWidth(): number {
     const gap = parseFloat(cs.columnGap || cs.gap) || 0
     const avatar = row.querySelector('.msg-avatar') as HTMLElement | null
     const avatarW = avatar ? avatar.offsetWidth : 0
-    const w = row.clientWidth - avatarW - gap
+    // 行的最大可用宽度：max-width 可能是 "85%" 或已解析的 "816px"，两种情况都兼容
+    const maxW = cs.maxWidth
+    const pct = maxW.includes('%') ? parseFloat(maxW) / 100 : 0
+    const stableRowW = pct > 0
+      ? (row.parentElement?.clientWidth ?? row.clientWidth) * pct
+      : (parseFloat(maxW) || row.clientWidth)
+    const w = stableRowW - avatarW - gap
     if (w > 0) return w
   }
   return el.getBoundingClientRect().width // 兜底：非聊天场景回落原逻辑
