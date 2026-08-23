@@ -489,6 +489,24 @@ function onMinimapClick(e: MouseEvent) {
   graph.centerAt(gx, gy, 400) // 400ms 平滑过渡
 }
 
+// 计算图谱可用宽度：不能直接测 .graph-canvas-inner，它挂在 shrink-to-fit 的 .bot_msg 上，
+// 测出来的宽度会和画布宽度互相锁死（画布窄 → 消息窄 → 画布更窄，永远涨不回可用宽度）。
+// 改为测稳定的 .msg-with-avatar 消息行（max-width:85%），减去头像与 gap 得到真实可用宽度。
+function measureGraphWidth(): number {
+  const el = containerRef.value
+  if (!el) return 0
+  const row = el.closest('.msg-with-avatar') as HTMLElement | null
+  if (row) {
+    const cs = getComputedStyle(row)
+    const gap = parseFloat(cs.columnGap || cs.gap) || 0
+    const avatar = row.querySelector('.msg-avatar') as HTMLElement | null
+    const avatarW = avatar ? avatar.offsetWidth : 0
+    const w = row.clientWidth - avatarW - gap
+    if (w > 0) return w
+  }
+  return el.getBoundingClientRect().width // 兜底：非聊天场景回落原逻辑
+}
+
 onMounted(() => {
   if (!containerRef.value) return
 
@@ -706,7 +724,7 @@ onMounted(() => {
       if (!graph || !containerRef.value) return
       // 用 getBoundingClientRect 拿真实尺寸（v-show 过渡期间 clientWidth 可能读到 0/中间值）
       const rect = containerRef.value.getBoundingClientRect()
-      const w = rect.width
+      const w = measureGraphWidth()
       const h = rect.height
       // 隐藏/折叠态尺寸为 0 时跳过，避免把画布锁成 300px 导致「宽度变窄」
       if (w <= 0 || h <= 0) return
