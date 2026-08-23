@@ -509,6 +509,7 @@ function measureGraphWidth(): number {
       ? (row.parentElement?.clientWidth ?? row.clientWidth) * pct
       : (parseFloat(maxW) || row.clientWidth)
     const w = stableRowW - avatarW - gap
+    console.log('[KG:size] measure:', { row: row.clientWidth, parent: row.parentElement?.clientWidth, maxW: cs.maxWidth, avatarW, gap, stableRowW, w })
     if (w > 0) return w
   }
   return el.getBoundingClientRect().width // 兜底：非聊天场景回落原逻辑
@@ -521,6 +522,7 @@ function syncGraphSize() {
   const rect = containerRef.value.getBoundingClientRect()
   const w = measureGraphWidth()
   const h = rect.height
+  console.log('[KG:size] sync:', { w, h, rectW: rect.width, rectH: rect.height, graphW: graph.width(), graphH: graph.height() })
   // 隐藏/折叠态尺寸为 0 时跳过，避免把画布锁成 300px 导致「宽度变窄」
   if (w <= 0 || h <= 0) return
   graph.width(w)
@@ -756,7 +758,7 @@ onMounted(() => {
 
   // 容器尺寸变化时同步画布尺寸（宽度 100% 响应式，窗口缩放会改变容器宽度）
   if (typeof ResizeObserver !== 'undefined') {
-    resizeObserver = new ResizeObserver(() => { syncGraphSize() })
+    resizeObserver = new ResizeObserver(() => { console.log('[KG:size] RO fired'); syncGraphSize() })
     resizeObserver.observe(containerRef.value)
   }
 
@@ -780,8 +782,10 @@ watch(
   () => props.graphData.nodes.length,
   (n, old) => {
     if (n > 0 && old === 0) {
-      nextTick(() => {
-        requestAnimationFrame(() => requestAnimationFrame(() => syncGraphSize()))
+      console.log('[KG:size] nodes 0→>0, schedule multi-retry sync')
+      // v-show 揭示 + shrink-to-fit 布局稳定可能需要多帧，多次重试确保画布拿到正确宽度
+      ;[0, 50, 150, 400, 800].forEach((delay) => {
+        setTimeout(() => { if (graph) syncGraphSize() }, delay)
       })
     }
   },
