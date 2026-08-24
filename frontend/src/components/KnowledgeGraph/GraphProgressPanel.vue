@@ -45,8 +45,8 @@ const panelCollapsed = ref(false)
 let timer: ReturnType<typeof setInterval> | null = null
 
 const phaseText = computed(() => {
-  if (props.isComplete) return '✅ 完成'
-  return props.currentPhase === 'broad_search' ? '🔍 广域检索中...' : '🎯 深入挖掘中...'
+  if (props.isComplete) return 'Done'
+  return props.currentPhase === 'broad_search' ? 'Searching...' : 'Deep diving...'
 })
 
 const phaseClass = computed(() => {
@@ -65,7 +65,7 @@ const elapsedTime = computed(() => {
   if (props.frozenElapsed != null) {
     const min = String(Math.floor(props.frozenElapsed / 60)).padStart(2, '0')
     const sec = String(props.frozenElapsed % 60).padStart(2, '0')
-    return `用时 ${min}:${sec}`
+    return `Elapsed ${min}:${sec}`
   }
   // 实时计时
   const elapsed = Math.max(0, Math.floor((Date.now() - props.startTime) / 1000))
@@ -108,10 +108,10 @@ onUnmounted(() => {
 
 <style scoped>
 .kg-progress-panel {
-  background: rgba(15, 15, 35, 0.85);
+  background: rgba(26, 34, 54, 0.88);
   backdrop-filter: blur(12px);
-  border: none;
-  border-radius: 8px;
+  border: 1px solid rgba(42, 58, 92, 0.6);
+  border-radius: 12px;
   font-size: 12px;
   min-width: 180px;
   transition: all 0.2s ease;
@@ -127,8 +127,8 @@ onUnmounted(() => {
 }
 
 .kg-panel-header:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 8px;
+  background: rgba(99, 102, 241, 0.08);
+  border-radius: 12px;
 }
 
 .kg-panel-body {
@@ -159,7 +159,7 @@ onUnmounted(() => {
 }
 
 .phase-done {
-  background: #22c55e;
+  background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
 }
 
@@ -167,19 +167,19 @@ onUnmounted(() => {
   font-size: 18px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: #e5e7eb;
+  color: #e8edf5;
   margin-left: auto;
 }
 
 .kg-toggle-btn {
   font-size: 10px;
-  color: #6b7280;
+  color: #5a6a8c;
   flex-shrink: 0;
 }
 
 .kg-counts {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 4px;
   margin-bottom: 6px;
 }
@@ -189,7 +189,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 5px;
   font-size: 11px;
-  color: #9ca3af;
+  color: #8899bb;
 }
 
 .kg-dot {
@@ -201,25 +201,25 @@ onUnmounted(() => {
 
 .kg-count-num {
   font-weight: 700;
-  color: #e5e7eb;
+  color: #e8edf5;
   margin-left: auto;
 }
 
 .kg-timeline {
   max-height: 80px;
   overflow-y: auto;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid #2a3a5c;
   padding-top: 6px;
 }
 
 .kg-timeline-item {
   font-size: 10px;
-  color: #6b7280;
+  color: #5a6a8c;
   padding: 2px 0;
   line-height: 1.4;
 }
 
 .kg-timeline-item:first-child {
-  color: #d1d5db;
+  color: #8899bb;
 }
 </style>
