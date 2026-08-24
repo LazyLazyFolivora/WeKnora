@@ -3,12 +3,18 @@
     <div class="kg-header">
       <span class="kg-title">KnowledgeGraph</span>
       <span class="kg-stats">{{ totalNodes }} entities · {{ totalLinks }} relations</span>
-      <button class="kg-toggle" @click="collapsed = !collapsed">
+      <button class="kg-action-btn" @click="isFullscreen = true" title="全屏查看">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
+        </svg>
+      </button>
+      <button class="kg-action-btn" @click="collapsed = !collapsed">
         {{ collapsed ? '▸' : '▾' }}
       </button>
     </div>
     <div v-show="!collapsed" class="kg-body">
-      <div class="kg-canvas-wrapper">
+      <div class="kg-canvas-outer" :class="isComplete ? '' : `kg-phase-${currentPhase}`">
+        <div class="kg-canvas-wrapper">
         <GraphCanvas
           ref="graphCanvasRef"
           :graph-data="graphData"
@@ -33,11 +39,12 @@
             {{ currentPhase === 'broad_search' ? '广域检索' : '深入挖掘' }}
           </div>
         </Transition>
+        </div>
       </div>
       <!-- 悬停提示 -->
       <div v-if="hoveredNode && !detailNode" class="kg-tooltip">
         <div class="kg-tooltip-name">{{ hoveredNode.name }}</div>
-        <div class="kg-tooltip-type" :style="{ background: entityColors[hoveredNode.entityType] }">
+        <div class="kg-tooltip-type" :style="{ background: entityColors[hoveredNode.entityType], color: tooltipTypeColor(hoveredNode.entityType) }">
           {{ ENTITY_TYPE_NAMES[hoveredNode.entityType] }}
         </div>
         <div v-if="hoveredNode.observations?.length" class="kg-tooltip-desc">
@@ -51,7 +58,7 @@
             <div class="kg-detail-title">{{ detailNode.name }}</div>
             <button class="kg-detail-close" @click="detailNode = null">✕</button>
           </div>
-          <div class="kg-detail-type" :style="{ background: entityColors[detailNode.entityType] }">
+          <div class="kg-detail-type" :style="{ background: entityColors[detailNode.entityType], color: tooltipTypeColor(detailNode.entityType) }">
             {{ ENTITY_TYPE_NAMES[detailNode.entityType] || detailNode.entityType }}
           </div>
           <div v-if="detailNode.sourceKb" class="kg-detail-meta">
@@ -80,6 +87,84 @@
       </Transition>
     </div>
   </div>
+  <!-- 全屏覆盖层 -->
+  <Teleport to="body">
+    <Transition name="kg-fullscreen-fade">
+      <div v-if="isFullscreen" class="kg-fullscreen-overlay" @click.self="isFullscreen = false">
+        <button class="kg-fullscreen-exit" @click="isFullscreen = false" title="退出全屏 (Esc)">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 14h3a2 2 0 012 2v3m4-5h3a2 2 0 012 2v3M14 4v3a2 2 0 01-2 2H9M4 10V7a2 2 0 012-2h3"/>
+          </svg>
+        </button>
+        <div class="kg-fullscreen-container" :class="isComplete ? '' : `kg-phase-${currentPhase}`">
+          <div class="kg-canvas-wrapper">
+            <GraphCanvas
+              ref="fullscreenCanvasRef"
+              :graph-data="graphData"
+              :refresh-key="refreshKey"
+              :start-entity-names="startEntityNames"
+              :current-phase="currentPhase"
+              @node-click="handleNodeClick"
+              @node-hover="handleNodeHover"
+            />
+            <GraphProgressPanel
+              :current-phase="currentPhase"
+              :start-time="startTime"
+              :entity-counts="entityCounts"
+              :recent-discoveries="recentDiscoveries"
+              :is-complete="isComplete"
+              :frozen-elapsed="frozenElapsed"
+              class="kg-progress-overlay"
+            />
+            <!-- 全屏时的 tooltip -->
+            <div v-if="hoveredNode && !detailNode" class="kg-tooltip">
+              <div class="kg-tooltip-name">{{ hoveredNode.name }}</div>
+              <div class="kg-tooltip-type" :style="{ background: entityColors[hoveredNode.entityType], color: tooltipTypeColor(hoveredNode.entityType) }">
+                {{ ENTITY_TYPE_NAMES[hoveredNode.entityType] }}
+              </div>
+              <div v-if="hoveredNode.observations?.length" class="kg-tooltip-desc">
+                {{ hoveredNode.observations[0] }}
+              </div>
+            </div>
+            <!-- 全屏时的详情弹窗 -->
+            <Transition name="kg-detail-fade">
+              <div v-if="detailNode" class="kg-detail-card" @click.stop>
+              <div class="kg-detail-header">
+                <div class="kg-detail-title">{{ detailNode.name }}</div>
+                <button class="kg-detail-close" @click="detailNode = null">✕</button>
+              </div>
+              <div class="kg-detail-type" :style="{ background: entityColors[detailNode.entityType], color: tooltipTypeColor(detailNode.entityType) }">
+                {{ ENTITY_TYPE_NAMES[detailNode.entityType] || detailNode.entityType }}
+              </div>
+              <div v-if="detailNode.sourceKb" class="kg-detail-meta">
+                <span class="kg-detail-label">来源</span>
+                <span>{{ detailNode.sourceKb }}</span>
+              </div>
+              <div class="kg-detail-meta">
+                <span class="kg-detail-label">状态</span>
+                <span v-if="detailNode.status === 'planned'" class="kg-detail-status planned">
+                  <svg class="kg-detail-status-icon" viewBox="0 0 16 16" width="12" height="12">
+                    <polygon points="8,2 2,13 14,13" fill="none" stroke="#94A3B8" stroke-width="1.5" stroke-linejoin="round"/>
+                  </svg>
+                  预生成 — AI 从问题中预判的关键实体，待检索确认
+                </span>
+                <span v-else-if="detailNode.status === 'confirmed'">已确认</span>
+                <span v-else>搜索中</span>
+              </div>
+              <div v-if="detailNode.observations?.length" class="kg-detail-section">
+                <div class="kg-detail-section-title">观测描述</div>
+                <div v-for="(obs, idx) in detailNode.observations" :key="idx" class="kg-detail-obs">
+                  {{ obs }}
+                </div>
+              </div>
+              <div v-else class="kg-detail-empty">暂无详细描述</div>
+            </div>
+          </Transition>
+          </div> <!-- /kg-canvas-wrapper -->
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -110,8 +195,29 @@ const graphCanvasRef = ref<InstanceType<typeof GraphCanvas> | null>(null)
 const hoveredNode = ref<GraphNodeView | null>(null)
 const detailNode = ref<GraphNodeView | null>(null)
 const collapsed = ref(true)
+const isFullscreen = ref(false)
 const entityColors = ENTITY_COLORS
 const hasEverHadData = ref(false)
+const fullscreenCanvasRef = ref<InstanceType<typeof GraphCanvas> | null>(null)
+
+/** 根据实体背景色亮度返回对比文字颜色（浅底深字、深底白字） */
+function tooltipTypeColor(entityType: string): string {
+  const hex = entityColors[entityType] || '#888'
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  // 相对亮度（ITU-R BT.601）
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+  // 亮度 > 0.65 视为浅色背景 → 用知识图谱深蓝背景色作文字色
+  return luminance > 0.65 ? '#111827' : '#fff'
+}
+
+// ── 全屏 Escape 退出 ──
+function onEscapeKey(e: KeyboardEvent) {
+  if (e.key === 'Escape' && isFullscreen.value) isFullscreen.value = false
+}
+onMounted(() => { document.addEventListener('keydown', onEscapeKey) })
+onUnmounted(() => { document.removeEventListener('keydown', onEscapeKey) })
 
 // ── 阶段切换过渡动画 ──
 const phaseFlashVisible = ref(false)
@@ -254,8 +360,8 @@ onUnmounted(() => {
   margin-left: auto;
 }
 
-.kg-toggle {
-  padding: 0 4px;
+.kg-action-btn {
+  padding: 2px 6px;
   border: none;
   background: transparent;
   color: #5a6a8c;
@@ -263,9 +369,12 @@ onUnmounted(() => {
   cursor: pointer;
   transition: color 0.2s;
   line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.kg-toggle:hover {
+.kg-action-btn:hover {
   color: #e8edf5;
 }
 
@@ -273,13 +382,118 @@ onUnmounted(() => {
   position: relative;
 }
 
+.kg-canvas-outer {
+  position: relative;
+  border-radius: 10px;
+  padding: 3px; /* 发光带宽度 */
+}
 .kg-canvas-wrapper {
   position: relative;
+  z-index: 1; /* 盖住 ::before / ::after 伪元素，只留 3px 间隙透出光带 */
   width: 100%;
   height: 550px;
   border-radius: 8px;
   overflow: hidden;
   background: linear-gradient(135deg, #0a0f1a 0%, #0f1729 50%, #0a1020 100%);
+}
+/* ── 阶段流转发光边框（外层 ::before 柔光 + ::after 清晰光线） ── */
+.kg-phase-broad_search::before,
+.kg-phase-deep_dive::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  background: conic-gradient(
+    from var(--border-angle, 0deg),
+    transparent 0%,
+    color-mix(in srgb, var(--glow-color) 25%, transparent) 8%,
+    var(--glow-color) 16%,
+    color-mix(in srgb, var(--glow-color) 25%, transparent) 24%,
+    transparent 32%
+  );
+  filter: blur(6px);
+  animation: kg-border-flow 3s linear infinite;
+  pointer-events: none;
+}
+.kg-phase-broad_search::after,
+.kg-phase-deep_dive::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  background: conic-gradient(
+    from var(--border-angle, 0deg),
+    transparent 0%,
+    color-mix(in srgb, var(--glow-color) 50%, transparent) 10%,
+    var(--glow-color) 15%,
+    color-mix(in srgb, var(--glow-color) 50%, transparent) 20%,
+    transparent 28%
+  );
+  animation: kg-border-flow 3s linear infinite;
+  pointer-events: none;
+}
+.kg-phase-broad_search { --glow-color: #3b82f6; }
+.kg-phase-deep_dive    { --glow-color: #8b5cf6; }
+
+@keyframes kg-border-flow {
+  to { --border-angle: 360deg; }
+}
+
+@property --border-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+/* ── 全屏容器同样保留阶段流转发光边框 ── */
+.kg-fullscreen-container.kg-phase-broad_search,
+.kg-fullscreen-container.kg-phase-deep_dive {
+  padding: 3px;
+  border-radius: 15px;
+}
+.kg-fullscreen-container.kg-phase-broad_search { --glow-color: #3b82f6; }
+.kg-fullscreen-container.kg-phase-deep_dive    { --glow-color: #8b5cf6; }
+.kg-fullscreen-container.kg-phase-broad_search::before,
+.kg-fullscreen-container.kg-phase-deep_dive::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 15px;
+  background: conic-gradient(
+    from var(--border-angle, 0deg),
+    transparent 0%,
+    color-mix(in srgb, var(--glow-color) 25%, transparent) 8%,
+    var(--glow-color) 16%,
+    color-mix(in srgb, var(--glow-color) 25%, transparent) 24%,
+    transparent 32%
+  );
+  filter: blur(8px);
+  animation: kg-border-flow 3s linear infinite;
+  pointer-events: none;
+}
+.kg-fullscreen-container.kg-phase-broad_search::after,
+.kg-fullscreen-container.kg-phase-deep_dive::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 15px;
+  background: conic-gradient(
+    from var(--border-angle, 0deg),
+    transparent 0%,
+    color-mix(in srgb, var(--glow-color) 60%, transparent) 10%,
+    var(--glow-color) 15%,
+    color-mix(in srgb, var(--glow-color) 60%, transparent) 20%,
+    transparent 28%
+  );
+  animation: kg-border-flow 3s linear infinite;
+  pointer-events: none;
+}
+/* 全屏容器内的 canvas-wrapper 填充剩余空间 */
+.kg-fullscreen-container .kg-canvas-wrapper {
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  z-index: 1;
 }
 
 .kg-progress-overlay {
@@ -481,6 +695,76 @@ onUnmounted(() => {
   font-size: 11px;
   color: #5a6a8c;
   font-style: italic;
+}
+
+/* ── 全屏覆盖层 ── */
+.kg-fullscreen-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.kg-fullscreen-container {
+  width: 90vw;
+  height: 90vh;
+  position: relative;
+  border-radius: 12px;
+  overflow: visible;
+  background: linear-gradient(135deg, #0a0f1a 0%, #0f1729 50%, #0a1020 100%);
+}
+.kg-fullscreen-container .kg-progress-overlay {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+}
+.kg-fullscreen-container .kg-tooltip {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  z-index: 10;
+}
+.kg-fullscreen-container .kg-detail-card {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  z-index: 15;
+}
+/* 退出按钮 */
+.kg-fullscreen-exit {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+.kg-fullscreen-exit:hover {
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+/* 进出动画 */
+.kg-fullscreen-fade-enter-active,
+.kg-fullscreen-fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.kg-fullscreen-fade-enter-from,
+.kg-fullscreen-fade-leave-to {
+  opacity: 0;
 }
 
 /* ── 详情卡进出动画 ── */

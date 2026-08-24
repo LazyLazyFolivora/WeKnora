@@ -113,17 +113,19 @@ onUnmounted(() => {
   border: 1px solid rgba(42, 58, 92, 0.6);
   border-radius: 12px;
   font-size: 12px;
-  min-width: 180px;
+  width: 150px;
+  overflow: hidden;
   transition: all 0.2s ease;
 }
 
 .kg-panel-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: 6px;
+  padding: 8px 10px;
   cursor: pointer;
   user-select: none;
+  flex-wrap: wrap;
 }
 
 .kg-panel-header:hover {
@@ -141,11 +143,10 @@ onUnmounted(() => {
 
 .kg-phase {
   display: inline-block;
-  padding: 2px 8px;
+  padding: 2px 6px;
   border-radius: 8px;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
-  white-space: nowrap;
 }
 
 .phase-breadth {
@@ -164,7 +165,7 @@ onUnmounted(() => {
 }
 
 .kg-timer {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: #e8edf5;

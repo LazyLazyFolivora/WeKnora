@@ -10,10 +10,10 @@ import {
 
 // ── 事件缓冲配置 ──
 // 解决后端事件流不均匀导致的节点批量冒出、关系瞬间连接等问题
-const BUFFER_MIN_MS = 3000  // 从缓冲队列消费事件的最小间隔（ms）
-const BUFFER_MAX_MS = 6000  // 从缓冲队列消费事件的最大间隔（ms），实际间隔在 [min,max] 随机
-const BUFFER_SPRINT_MS = 250  // RunComplete 后冲刺清空剩余缓冲的间隔（ms）
-const BUFFER_HIGH_WATER = 8  // 积压阈值：超过则每 tick 多消费（见 consumeBatch）
+const BUFFER_MIN_MS = 1200  // 从缓冲队列消费事件的最小间隔（ms）
+const BUFFER_MAX_MS = 2500  // 从缓冲队列消费事件的最大间隔（ms），实际间隔在 [min,max] 随机
+const BUFFER_SPRINT_MS = 200  // RunComplete 后冲刺清空剩余缓冲的间隔（ms）
+const BUFFER_HIGH_WATER = 5  // 积压阈值：超过则每 tick 多消费（见 consumeBatch）
 const IMMEDIATE_EVENT_TYPES = new Set([
   'PhaseChange', 'Progress', 'LiteratureSearching', 'RunComplete',
 ])
@@ -93,6 +93,14 @@ export function useKnowledgeGraph() {
       })
     }
   }
+  // ── 边延迟渲染：broad_search 阶段让节点先出现，边稍后连接 ──
+  // 节点越多延迟越短：base 2000ms，每多一个节点减 100ms，最低 300ms
+  function edgeRenderDelay(): number {
+    if (currentPhase.value !== 'broad_search') return 0
+    const nodeCount = nodesMap.size
+    return Math.max(300, 2000 - nodeCount * 100)
+  }
+
   function upsertEdge(s: string, t: string, r: string, opts?: { contradiction?: boolean; strength?: number }) {
     // 兜底：边的两端节点若尚未出现，先补占位节点，避免 force-graph 抛 "node not found"。
     for (const endpoint of [s, t]) {
@@ -104,22 +112,29 @@ export function useKnowledgeGraph() {
       }
     }
     const id = edgeId(s, t, r)
+    const delay = edgeRenderDelay()
     if (edgesMap.has(id)) {
       // 后写覆盖同名边（允许 contradiction/strength 状态更新）
       const existing = edgesMap.get(id)!
       if (opts?.contradiction !== undefined) existing.contradiction = opts.contradiction
       if (opts?.strength !== undefined) existing.strength = opts.strength
     } else {
-      edgesMap.set(id, { id, source: s, target: t, relationType: r, contradiction: opts?.contradiction, strength: opts?.strength ?? 0.5, _createdAt: Date.now() })
+      const now = Date.now()
+      edgesMap.set(id, {
+        id, source: s, target: t, relationType: r,
+        contradiction: opts?.contradiction, strength: opts?.strength ?? 0.5,
+        _createdAt: now,
+        _renderAfter: delay > 0 ? now + delay : 0, // 0 = 立即可渲染
+      })
     }
   }
   // ── 缓冲消费者：随机 3-6s 逐个蹦出；积压过多时一次多个；RunComplete 后冲刺清空 ──
   function randomConsumeDelay(): number {
     return BUFFER_MIN_MS + Math.random() * (BUFFER_MAX_MS - BUFFER_MIN_MS)
   }
-  // 每次消费几个：积压 >16 → 3 个，>8 → 2 个，否则 1 个
+  // 每次消费几个：积压 >20 → 4 个，>10 → 3 个，>5 → 2 个，否则 1 个
   function consumeBatch() {
-    const n = eventBuffer.length > 16 ? 3 : eventBuffer.length > 8 ? 2 : 1
+    const n = eventBuffer.length > 20 ? 4 : eventBuffer.length > 10 ? 3 : eventBuffer.length > BUFFER_HIGH_WATER ? 2 : 1
     for (let i = 0; i < Math.min(n, eventBuffer.length); i++) {
       processEventNow(eventBuffer.shift()!)
     }
@@ -206,7 +221,7 @@ export function useKnowledgeGraph() {
         break
       }
       case "LiteratureSearching": addDiscovery("正在检索相关文献...",payload.timestamp);break
-      case "RunComplete": if(run.value){run.value.isComplete=true;if(payload.total_steps!==undefined)run.value.totalSteps=payload.total_steps}addDiscovery("✅ 图谱构建完成",payload.timestamp);break
+      case "RunComplete": if(run.value){if(payload.total_steps!==undefined)run.value.totalSteps=payload.total_steps}addDiscovery("✅ 图谱构建完成",payload.timestamp);break
     }
     // 首个 SSE 事件到达时，记录图谱开始生长的时刻作为计时起点
     if (startTime.value === null) {
