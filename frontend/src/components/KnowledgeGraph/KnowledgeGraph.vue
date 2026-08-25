@@ -23,6 +23,7 @@
           :current-phase="currentPhase"
           @node-click="handleNodeClick"
           @node-hover="handleNodeHover"
+          @background-click="handleBackgroundClick"
         />
         <GraphProgressPanel
           :current-phase="currentPhase"
@@ -106,6 +107,7 @@
               :current-phase="currentPhase"
               @node-click="handleNodeClick"
               @node-hover="handleNodeHover"
+              @background-click="handleBackgroundClick"
             />
             <GraphProgressPanel
               :current-phase="currentPhase"
@@ -255,6 +257,11 @@ function handleNodeClick(node: GraphNodeView) {
 
 function handleNodeHover(node: GraphNodeView | null) {
   hoveredNode.value = node
+}
+
+/** 画布空白点击：关闭详情卡 */
+function handleBackgroundClick() {
+  detailNode.value = null
 }
 
 // 通过 CustomEvent 全局事件接收 SSE 事件（绕过 Vue prop 响应式限制）

@@ -52,12 +52,16 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   nodeClick: [node: GraphNodeView]
   nodeHover: [node: GraphNodeView | null]
+  backgroundClick: []
 }>()
 
 const containerRef = ref<HTMLDivElement>()
 const minimapRef = ref<HTMLCanvasElement>()
 let graph: any = null
 let hoveredNode: GraphNodeView | null = null
+let focusedNode: GraphNodeView | null = null   // 点击聚焦的节点（持久化，直到点击空白恢复）
+const focusedAdjacentIds = new Set<string>()   // 聚焦节点的邻居 ID 集合
+let pendingNodeClick = false                    // 区分节点点击和背景点击
 let resizeObserver: ResizeObserver | null = null
 let initialFitDone = false // 容器首次可见后只执行一次 fitToView
 let lastFitWidth = 0 // 上次 fitToView 时的容器宽度，用于检测显著尺寸变化
@@ -67,6 +71,16 @@ let initialFocusDone = false // 首次 engineStop 后做一次 fit，确保初�
 // ── Bug fix: 阻止 wheel 事件冒泡，防止缩放到极限时页面滚动 ──
 function onContainerWheel(e: WheelEvent) {
   e.preventDefault()
+}
+
+// ── 背景点击：区分节点点击和空白区域点击 ──
+function onContainerClick() {
+  if (pendingNodeClick) return // 节点点击已由 onNodeClick 处理
+  // 点击空白区域：清除聚焦、恢复全局视图
+  if (focusedNode) {
+    resetFocus()
+    emit('backgroundClick')
+  }
 }
 
 // ── 矛盾发现闪烁：600ms 周期交替明暗 ──
@@ -135,9 +149,16 @@ function updateStartLabels() {
 
   const result: Array<{ name: string; x: number; y: number; text: string }> = []
 
-  // hover 时只显示被点亮节点自己的标签
+  // hover 时只显示被点亮节点自己的标签；focus 时也显示聚焦节点标签
   if (hoveredNode) {
     const node = gNodes.find((n: any) => n.id === hoveredNode!.id)
+    if (node && node.x != null && node.y != null) {
+      const pos = graph.graph2ScreenCoords(node.x, node.y)
+      result.push({ name: node.name, x: pos.x, y: pos.y - 18, text: node.name })
+    }
+  } else if (focusedNode) {
+    // 聚焦时显示聚焦节点标签
+    const node = gNodes.find((n: any) => n.id === focusedNode!.id)
     if (node && node.x != null && node.y != null) {
       const pos = graph.graph2ScreenCoords(node.x, node.y)
       result.push({ name: node.name, x: pos.x, y: pos.y - 18, text: node.name })
@@ -187,7 +208,22 @@ function rebuildAdjacency(node: GraphNodeView | null) {
   }
 }
 function isDimmed(n: any): boolean {
-  return !!hoveredNode && n.id !== hoveredNode.id && !adjacentIds.has(n.id)
+  // hover 优先：hover 时用 hover 的邻接集；否则用 focus 的邻接集
+  const activeNode = hoveredNode || focusedNode
+  const activeAdj = hoveredNode ? adjacentIds : focusedAdjacentIds
+  return !!activeNode && n.id !== activeNode.id && !activeAdj.has(n.id)
+}
+
+// ── 聚焦邻接缓存：点击节点时 O(1) 查找 ──
+function rebuildFocusedAdjacency(node: GraphNodeView | null) {
+  focusedAdjacentIds.clear()
+  if (!node) return
+  for (const l of props.graphData.links) {
+    const s = typeof l.source === 'object' ? (l.source as any).id : l.source
+    const t = typeof l.target === 'object' ? (l.target as any).id : l.target
+    if (s === node.id) focusedAdjacentIds.add(t)
+    if (t === node.id) focusedAdjacentIds.add(s)
+  }
 }
 
 // ── 自动追踪新节点 ──
@@ -216,7 +252,10 @@ function computeFitZoom(): { k: number; cx: number; cy: number } | null {
   if (!bbox) return null
   const gw = (bbox.x[1] - bbox.x[0]) || 1
   const gh = (bbox.y[1] - bbox.y[0]) || 1
-  const k = Math.min(cw / gw, ch / gh) * FIT_OVERSCALE
+  // 大图预留更多边距：节点越多，padding 比例越大（8% → 18%），防止节点贴边
+  const nodeCount = gData.nodes.length
+  const fitPadding = nodeCount <= 8 ? 0.08 : Math.min(0.08 + (nodeCount - 8) * 0.003, 0.18)
+  const k = Math.min(cw / (gw * (1 + fitPadding)), ch / (gh * (1 + fitPadding))) * FIT_OVERSCALE
   const cx = (bbox.x[0] + bbox.x[1]) / 2
   const cy = (bbox.y[0] + bbox.y[1]) / 2
   return { k, cx, cy }
@@ -285,6 +324,56 @@ function fitGraphToView() {
   }, 100)
 }
 
+/** 聚焦到指定节点及其邻居：平滑平移+缩放到邻居包围盒 */
+function focusOnNode(node: GraphNodeView) {
+  if (!graph) return
+  focusedNode = node
+  rebuildFocusedAdjacency(node)
+  autoFollow.value = false // 手动聚焦时暂停自动追踪
+
+  const gNodes = graph.graphData().nodes
+  const gNode = gNodes.find((n: any) => n.id === node.id)
+  if (!gNode || gNode.x == null || gNode.y == null) return
+
+  // 计算焦点节点 + 直接邻居的包围盒
+  let minX = gNode.x, maxX = gNode.x, minY = gNode.y, maxY = gNode.y
+  for (const n of gNodes) {
+    if (n.id === node.id || focusedAdjacentIds.has(n.id)) {
+      if (n.x != null) { minX = Math.min(minX, n.x); maxX = Math.max(maxX, n.x) }
+      if (n.y != null) { minY = Math.min(minY, n.y); maxY = Math.max(maxY, n.y) }
+    }
+  }
+
+  const cw = containerRef.value?.clientWidth ?? 300
+  const ch = containerRef.value?.clientHeight ?? 300
+  const gw = (maxX - minX) || 1
+  const gh = (maxY - minY) || 1
+  // 40% 留白，确保邻居节点和关系边完整显示
+  const padFactor = 1.4
+  const k = Math.min(cw / (gw * padFactor), ch / (gh * padFactor))
+  const cx = (minX + maxX) / 2
+  const cy = (minY + maxY) / 2
+
+  // 限制在允许的缩放范围内
+  const minZ = graph.minZoom()
+  const maxZ = graph.maxZoom()
+  const clampedK = Math.max(minZ, Math.min(maxZ, k))
+
+  graph.centerAt(cx, cy, 500)
+  graph.zoom(clampedK, 500)
+  console.log(`[KG:focusNode] node=${node.id} neighbors=${focusedAdjacentIds.size} center=(${cx.toFixed(1)},${cy.toFixed(1)}) zoom=${clampedK.toFixed(3)}`)
+}
+
+/** 恢复全局视图：清除焦点，平滑 fit全部节点 */
+function resetFocus() {
+  if (!graph) return
+  focusedNode = null
+  focusedAdjacentIds.clear()
+  autoFollow.value = false
+  fitToView(500)
+  console.log('[KG:resetFocus] 恢复全局视图')
+}
+
 // ── 防抖更新：只在数据真正变化时才调用 graphData，避免拖拽时重置力模拟 ──
 let updatePending = false
 let lastNodeCount = 0
@@ -348,6 +437,15 @@ function scheduleUpdate(data: KGData) {
       refreshForces(data.nodes.length)
     }
     graph.graphData(data)
+    // 新节点到达时微量 reheat：让碰撞力和斥力有足够 alpha 把新节点推开
+    if (hasNew) {
+      try {
+        const sim = (graph as any).d3Force?.()
+        if (sim && typeof sim.alpha === 'function' && sim.alpha() < 0.2) {
+          sim.alpha(0.25).restart()
+        }
+      } catch { /* 静默忽略 */ }
+    }
     invalidateMinimapBBox()
   })
 }
@@ -555,7 +653,7 @@ onMounted(() => {
       const dimAlpha = isDimmed(n) ? 0.18 : 1
       const alpha = animAlpha * dimAlpha * statusAlpha
 
-      const isHover = hoveredNode && hoveredNode.id === n.id
+      const isHover = (hoveredNode && hoveredNode.id === n.id) || (focusedNode && focusedNode.id === n.id)
       const r = (12 * (isHover ? 1.15 : 1) * animScale) / globalScale
 
       if (isPlanned) {
@@ -615,12 +713,13 @@ onMounted(() => {
           baseWidth *= widthProgress  // 从 0 生长到目标宽度
         }
       }
-      if (!hoveredNode) return baseWidth
+      // hover/focus 高亮关联边，非关联边变细
+      const activeNode = hoveredNode || focusedNode
+      if (!activeNode) return baseWidth
       const s = typeof l.source === 'object' ? (l.source as any).id : l.source
       const t = typeof l.target === 'object' ? (l.target as any).id : l.target
-      if (s === hoveredNode.id || t === hoveredNode.id) {
-        // 高亮时根据 strength 显示不同宽度：强度越高越粗
-        return baseWidth // 保持与基础宽度一致
+      if (s === activeNode.id || t === activeNode.id) {
+        return baseWidth
       }
       return 0.5 // 非关联边变细
     })
@@ -646,10 +745,11 @@ onMounted(() => {
       const normalized = Math.pow(Math.max(0, (rawStrength - 0.5) * 2), 2)
       const opacity = (0.15 + normalized * 0.45) * fadeAlpha // 0.15..0.6 × fadeAlpha
       // 冷灰蓝边（近 obsidian 的 #aaa，带一点蓝）
-      if (!hoveredNode) return `rgba(160,175,200,${opacity})`
+      const activeNode = hoveredNode || focusedNode
+      if (!activeNode) return `rgba(160,175,200,${opacity})`
       const s = typeof l.source === 'object' ? (l.source as any).id : l.source
       const t = typeof l.target === 'object' ? (l.target as any).id : l.target
-      if (s === hoveredNode.id || t === hoveredNode.id) {
+      if (s === activeNode.id || t === activeNode.id) {
         // 相邻边高亮到 0.9（obsidian 焦点值）
         return `rgba(160,190,255,${0.9 * fadeAlpha})`
       }
@@ -689,7 +789,11 @@ onMounted(() => {
       emit('nodeHover', node)
     })
     .onNodeClick((node: any) => {
+      pendingNodeClick = true
+      focusOnNode(node)
       emit('nodeClick', node)
+      // 下一帧重置标志，使背景点击检测能正确识别
+      requestAnimationFrame(() => { pendingNodeClick = false })
     })
     .onNodeDrag(() => { autoFollow.value = false }) // 拖拽时暂停追踪
     .onNodeDragEnd(() => { autoFollow.value = true }) // 释放节点后立即恢复
@@ -730,6 +834,12 @@ onMounted(() => {
   applyPhaseForces(props.currentPhase)
   // 初始数据也按实际规模设力参数（applyPhaseForces 在无数据时按 0 规模设了偏小值）
   refreshForces(props.graphData.nodes.length)
+
+  // 添加碰撞力：防止节点重叠（每个节点视觉半径 ~12px，留出充足间隙 28px）
+  const collisionRadius = 28
+  const collisionForce = createCollisionForce(collisionRadius)
+  ;(collisionForce as any).setGraph(graph)
+  graph.d3Force('collision', collisionForce as any)
 
   graph.graphData(props.graphData)
 
@@ -772,6 +882,8 @@ onMounted(() => {
   // ── Bug fix: 阻止 wheel 冒泡，防止缩放到极限时页面滚动 ──
   if (containerRef.value) {
     containerRef.value.addEventListener('wheel', onContainerWheel, { passive: false })
+    // ── 背景点击：清除聚焦、恢复全局视图 ──
+    containerRef.value.addEventListener('click', onContainerClick)
   }
 })
 
@@ -817,33 +929,80 @@ function zoomPulse() {
 // ── 广度/深度阶段差异化力布局参数 ──
 const PHASE_FORCE_CONFIG = {
   broad_search: {
-    chargeStrength: -750,    // 强排斥 → 节点散开（图越大动态再放大）
-    linkDistance: 700,        // 远距离 → 大范围扫描感（图越大动态再加长）
-    alphaDecay: 0.015,       // 慢冷却 → 持续运动
+    chargeStrength: -1600,   // 强排斥 → 节点充分散开（图越大动态再放大）
+    linkDistance: 900,        // 远距离 → 大范围扫描感（图越大动态再加长）
+    alphaDecay: 0.012,       // 慢冷却 → 更充分的布局时间
     particleCount: 2,        // 更多粒子 → 活跃流动感
     particleSpeed: 0.006,    // 更快粒子
   },
   deep_dive: {
-    chargeStrength: -300,    // 弱排斥 → 节点紧凑聚焦（图越大动态再放大）
-    linkDistance: 380,        // 短距离 → 聚焦深入感（图越大动态再加长）
-    alphaDecay: 0.03,        // 快冷却 → 快速稳定
+    chargeStrength: -600,    // 中等排斥 → 节点适度聚焦（图越大动态再放大）
+    linkDistance: 450,        // 短距离 → 聚焦深入感（图越大动态再加长）
+    alphaDecay: 0.025,       // 快冷却 → 快速稳定
     particleCount: 1,        // 更少粒子 → 沉稳
     particleSpeed: 0.003,    // 更慢粒子
   },
 }
 
-/** 图规模越大，边长与斥力越强，防止边多时节点挤成一团（以 8 节点为基准，缓增并封顶防参数爆炸） */
+/** 图规模越大，边长与斥力越强，防止边多时节点挤成一团（以 8 节点为基准） */
 function forceSpreadScale(nodeCount: number): number {
-  return Math.min(Math.pow(Math.max(1, nodeCount) / 8, 0.35), 2.2)
+  return Math.min(Math.pow(Math.max(1, nodeCount) / 8, 0.50), 5.0)
+}
+
+/** 边距独立缩放：大图需要边距增长快于斥力，否则节点沿边挤成一团 */
+function linkDistanceScale(nodeCount: number): number {
+  return Math.min(Math.pow(Math.max(1, nodeCount) / 8, 0.55), 5.5)
+}
+
+/** 自定义碰撞力：防止节点在视觉上重叠（兼容 d3-force 接口）
+ *  使用二次方衰减模型 + 最低 alpha 下限，确保即使模拟冷却后仍能防重叠 */
+function createCollisionForce(radius: number) {
+  // 通过闭包引用 graph，始终读实时节点列表（解决 force-graph 内部替换数组引用的问题）
+  let graphRef: any = null
+  function force(alpha: number) {
+    // 读实时节点数据（graph.graphData() 每帧返回最新引用）
+    const gData = graphRef?.graphData?.()
+    const ns = gData?.nodes
+    if (!ns || ns.length < 2) return
+    // 使用最低 alpha 下限：即使模拟已冷却，碰撞力仍保持基本强度
+    const eff = Math.max(alpha, 0.15)
+    for (let i = 0; i < ns.length; i++) {
+      for (let j = i + 1; j < ns.length; j++) {
+        const a = ns[i]; const b = ns[j]
+        const ax = a.x || 0, ay = a.y || 0
+        const bx = b.x || 0, by = b.y || 0
+        let dx = bx - ax, dy = by - ay
+        let dist = Math.sqrt(dx * dx + dy * dy) || 0.01
+        const minDist = radius * 2
+        if (dist < minDist) {
+          // 二次方衰减：重叠越深排斥越强
+          const penetration = (minDist - dist) / minDist  // 0→1
+          const strength = penetration * penetration * eff * 12
+          const nx = dx / dist, ny = dy / dist
+          const fx = nx * strength, fy = ny * strength
+          if (a.fx == null) { a.vx -= fx; a.vy -= fy }
+          if (b.fx == null) { b.vx += fx; b.vy += fy }
+        }
+      }
+    }
+  }
+  force.initialize = (_ns: any[]) => { /* 不缓存 ns，每帧读实时数据 */ }
+  // 外部设置 graph 引用
+  ;(force as any).setGraph = (g: any) => { graphRef = g }
+  return force
 }
 
 /** 依据当前图规模更新力参数（不 reheat，由 graphData/阶段切换触发重布局） */
 function refreshForces(nodeCount: number) {
   if (!graph) return
   const cfg = PHASE_FORCE_CONFIG[props.currentPhase] ?? PHASE_FORCE_CONFIG.broad_search
-  const s = forceSpreadScale(nodeCount)
-  graph.d3Force('link')?.distance(cfg.linkDistance * s)
-  graph.d3Force('charge')?.strength(cfg.chargeStrength * s)
+  const cs = forceSpreadScale(nodeCount)
+  const ls = linkDistanceScale(nodeCount)
+  graph.d3Force('link')?.distance(cfg.linkDistance * ls)
+  graph.d3Force('charge')?.strength(cfg.chargeStrength * cs)
+  // 大图时提高阻尼，减少节点震荡（小图保持 0.4 灵敏响应，大图渐增到 0.55）
+  const decay = nodeCount <= 8 ? 0.4 : Math.min(0.4 + (nodeCount - 8) * 0.003, 0.55)
+  graph.d3VelocityDecay(decay)
 }
 
 function applyPhaseForces(phase: KGPhase) {
@@ -861,7 +1020,7 @@ function applyPhaseForces(phase: KGPhase) {
   } catch { /* 静默忽略 */ }
 }
 
-defineExpose({ zoomPulse, fitGraphToView })
+defineExpose({ zoomPulse, fitGraphToView, focusOnNode, resetFocus })
 
 onUnmounted(() => {
   cancelAnimationFrame(labelRafId)
@@ -871,6 +1030,7 @@ onUnmounted(() => {
   // ── Bug fix: 移除 wheel 事件监听 ──
   if (containerRef.value) {
     containerRef.value.removeEventListener('wheel', onContainerWheel)
+    containerRef.value.removeEventListener('click', onContainerClick)
   }
   animatingNodeIds.clear()
   animatingEdgeIds.clear()
