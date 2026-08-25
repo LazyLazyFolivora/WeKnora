@@ -62,6 +62,8 @@ let resizeObserver: ResizeObserver | null = null
 let initialFitDone = false // 容器首次可见后只执行一次 fitToView
 let lastFitWidth = 0 // 上次 fitToView 时的容器宽度，用于检测显著尺寸变化
 
+let initialFocusDone = false // 首次 engineStop 后做一次 fit，确保初始视图正确
+
 // ── Bug fix: 阻止 wheel 事件冒泡，防止缩放到极限时页面滚动 ──
 function onContainerWheel(e: WheelEvent) {
   e.preventDefault()
@@ -83,7 +85,8 @@ function hasContradiction(): boolean {
 
 // ── 节点浮现 / 边生长动画 ──
 const NODE_ANIM_MS = 900   // 节点从出现到完全可见的时长（配合 5-10s 随机消费节奏，渐入更从容）
-const EDGE_ANIM_MS = 1200  // 边从出现到"生长完成"的时长
+const EDGE_ANIM_MS = 1500  // 边从出现到"生长完成"的时长（从 1200→1500，让淡入更从容）
+const EDGE_FADE_MS = 1500  // 边淡入时长（0→完全透明度）
 const animatingNodeIds = new Set<string>()  // 正在浮现的节点 ID
 const animatingEdgeIds = new Set<string>()  // 正在生长的边 ID
 let animRafId = 0
@@ -196,24 +199,37 @@ const PAN_MARGIN_FACTOR = 0.5 // 平移边界：视图中心最多超出图包�
 // 待对焦的新节点（对象引用）：力模拟稳定后读实时坐标精确对准，避免用初始位置快照导致偏焦
 let pendingFocus: GraphNodeView[] = []
 
-/** 让整图处于「正常大小」（稍大于可视区）并居中，同时设缩小下限，避免缩成一小点 */
-function fitToView(duration = 600) {
-  if (!graph) return
+/** 计算适合当前全部节点的缩放级别（OntoSphere 思路：基于全量 bbox + padding） */
+const MIN_NODES_FOR_BBOX_ZOOM = 3 // 节点太少时 bbox 不稳定，用默认缩放兜底
+function computeFitZoom(): { k: number; cx: number; cy: number } | null {
+  if (!graph) return null
   const gData = graph.graphData()
-  if (!gData?.nodes?.length) return
-  const bbox = graph.getGraphBbox()
-  if (!bbox) return
-  const gw = (bbox.x[1] - bbox.x[0]) || 1
-  const gh = (bbox.y[1] - bbox.y[0]) || 1
+  if (!gData?.nodes?.length) return null
   const cw = containerRef.value?.clientWidth ?? 300
   const ch = containerRef.value?.clientHeight ?? 300
+  // 节点太少时用默认缩放，避免 bbox 极小导致 k 极大
+  if (gData.nodes.length < MIN_NODES_FOR_BBOX_ZOOM) {
+    const defaultK = Math.min(cw, ch) / 500 * FIT_OVERSCALE
+    return { k: defaultK, cx: 0, cy: 0 }
+  }
+  const bbox = graph.getGraphBbox()
+  if (!bbox) return null
+  const gw = (bbox.x[1] - bbox.x[0]) || 1
+  const gh = (bbox.y[1] - bbox.y[0]) || 1
   const k = Math.min(cw / gw, ch / gh) * FIT_OVERSCALE
   const cx = (bbox.x[0] + bbox.x[1]) / 2
   const cy = (bbox.y[0] + bbox.y[1]) / 2
-  graph.minZoom(k * MIN_ZOOM_FACTOR)
-  graph.maxZoom(k * MAX_ZOOM_FACTOR)
-  graph.centerAt(cx, cy, duration)
-  graph.zoom(k, duration)
+  return { k, cx, cy }
+}
+
+/** 让整图处于「正常大小」（稍大于可视区）并居中，同时设缩小下限，避免缩成一小点 */
+function fitToView(duration = 600) {
+  const fit = computeFitZoom()
+  if (!fit) return
+  graph.minZoom(fit.k * MIN_ZOOM_FACTOR)
+  graph.maxZoom(fit.k * MAX_ZOOM_FACTOR)
+  graph.centerAt(fit.cx, fit.cy, duration)
+  graph.zoom(fit.k, duration)
   drawMinimap()
 }
 
@@ -242,40 +258,20 @@ function clampViewPan() {
 
 function toggleFollow() { autoFollow.value = !autoFollow.value }
 
-/** 对焦：镜头中心对准节点实时质心，仅平移不缩放（避免图谱生长时因包围盒变大导致 zoom 下降＝卡片缩小） */
-function focusToNodes(nodes: GraphNodeView[]) {
+/** 对焦：基于当前全部节点计算 fit 视图，平移 + 缩放联动（借鉴 OntoSphere 全量 fit 思路） */
+function focusToNodes(_nodes: GraphNodeView[]) {
   if (!graph || !autoFollow.value) return
-  // 读取节点「实时」坐标（力模拟稳定后即最终位置），而非初始快照，保证对准不偏焦
-  const positions = nodes.filter(n => n.x != null && n.y != null).map(n => ({ x: n.x!, y: n.y! }))
-  if (positions.length === 0) return
-  let cx = 0, cy = 0
-  for (const p of positions) { cx += p.x; cy += p.y }
-  cx /= positions.length; cy /= positions.length
-
-  const cw = containerRef.value?.clientWidth ?? 300
-  const ch = containerRef.value?.clientHeight ?? 300
-
-  // 仅更新 minZoom/maxZoom 边界（图 bbox 变化后允许用户缩放范围调整），不改变当前缩放级别
-  const bbox = graph.getGraphBbox()
-  if (bbox) {
-    const gw = (bbox.x[1] - bbox.x[0]) || 1
-    const gh = (bbox.y[1] - bbox.y[0]) || 1
-    const k = Math.min(cw / gw, ch / gh) * FIT_OVERSCALE
-    graph.minZoom(k * MIN_ZOOM_FACTOR)
-    graph.maxZoom(k * MAX_ZOOM_FACTOR)
-  }
-
-  console.log(`[KG:focus] 平移到新节点 ids=${nodes.map(n => n.id).join(',')} 质心=(${num(cx)},${num(cy)}) zoom保持=${num(graph.zoom(), 3)}`)
-  // 镜头平滑对准新节点质心，不调用 graph.zoom() 以保持当前缩放
-  graph.centerAt(cx, cy, 600)
-  const cImmediate = graph.centerAt()
-  console.log(`[KG:focus] centerAt后立即 center=(${num(cImmediate.x)},${num(cImmediate.y)}) zoom=${num(graph.zoom(), 3)}`)
-  setTimeout(() => {
-    if (!graph) return
-    const center = graph.centerAt()
-    const screenPos = graph.graph2ScreenCoords(cx, cy)
-    console.log(`[KG:focus] centerAt后700ms center=(${num(center.x)},${num(center.y)}) zoom=${num(graph.zoom(), 3)} 目标=(${num(cx)},${num(cy)}) 偏差=(${num(center.x - cx, 2)},${num(center.y - cy, 2)}) 节点屏幕=(${num(screenPos.x)},${num(screenPos.y)}) 视口中心=(${num(cw / 2)},${num(ch / 2)}) 画布=${graph.width()}x${graph.height()}`)
-  }, 700)
+  // 不再只追踪新增节点的质心，而是 fit 全部节点（位置 + 缩放联动）
+  // 这样无论新节点在什么位置，镜头都能自然扩展包含所有内容
+  const fit = computeFitZoom()
+  if (!fit) return
+  // 动态更新 minZoom/maxZoom（图 bbox 变化后允许用户缩放范围调整）
+  graph.minZoom(fit.k * MIN_ZOOM_FACTOR)
+  graph.maxZoom(fit.k * MAX_ZOOM_FACTOR)
+  // 平滑过渡：位移 + 缩放同时进行
+  graph.centerAt(fit.cx, fit.cy, 600)
+  graph.zoom(fit.k, 600)
+  console.log(`[KG:focus] fit全部节点 center=(${fit.cx.toFixed(1)},${fit.cy.toFixed(1)}) zoom=${fit.k.toFixed(3)}`)
   drawMinimap()
 }
 
@@ -318,12 +314,18 @@ function scheduleUpdate(data: KGData) {
   for (const l of data.links) {
     if (!prevEdgeIds.has(l.id)) {
       addedEdgeIds.add(l.id)
-      animatingEdgeIds.add(l.id)
       hasNew = true
+      // 边延迟渲染：有 _renderAfter 的边等延迟结束后再加入动画队列
+      const delay = l._renderAfter ? Math.max(0, l._renderAfter - Date.now()) : 0
+      const addDelay = delay + 50 // +50ms 余量
       setTimeout(() => {
-        animatingEdgeIds.delete(l.id)
-        if (animatingNodeIds.size === 0 && animatingEdgeIds.size === 0) cancelAnimationFrame(animRafId)
-      }, EDGE_ANIM_MS + 50)
+        animatingEdgeIds.add(l.id)
+        startAnimLoop()
+        setTimeout(() => {
+          animatingEdgeIds.delete(l.id)
+          if (animatingNodeIds.size === 0 && animatingEdgeIds.size === 0) cancelAnimationFrame(animRafId)
+        }, EDGE_ANIM_MS + 50)
+      }, addDelay)
     }
   }
   prevNodeIds = new Set(data.nodes.map(n => n.id))
@@ -597,17 +599,28 @@ onMounted(() => {
     .linkWidth((l: any) => {
       if (l.synthetic) return 0.4 + (typeof l.strength === 'number' ? l.strength : 0.5) * 1.2
       if (isContradiction(l)) return 2
+      // ── 边延迟渲染：broad_search 阶段边等待节点先出现 ──
+      const now = Date.now()
+      if (l._renderAfter && now < l._renderAfter) return 0
       // 根据 strength (0..1) 计算边宽度，增强 0.8-0.9 区间的差异
       const rawStrength = typeof l.strength === 'number' ? l.strength : 0.5
-      // 使用幂函数增强差异：(x - 0.5) * 2 将 [0.5, 1] 映射到 [0, 1]，再平方增强
       const normalized = Math.pow(Math.max(0, (rawStrength - 0.5) * 2), 2)
-      const baseWidth = 0.8 + normalized * 3.2 // 0.8..4
+      let baseWidth = 0.8 + normalized * 3.2 // 0.8..4
+      // ── 边宽度生长动画：新边从细到粗 ──
+      if (l._createdAt) {
+        const visibleFrom = l._renderAfter && l._renderAfter > l._createdAt ? l._renderAfter : l._createdAt
+        const elapsed = now - visibleFrom
+        if (elapsed < EDGE_FADE_MS) {
+          const widthProgress = easeOutCubic(Math.min(1, elapsed / EDGE_FADE_MS))
+          baseWidth *= widthProgress  // 从 0 生长到目标宽度
+        }
+      }
       if (!hoveredNode) return baseWidth
       const s = typeof l.source === 'object' ? (l.source as any).id : l.source
       const t = typeof l.target === 'object' ? (l.target as any).id : l.target
       if (s === hoveredNode.id || t === hoveredNode.id) {
         // 高亮时根据 strength 显示不同宽度：强度越高越粗
-        return 0.8 + normalized * 3.2 // 保持与基础宽度一致
+        return baseWidth // 保持与基础宽度一致
       }
       return 0.5 // 非关联边变细
     })
@@ -616,35 +629,49 @@ onMounted(() => {
       if (isContradiction(l)) {
         return blinkOn.value ? 'rgba(239,68,68,0.8)' : 'rgba(239,68,68,0.25)'
       }
+      // ── 边延迟渲染：broad_search 阶段边等待节点先出现 ──
+      const now = Date.now()
+      if (l._renderAfter && now < l._renderAfter) return 'rgba(0,0,0,0)'
+      // ── 边淡入动画：新边从透明渐显到目标透明度 ──
+      let fadeAlpha = 1
+      if (l._createdAt) {
+        const visibleFrom = l._renderAfter && l._renderAfter > l._createdAt ? l._renderAfter : l._createdAt
+        const elapsed = now - visibleFrom
+        if (elapsed < EDGE_FADE_MS) {
+          fadeAlpha = easeOutCubic(Math.min(1, elapsed / EDGE_FADE_MS))
+        }
+      }
       // 根据 strength 调整透明度（基础量级对齐 obsidian 的 ~0.5）
       const rawStrength = typeof l.strength === 'number' ? l.strength : 0.5
       const normalized = Math.pow(Math.max(0, (rawStrength - 0.5) * 2), 2)
-      const opacity = 0.15 + normalized * 0.45 // 0.15..0.6
+      const opacity = (0.15 + normalized * 0.45) * fadeAlpha // 0.15..0.6 × fadeAlpha
       // 冷灰蓝边（近 obsidian 的 #aaa，带一点蓝）
       if (!hoveredNode) return `rgba(160,175,200,${opacity})`
       const s = typeof l.source === 'object' ? (l.source as any).id : l.source
       const t = typeof l.target === 'object' ? (l.target as any).id : l.target
       if (s === hoveredNode.id || t === hoveredNode.id) {
         // 相邻边高亮到 0.9（obsidian 焦点值）
-        return 'rgba(160,190,255,0.9)'
+        return `rgba(160,190,255,${0.9 * fadeAlpha})`
       }
       // 非相邻边淡出到 0.08（obsidian 焦点值）
-      return 'rgba(160,175,200,0.08)'
+      return `rgba(160,175,200,${0.08 * fadeAlpha})`
     })
     .linkLineDash((l: any) => l.synthetic ? [2, 4] : (isContradiction(l) ? [6, 4] : null))
     .linkDirectionalParticles((l: any) => {
       if (l.synthetic) return 0
       if (isContradiction(l)) return 3
-      // 边生长动画：新边用更多粒子模拟流动生长
-      if (animatingEdgeIds.has(l.id)) return 5
+      // ── 边延迟渲染：未到渲染时间则不显示粒子 ──
+      if (l._renderAfter && Date.now() < l._renderAfter) return 0
+      // 边生长动画：新边用少量粒子模拟流动生长（从 5→3，更克制）
+      if (animatingEdgeIds.has(l.id)) return 3
       // 阶段差异化：广度检索更活跃，深度挖掘更沉稳
       return PHASE_FORCE_CONFIG[props.currentPhase]?.particleCount ?? 1
     })
     .linkDirectionalParticleWidth((l: any) => isContradiction(l) ? 2.5 : 1.5)
     .linkDirectionalParticleSpeed((l: any) => {
       if (isContradiction(l)) return 0.004
-      // 边生长动画：新边粒子速度更快
-      if (animatingEdgeIds.has(l.id)) return 0.018
+      // 边生长动画：新边粒子速度降低（从 0.018→0.008，更从容的生长感）
+      if (animatingEdgeIds.has(l.id)) return 0.008
       // 阶段差异化
       return PHASE_FORCE_CONFIG[props.currentPhase]?.particleSpeed ?? 0.004
     })
@@ -678,11 +705,17 @@ onMounted(() => {
       drawMinimap()
       const pendStr = pendingFocus.map(n => `${n.id}@(${num(n.x)},${num(n.y)})`).join(' ')
       const cNow = graph.centerAt()
-      console.log(`[KG:engineStop] pending=[${pendStr}] center=(${num(cNow.x)},${num(cNow.y)}) zoom=${num(graph.zoom(), 3)}`)
-      // 节点坐标已到最终位置：精确对焦新节点（读实时坐标，避免初始位置快照偏焦）
+      console.log(`[KG:engineStop] pending=[${pendStr}] center=(${num(cNow.x)},${num(cNow.y)}) zoom=${num(graph.zoom(), 3)} initialDone=${initialFocusDone}`)
+      // 有新增节点时 fit 全部
       if (pendingFocus.length > 0) {
         focusToNodes(pendingFocus)
         pendingFocus = []
+        initialFocusDone = true
+      } else if (!initialFocusDone && graph.graphData()?.nodes?.length) {
+        // 首次 engineStop 且无 pendingFocus：对全部节点做一次 fit
+        // 解决首节点通过 onMounted 直接加载、不经过 scheduleUpdate 新增检测的问题
+        focusToNodes([])
+        initialFocusDone = true
       }
     })
     .onZoom(() => {

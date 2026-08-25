@@ -49,6 +49,9 @@ frontend/chrome-extension/
 WeKnora-Chrome-Extension
 packages/protoc-3.19.4-linux-x86_64.zip
 
+# 本地文档
+BioDSA_Agent介绍.md
+
 Claude.md
 
 # 本地测试脚本
