@@ -154,7 +154,7 @@
             </div>
             <span class="feature-text">{{ $t('platform.ragQandA') }}</span>
           </div>
-          <img src="/video/图谱推理.gif?v=2" alt="图谱推理" class="feature-gif" />
+          <img src="/video/图谱推理2.gif" alt="图谱推理" class="feature-gif" />
         </div>
       </div>
 
