@@ -2,7 +2,13 @@
   <div class="graph-canvas">
     <div ref="containerRef" class="graph-canvas-inner" />
     <template v-for="label in startLabels" :key="label.name">
-      <div class="kg-start-label" :style="{ left: label.x + 'px', top: label.y + 'px' }">
+      <div class="kg-start-label" :style="{
+        left: label.x + 'px',
+        top: label.y + 'px',
+        fontSize: labelFontSize + 'px',
+        padding: labelPadY + 'px ' + labelPadX + 'px',
+        borderRadius: labelRadius + 'px',
+      }">
         {{ label.text }}
       </div>
     </template>
@@ -30,7 +36,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, nextTick, onUnmounted } from 'vue'
+import { ref, computed, onMounted, watch, nextTick, onUnmounted } from 'vue'
 import ForceGraph from 'force-graph'
 import type { GraphNodeView, KGData, KGPhase } from '@/types/knowledge-graph'
 import { ENTITY_COLORS } from '@/types/knowledge-graph'
@@ -141,11 +147,23 @@ function startAnimLoop() {
 
 // ── 起始节点标签（多标签 HTML 覆盖层）──
 const startLabels = ref<Array<{ name: string; x: number; y: number; text: string }>>([])
+// 当前 zoom：用于让标签字号/偏移随缩放同步，避免聚焦放大后标签显得过小
+const labelZoom = ref(1)
+// 标签字号随 zoom 缩放，但设下限 10px 保证全局视图（低 zoom）下仍可读，上限 24px 防聚焦放大时过大
+const labelFontSize = computed(() => Math.max(10, Math.min(13 * labelZoom.value, 24)))
+const labelPadX = computed(() => Math.max(5, 8 * labelZoom.value))
+const labelPadY = computed(() => Math.max(1, 2 * labelZoom.value))
+const labelRadius = computed(() => Math.max(4, 6 * labelZoom.value))
 let labelRafId = 0
 function updateStartLabels() {
   if (!graph || !containerRef.value) { labelRafId = requestAnimationFrame(updateStartLabels); return }
   const gNodes = graph.graphData().nodes
   const names = props.startEntityNames
+  // 读取当前 zoom，驱动标签字号随缩放（聚焦放大时标签同步放大）
+  const z = graph.zoom()
+  if (typeof z === 'number' && z > 0) labelZoom.value = z
+  // 节点屏幕半径（图坐标 20 × zoom），标签应在节点上方该距离 + 间隙处
+  const labelLift = 20 * labelZoom.value + 8
 
   const result: Array<{ name: string; x: number; y: number; text: string }> = []
 
@@ -154,14 +172,14 @@ function updateStartLabels() {
     const node = gNodes.find((n: any) => n.id === hoveredNode!.id)
     if (node && node.x != null && node.y != null) {
       const pos = graph.graph2ScreenCoords(node.x, node.y)
-      result.push({ name: node.name, x: pos.x, y: pos.y - 18, text: node.name })
+      result.push({ name: node.name, x: pos.x, y: pos.y - labelLift, text: node.name })
     }
   } else if (focusedNode) {
     // 聚焦时显示聚焦节点标签
     const node = gNodes.find((n: any) => n.id === focusedNode!.id)
     if (node && node.x != null && node.y != null) {
       const pos = graph.graph2ScreenCoords(node.x, node.y)
-      result.push({ name: node.name, x: pos.x, y: pos.y - 18, text: node.name })
+      result.push({ name: node.name, x: pos.x, y: pos.y - labelLift, text: node.name })
     }
   } else if (names.length > 0) {
     // 无 hover：显示所有起始节点标签
@@ -169,7 +187,7 @@ function updateStartLabels() {
       const node = gNodes.find((n: any) => n.name === name)
       if (node && node.x != null && node.y != null) {
         const pos = graph.graph2ScreenCoords(node.x, node.y)
-        result.push({ name: node.name, x: pos.x, y: pos.y - 18, text: node.name })
+        result.push({ name: node.name, x: pos.x, y: pos.y - labelLift, text: node.name })
       }
     }
   } else if (gNodes.length > 0) {
@@ -185,7 +203,7 @@ function updateStartLabels() {
     const nodesToShow = sortedNodes.slice(0, topCount)
     for (const node of nodesToShow) {
       const pos = graph.graph2ScreenCoords(node.x!, node.y!)
-      result.push({ name: node.name, x: pos.x, y: pos.y - 18, text: node.name })
+      result.push({ name: node.name, x: pos.x, y: pos.y - labelLift, text: node.name })
     }
   }
 
@@ -321,6 +339,8 @@ function fitGraphToView() {
   setTimeout(() => {
     if (!graph) return
     fitToView(800)
+    // 全局视图缩放稳定后重新加热力模拟，让碰撞力在全局缩放级别下推开可能重叠的节点
+    setTimeout(() => relaxToGlobalView(), 850)
   }, 100)
 }
 
@@ -371,7 +391,27 @@ function resetFocus() {
   focusedAdjacentIds.clear()
   autoFollow.value = false
   fitToView(500)
+  // 全局视图缩放稳定后重新加热力模拟，推开重叠节点
+  setTimeout(() => relaxToGlobalView(), 550)
   console.log('[KG:resetFocus] 恢复全局视图')
+}
+
+/** 重新加热力模拟：直接满强度 reheat（d3ReheatSimulation 内部 alpha=1）。
+ *  不再临时调高 d3AlphaDecay——那会让 alpha 快速衰减、反而削弱 charge/link 的散开效果。 */
+function reheatSimulation() {
+  if (!graph) return
+  try {
+    graph.d3ReheatSimulation()
+  } catch { /* 静默忽略 */ }
+}
+
+/** 全局视图就位后重新加热力模拟：让碰撞力在全局（低 zoom）级别下重新推开可能重叠的节点。
+ *  避免「聚焦放大 → 点击空白恢复」后节点拥挤；仅在节点较多时触发，小图无需额外扰动。 */
+function relaxToGlobalView() {
+  if (!graph) return
+  const nodeCount = graph.graphData()?.nodes?.length ?? 0
+  if (nodeCount < MIN_NODES_FOR_BBOX_ZOOM) return
+  reheatSimulation()
 }
 
 // ── 防抖更新：只在数据真正变化时才调用 graphData，避免拖拽时重置力模拟 ──
@@ -437,14 +477,9 @@ function scheduleUpdate(data: KGData) {
       refreshForces(data.nodes.length)
     }
     graph.graphData(data)
-    // 新节点到达时微量 reheat：让碰撞力和斥力有足够 alpha 把新节点推开
+    // 新节点到达时 reheat：让碰撞力和斥力有足够 alpha 把新节点推开
     if (hasNew) {
-      try {
-        const sim = (graph as any).d3Force?.()
-        if (sim && typeof sim.alpha === 'function' && sim.alpha() < 0.2) {
-          sim.alpha(0.25).restart()
-        }
-      } catch { /* 静默忽略 */ }
+      reheatSimulation()
     }
     invalidateMinimapBBox()
   })
@@ -631,8 +666,11 @@ onMounted(() => {
     .width(cw)
     .height(ch)
     .backgroundColor('transparent')
-    // 节点值：force-graph 用 sqrt(nodeVal) 作为 hover 命中区域半径，144 → 12px
-    .nodeVal(() => 144)
+    // 节点值：force-graph 用 sqrt(nodeVal) 作为 hover 命中区域半径，400 → 20
+    .nodeVal(() => 400)
+    // 关键：nodeRelSize 默认 4，会使 hover 命中半径 = sqrt(nodeVal)*nodeRelSize = 20*4 = 80 图坐标，
+    // 远大于视觉半径 20，导致相邻节点命中区域重叠、光标对不准。设为 1 让命中半径 = 视觉半径 = 20。
+    .nodeRelSize(1)
     // 自定义节点绘制：光圈套实心点 + 发光（照搬 obsidian graph 风格）
     .nodeCanvasObject((n: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
       const base = props.entityColors[n.entityType] || '#888'
@@ -654,14 +692,17 @@ onMounted(() => {
       const alpha = animAlpha * dimAlpha * statusAlpha
 
       const isHover = (hoveredNode && hoveredNode.id === n.id) || (focusedNode && focusedNode.id === n.id)
-      const r = (12 * (isHover ? 1.15 : 1) * animScale) / globalScale
+      // 节点半径用图坐标固定值（20），不除以 globalScale——force-graph 的 ctx 已被 zoom transform 缩放，
+      // 图坐标固定尺寸会让节点屏幕大小 = 20 × zoom，随缩放自然变化，与 linkDistance/碰撞力在图坐标空间自洽。
+      // 若除以 globalScale（屏幕恒定大小），节点图坐标尺寸会随 zoom 反向膨胀，低 zoom 下超过 linkDistance 导致重叠。
+      const r = 20 * (isHover ? 1.15 : 1) * animScale
 
       if (isPlanned) {
         // 预生成节点：空心灰色三角形（指向上），不显示实体类型色，与已确认实体的圆形明确区分
         const sin60 = Math.sqrt(3) / 2
         ctx.save()
         ctx.strokeStyle = hexToRgba(color, 0.7 * alpha)
-        ctx.lineWidth = 1.5 / globalScale
+        ctx.lineWidth = 2
         ctx.lineJoin = 'round'
         ctx.beginPath()
         ctx.moveTo(n.x, n.y - r)                    // 上顶点
@@ -676,11 +717,11 @@ onMounted(() => {
       // 外圈：半透明填充 + 实色描边 + 发光
       ctx.save()
       ctx.shadowColor = color
-      ctx.shadowBlur = 8 / globalScale
+      ctx.shadowBlur = 12
       ctx.beginPath()
       ctx.fillStyle = hexToRgba(color, 0.13 * alpha)
       ctx.strokeStyle = hexToRgba(color, alpha)
-      ctx.lineWidth = 2 / globalScale
+      ctx.lineWidth = 2.5
       ctx.arc(n.x, n.y, r, 0, Math.PI * 2)
       ctx.fill()
       ctx.stroke()
@@ -804,7 +845,8 @@ onMounted(() => {
     .cooldownTicks(100)
     .cooldownTime(3000)
     .onEngineStop(() => {
-      // 力模拟稳定后重算小地图包围盒，修正节点最终落位
+      // 力模拟稳定后：先硬性去重叠（软约束推不到位的最后一段，用坐标平移补齐），再重算小地图
+      resolveOverlaps()
       invalidateMinimapBBox()
       drawMinimap()
       const pendStr = pendingFocus.map(n => `${n.id}@(${num(n.x)},${num(n.y)})`).join(' ')
@@ -835,11 +877,17 @@ onMounted(() => {
   // 初始数据也按实际规模设力参数（applyPhaseForces 在无数据时按 0 规模设了偏小值）
   refreshForces(props.graphData.nodes.length)
 
-  // 添加碰撞力：防止节点重叠（每个节点视觉半径 ~12px，留出充足间隙 28px）
-  const collisionRadius = 28
-  const collisionForce = createCollisionForce(collisionRadius)
+  // 添加碰撞力：防止节点重叠（节点图坐标固定半径 20，最小圆心距 80，见 createCollisionForce）
+  const collisionForce = createCollisionForce()
   ;(collisionForce as any).setGraph(graph)
   graph.d3Force('collision', collisionForce as any)
+
+  // 添加软边界向心力：防止孤立节点（无 link 约束）被 charge 斥力越推越远。
+  const centeringForce = createCenteringForce()
+  ;(centeringForce as any).setGraph(graph)
+  graph.d3Force('centering', centeringForce as any)
+  // 注册后补一次参数同步（refreshForces 在注册前已调用过，此时 centering 力才可用）
+  refreshForces(props.graphData.nodes.length)
 
   graph.graphData(props.graphData)
 
@@ -927,45 +975,59 @@ function zoomPulse() {
 }
 
 // ── 广度/深度阶段差异化力布局参数 ──
+// 注：节点用图坐标固定尺寸（半径 20），力参数必须与之在同一图坐标空间自洽。
+// linkDistance 需 ≥ 节点直径（40），否则相连节点重叠；charge 过大会把节点推散 → bbox 大 → zoom 小。
+// 故 charge/linkDistance 控制在 d3-force 合理量级（默认 charge=-30/linkDistance=30），
+// 避免「charge 大 → zoom 小 → 节点屏幕缩小 → 视觉拥挤」的恶性循环。
 const PHASE_FORCE_CONFIG = {
   broad_search: {
-    chargeStrength: -1600,   // 强排斥 → 节点充分散开（图越大动态再放大）
-    linkDistance: 900,        // 远距离 → 大范围扫描感（图越大动态再加长）
+    chargeStrength: -150,   // 中等排斥，节点自然散开但不至于把 bbox 撑爆
+    linkDistance: 90,        // 相连节点理想间距（图坐标），约节点直径 40 的 2.25 倍
     alphaDecay: 0.012,       // 慢冷却 → 更充分的布局时间
     particleCount: 2,        // 更多粒子 → 活跃流动感
     particleSpeed: 0.006,    // 更快粒子
   },
   deep_dive: {
-    chargeStrength: -600,    // 中等排斥 → 节点适度聚焦（图越大动态再放大）
-    linkDistance: 450,        // 短距离 → 聚焦深入感（图越大动态再加长）
+    chargeStrength: -100,    // 较弱排斥 → 聚焦深入感
+    linkDistance: 70,         // 更短 → 聚焦
     alphaDecay: 0.025,       // 快冷却 → 快速稳定
     particleCount: 1,        // 更少粒子 → 沉稳
     particleSpeed: 0.003,    // 更慢粒子
   },
 }
 
-/** 图规模越大，边长与斥力越强，防止边多时节点挤成一团（以 8 节点为基准） */
+/** 图规模缩放系数：节点越多，适度增强斥力/边距帮助散开，但上限克制，
+ *  防止大图时 charge/linkDistance 被放大到把 bbox 撑爆、zoom 压到极小。 */
 function forceSpreadScale(nodeCount: number): number {
-  return Math.min(Math.pow(Math.max(1, nodeCount) / 8, 0.50), 5.0)
+  return Math.min(Math.pow(Math.max(1, nodeCount) / 8, 0.35), 1.6)
 }
 
-/** 边距独立缩放：大图需要边距增长快于斥力，否则节点沿边挤成一团 */
+/** 边距缩放系数，理由同上。 */
 function linkDistanceScale(nodeCount: number): number {
-  return Math.min(Math.pow(Math.max(1, nodeCount) / 8, 0.55), 5.5)
+  return Math.min(Math.pow(Math.max(1, nodeCount) / 8, 0.35), 1.6)
 }
 
 /** 自定义碰撞力：防止节点在视觉上重叠（兼容 d3-force 接口）
- *  使用二次方衰减模型 + 最低 alpha 下限，确保即使模拟冷却后仍能防重叠 */
-function createCollisionForce(radius: number) {
+ *  模型对齐 d3-force 自带 collide 力（collide.js）：力 ∝ (minDist - dist) / dist，
+ *  即穿透越深、距离越近推力越强，而非除以 minDist 的相对比例（那样会严重低估远距离穿透）。
+ *  且不依赖 alpha（collide 力不随 alpha 衰减），确保模拟冷却后仍能推开重叠。
+ *  关键：节点现在用图坐标固定尺寸（半径 20 + 发光 12 ≈ 32），故最小圆心距取固定图坐标 80，
+ *  与 linkDistance/charge 统一在图坐标空间，不再随 zoom 反比（zoom 只做视图缩放）。 */
+function createCollisionForce() {
+  // 最小节点圆心距（图坐标）：外圈 20×2 + 发光 12×2 + 空隙，避免视觉重叠
+  const MIN_DIST = 80
+  // 碰撞力强度（对应 d3 collide 的 strength）：足够大才能在有限 tick 内推开重叠节点
+  const COLLISION_STRENGTH = 10
+  // overlap 上限：dist 极小时 (minDist-dist)/dist 会爆炸，钳制防止数值发散
+  const MAX_OVERLAP = 30
   // 通过闭包引用 graph，始终读实时节点列表（解决 force-graph 内部替换数组引用的问题）
   let graphRef: any = null
-  function force(alpha: number) {
+  function force(_alpha: number) {
     // 读实时节点数据（graph.graphData() 每帧返回最新引用）
     const gData = graphRef?.graphData?.()
     const ns = gData?.nodes
     if (!ns || ns.length < 2) return
-    // 使用最低 alpha 下限：即使模拟已冷却，碰撞力仍保持基本强度
-    const eff = Math.max(alpha, 0.15)
+    const minDist = MIN_DIST
     for (let i = 0; i < ns.length; i++) {
       for (let j = i + 1; j < ns.length; j++) {
         const a = ns[i]; const b = ns[j]
@@ -973,11 +1035,10 @@ function createCollisionForce(radius: number) {
         const bx = b.x || 0, by = b.y || 0
         let dx = bx - ax, dy = by - ay
         let dist = Math.sqrt(dx * dx + dy * dy) || 0.01
-        const minDist = radius * 2
         if (dist < minDist) {
-          // 二次方衰减：重叠越深排斥越强
-          const penetration = (minDist - dist) / minDist  // 0→1
-          const strength = penetration * penetration * eff * 12
+          // 对齐 d3 collide：(minDist - dist) / dist，穿透越深推力越强；等权重各分一半
+          const overlap = Math.min((minDist - dist) / dist, MAX_OVERLAP)
+          const strength = overlap * COLLISION_STRENGTH * 0.5
           const nx = dx / dist, ny = dy / dist
           const fx = nx * strength, fy = ny * strength
           if (a.fx == null) { a.vx -= fx; a.vy -= fy }
@@ -992,14 +1053,91 @@ function createCollisionForce(radius: number) {
   return force
 }
 
+/** 软边界向心力：防止孤立节点（无 link 约束，仅受 charge 斥力）越漂越远。
+ *  force-graph 内置的 center 力只是把质心平移到原点，不是向心力，无法拉回漂远的节点。
+ *  这里：节点离质心超过阈值 R 时，施加向心力，超出越多拉力越强；R 以内的节点完全不受影响，
+ *  从而只约束跑远的孤立节点，不干扰主图结构。R 由 refreshForces 动态更新为 charge 斥力边界。 */
+function createCenteringForce() {
+  const STRENGTH = 0.08 // 温和向心强度（越远越强，线性）
+  let graphRef: any = null
+  let radius = 600 // 软边界阈值，由 refreshForces 更新为 linkDistance*3
+  function force(alpha: number) {
+    const gData = graphRef?.graphData?.()
+    const ns = gData?.nodes
+    if (!ns || ns.length < 2) return
+    // 计算质心
+    let cx = 0, cy = 0
+    for (const n of ns) { cx += n.x || 0; cy += n.y || 0 }
+    cx /= ns.length; cy /= ns.length
+    for (const n of ns) {
+      if (n.fx != null || n.fy != null) continue // 跳过被固定的节点（拖拽中）
+      const dx = cx - (n.x || 0), dy = cy - (n.y || 0)
+      const dist = Math.sqrt(dx * dx + dy * dy)
+      if (dist > radius) {
+        // 超出阈值：向心力随超出距离线性增强
+        const pull = (dist - radius) * STRENGTH * alpha
+        n.vx += (dx / dist) * pull
+        n.vy += (dy / dist) * pull
+      }
+    }
+  }
+  force.initialize = (_ns: any[]) => { /* 不缓存 ns，每帧读实时数据 */ }
+  ;(force as any).setGraph = (g: any) => { graphRef = g }
+  ;(force as any).radius = (r: number) => { radius = r }
+  return force
+}
+
+/** 硬性去重叠：力模拟冷却后，直接平移坐标（而非改速度）把重叠节点分开。
+ *  碰撞力是软约束（改 vx/vy，受 velocityDecay 衰减），无法把最后一段距离推到位；
+ *  这里遍历节点对，凡间距 < MIN_DIST 的沿连线方向各推开一半，一次到位，绕开速度衰减。 */
+const HARD_MIN_DIST = 80 // 与碰撞力 MIN_DIST 保持一致
+function resolveOverlaps() {
+  if (!graph) return
+  const gData = graph.graphData()
+  const ns = gData?.nodes
+  if (!ns || ns.length < 2) return
+  let resolved = 0
+  for (let i = 0; i < ns.length; i++) {
+    for (let j = i + 1; j < ns.length; j++) {
+      const a = ns[i]; const b = ns[j]
+      const ax = a.x || 0, ay = a.y || 0
+      const bx = b.x || 0, by = b.y || 0
+      let dx = bx - ax, dy = by - ay
+      let dist = Math.sqrt(dx * dx + dy * dy) || 0.01
+      if (dist < HARD_MIN_DIST) {
+        // 沿连线方向各推开 (minDist - dist)/2，确保总间距达到 minDist
+        const push = (HARD_MIN_DIST - dist) / 2
+        const nx = dx / dist, ny = dy / dist
+        if (a.fx == null && a.fy == null) { a.x -= nx * push; a.y -= ny * push }
+        if (b.fx == null && b.fy == null) { b.x += nx * push; b.y += ny * push }
+        resolved++
+      }
+    }
+  }
+  if (resolved > 0) {
+    // 坐标已变，需要重绘（力模拟已停，不会自动重绘）
+    graph.zoom(graph.zoom())
+  }
+}
+
 /** 依据当前图规模更新力参数（不 reheat，由 graphData/阶段切换触发重布局） */
 function refreshForces(nodeCount: number) {
   if (!graph) return
   const cfg = PHASE_FORCE_CONFIG[props.currentPhase] ?? PHASE_FORCE_CONFIG.broad_search
   const cs = forceSpreadScale(nodeCount)
   const ls = linkDistanceScale(nodeCount)
-  graph.d3Force('link')?.distance(cfg.linkDistance * ls)
-  graph.d3Force('charge')?.strength(cfg.chargeStrength * cs)
+  const linkDistance = cfg.linkDistance * ls
+  const chargeStrength = cfg.chargeStrength * cs
+  graph.d3Force('link')?.distance(linkDistance)
+  const chargeForce = graph.d3Force('charge')
+  chargeForce?.strength(chargeStrength)
+  // 限制斥力作用范围：超出 linkDistance 的 3 倍后不再排斥。
+  // 否则孤立节点（无 link 约束）会被长程斥力（默认 Infinity）推到远离主图，
+  // 撑大 bbox → 全局 zoom 变小 → 节点屏幕缩得很小。设有限 distanceMax 让孤立节点停在主图附近。
+  chargeForce?.distanceMax(linkDistance * 3)
+  // 同步软边界向心力阈值：与 charge 斥力边界一致，超出该半径的孤立节点被温和拉回
+  const centering = graph.d3Force('centering') as any
+  centering?.radius?.(linkDistance * 3)
   // 大图时提高阻尼，减少节点震荡（小图保持 0.4 灵敏响应，大图渐增到 0.55）
   const decay = nodeCount <= 8 ? 0.4 : Math.min(0.4 + (nodeCount - 8) * 0.003, 0.55)
   graph.d3VelocityDecay(decay)
@@ -1011,13 +1149,7 @@ function applyPhaseForces(phase: KGPhase) {
   // 通过 d3AlphaDecay 调整冷却速度；重新加热力模拟让节点响应新参数
   graph.d3AlphaDecay(cfg.alphaDecay)
   refreshForces(graph.graphData()?.nodes?.length ?? 0)
-  try {
-    // force-graph 内部的 d3-force simulation
-    const sim = (graph as any).d3Force?.()
-    if (sim && typeof sim.alpha === 'function') {
-      sim.alpha(0.3).restart()
-    }
-  } catch { /* 静默忽略 */ }
+  reheatSimulation()
 }
 
 defineExpose({ zoomPulse, fitGraphToView, focusOnNode, resetFocus })
@@ -1055,13 +1187,10 @@ onUnmounted(() => {
   position: absolute;
   transform: translate(-50%, -100%);
   pointer-events: none;
-  font-size: 12px;
   font-weight: 600;
   color: #e8edf5;
   background: rgba(17, 24, 39, 0.82);
   border: 1px solid #2a3a5c;
-  padding: 2px 8px;
-  border-radius: 6px;
   white-space: nowrap;
   z-index: 5;
 }
