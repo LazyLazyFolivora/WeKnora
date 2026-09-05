@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	swaggerFiles "github.com/swaggo/files"
+	"gorm.io/gorm"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"go.uber.org/dig"
 
@@ -29,6 +30,7 @@ type RouterParams struct {
 	dig.In
 
 	Config                       *config.Config
+	DB                           *gorm.DB
 	FileService                  interfaces.FileService
 	UserService                  interfaces.UserService
 	KBService                    interfaces.KnowledgeBaseService
@@ -84,6 +86,10 @@ type RouterParams struct {
 	DataSourceCredentialsHandler *handler.DataSourceCredentialsHandler
 	WeKnoraCloudHandler          *handler.WeKnoraCloudHandler
 	WikiPageHandler              *handler.WikiPageHandler
+	GraphImportHandler           *handler.GraphImportHandler
+	GraphSyncHandler             *handler.GraphSyncHandler
+	EntityDictHandler            *handler.EntityDictHandler
+	AgentGraphHandler            *handler.AgentGraphHandler
 }
 
 // NewRouter 创建新的路由
@@ -174,6 +180,7 @@ func NewRouter(params RouterParams) *gin.Engine {
 
 	// 认证中间件
 	r.Use(middleware.Auth(params.TenantService, params.UserService, params.TenantMemberService, params.TenantAPIKeyService, params.Config))
+	r.Use(middleware.SystemDefaultKB(params.DB))
 
 	// 文件服务：统一代理本地/MinIO/COS/TOS存储后端（需要认证）
 	serveFilesWithResources(r, params.FileService, params.StorageBackendResolver, params.ResourceCatalog)
@@ -266,6 +273,10 @@ func NewRouter(params RouterParams) *gin.Engine {
 		RegisterDataSourceRoutes(v1, params.DataSourceHandler, params.DataSourceCredentialsHandler, rbacGuards)
 		RegisterWeKnoraCloudRoutes(v1, params.WeKnoraCloudHandler, rbacGuards)
 		RegisterWikiPageRoutes(v1, params.WikiPageHandler, rbacGuards)
+		RegisterGraphImportRoutes(v1, params.GraphImportHandler, rbacGuards)
+		RegisterGraphSyncRoutes(v1, params.GraphSyncHandler, rbacGuards)
+		RegisterEntityDictRoutes(v1, params.EntityDictHandler, rbacGuards)
+		RegisterAgentGraphRoutes(v1, params.AgentGraphHandler, rbacGuards)
 		RegisterChunkerDebugRoutes(v1, rbacGuards)
 
 		// Fail fast if any declared API-key policy points at a route

@@ -456,8 +456,8 @@ onBeforeUnmount(stopPolling)
     font-size: 15px;
     font-weight: 600;
     letter-spacing: 0.02em;
-    background: rgba(7, 192, 95, 0.12);
-    color: #07c05f;
+    background: rgba(102, 126, 234, 0.12);
+    color: #667eea;
     overflow: hidden;
   }
 

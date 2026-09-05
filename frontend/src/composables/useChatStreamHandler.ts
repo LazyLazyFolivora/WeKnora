@@ -566,6 +566,24 @@ export function useChatStreamHandler(options: UseChatStreamHandlerOptions) {
         }
         break
       }
+      case 'agent_graph': {
+        // 知识图谱 SSE 事件（协议 §2.2）
+        if (!message.agentEventStream) message.agentEventStream = []
+        const graphData = dataPayload as any
+        if (graphData?.graph_event && graphData?.payload) {
+          const newEvent = {
+            type: 'agent_graph',
+            graph_event: graphData.graph_event,
+            tool_call_id: graphData.tool_call_id,
+            payload: graphData.payload,
+          }
+          const newStream = [...(message.agentEventStream as any[]), newEvent]
+          message.agentEventStream = newStream as any
+          // 通过 CustomEvent 广播给 KnowledgeGraph 组件
+          window.dispatchEvent(new CustomEvent('kg-sse-event', { detail: newEvent }))
+        }
+        break
+      }
       case 'tool_approval_required': {
         if (!message.agentEventStream) message.agentEventStream = []
         const d = dataPayload || {}
@@ -906,7 +924,8 @@ export function useChatStreamHandler(options: UseChatStreamHandlerOptions) {
       data.response_type === 'thinking' ||
       data.response_type === 'tool_call' ||
       data.response_type === 'tool_result' ||
-      data.response_type === 'reflection'
+      data.response_type === 'reflection' ||
+      data.response_type === 'agent_graph'
 
     const lastMessage = messagesList[messagesList.length - 1]
     const isCurrentlyAgentMode = lastMessage?.isAgentMode === true

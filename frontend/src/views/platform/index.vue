@@ -259,11 +259,13 @@ onUnmounted(() => {
     height: 100%;
     min-width: 600px;
     min-height: 0;
-    /* 统一整页背景，让左侧菜单与右侧内容区视觉连贯 */
-    background: var(--td-bg-color-container);
+    background: var(--td-bg-color-page);
+    padding: 12px;
+    box-sizing: border-box;
+    gap: 12px;
 }
 
-/* 右侧路由区：占满剩余宽度与整列高度，并把 min-height:0 传给子页面以便内部 flex 滚动 */
+/* 右侧路由区：卡片风格，圆角+阴影 */
 .platform-route-outlet {
     flex: 1;
     min-width: 0;
@@ -271,6 +273,10 @@ onUnmounted(() => {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    background: var(--td-bg-color-container);
+    border-radius: 16px;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06), 0 0 1px rgba(0, 0, 0, 0.04);
+    border: 1px solid var(--td-component-border, rgba(0, 0, 0, 0.06));
 }
 
 .upload-mask {

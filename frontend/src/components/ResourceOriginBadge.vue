@@ -147,17 +147,17 @@ const tooltipText = computed(() => {
   }
 
   &.origin-mine {
-    color: var(--td-brand-color);
-    background: var(--td-success-color-light);
+    color: #8c8c8c;
+    background: var(--td-bg-color-secondarycontainer);
   }
 
   &.origin-tenant {
-    color: var(--td-text-color-secondary);
+    color: #8c8c8c;
     background: var(--td-bg-color-secondarycontainer);
   }
 
   &.origin-creator {
-    color: var(--td-text-color-secondary);
+    color: #8c8c8c;
     background: var(--td-bg-color-secondarycontainer);
   }
 

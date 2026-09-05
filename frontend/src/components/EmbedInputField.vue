@@ -274,7 +274,7 @@ onUnmounted(() => {
   transition: border-color 0.15s ease;
 
   &:focus-within {
-    border-color: var(--embed-primary, var(--td-brand-color, #07c05f));
+    border-color: var(--embed-primary, var(--td-brand-color, #667eea));
   }
 
   &__files {
@@ -418,8 +418,8 @@ onUnmounted(() => {
   }
 
   &.active {
-    color: var(--embed-primary, var(--td-brand-color, #07c05f));
-    background: color-mix(in srgb, var(--embed-primary, #07c05f) 12%, transparent);
+    color: var(--embed-primary, var(--td-brand-color, #667eea));
+    background: color-mix(in srgb, var(--embed-primary, #667eea) 12%, transparent);
   }
 }
 
@@ -433,7 +433,7 @@ onUnmounted(() => {
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  background: var(--embed-primary, var(--td-brand-color, #07c05f));
+  background: var(--embed-primary, var(--td-brand-color, #667eea));
   transition: background 0.15s ease, opacity 0.15s ease;
 
   &:hover:not(.disabled) {
@@ -442,7 +442,8 @@ onUnmounted(() => {
 
   &.disabled {
     cursor: not-allowed;
-    opacity: 0.45;
+    opacity: 1;
+    background: rgba(102, 126, 234, 0.15);
   }
 
   img {

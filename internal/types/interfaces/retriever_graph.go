@@ -14,4 +14,7 @@ type RetrieveGraphRepository interface {
 	DelGraph(ctx context.Context, namespace []types.NameSpace) error
 	// SearchNode searches for nodes in the repository
 	SearchNode(ctx context.Context, namespace types.NameSpace, nodes []string) (*types.GraphData, error)
+	// SearchByCypher executes a read-only Cypher query and returns parsed graph data.
+	// The Cypher must RETURN n, r, m (source node, relationship, target node).
+	SearchByCypher(ctx context.Context, cypher string, params map[string]interface{}) (*types.GraphData, error)
 }

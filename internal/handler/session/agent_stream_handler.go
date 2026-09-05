@@ -10,6 +10,7 @@ import (
 
 	agenttools "github.com/Tencent/WeKnora/internal/agent/tools"
 	"github.com/Tencent/WeKnora/internal/event"
+	"github.com/Tencent/WeKnora/internal/graphstream"
 	"github.com/Tencent/WeKnora/internal/logger"
 	"github.com/Tencent/WeKnora/internal/types"
 	"github.com/Tencent/WeKnora/internal/types/interfaces"
@@ -27,6 +28,7 @@ type AgentStreamHandler struct {
 	ttfbLogged         bool      // Guards one-shot TTFB log on first answer chunk
 	assistantMessage   *types.Message
 	streamManager      interfaces.StreamManager
+	agentGraphService  interfaces.AgentGraphService // optional; nil = SSE only
 
 	eventBus *event.EventBus
 
@@ -35,6 +37,7 @@ type AgentStreamHandler struct {
 	finalAnswer     string
 	answerSegments  []*answerSegment     // Per-answer-event-ID accumulation, so superseded preambles can be dropped
 	eventStartTimes map[string]time.Time // Track start time for duration calculation
+	graphNodeNames  map[string]string    // normalized entity name -> canonical (first-seen) name; guards SSE self-consistency
 	mu              sync.Mutex
 }
 
@@ -95,6 +98,12 @@ func NewAgentStreamHandler(
 	}
 }
 
+// SetAgentGraphService optionally wires persistence for incremental graph events.
+// Nil is fine (SSE-only / gray release) — keeps NewAgentStreamHandler non-invasive.
+func (h *AgentStreamHandler) SetAgentGraphService(s interfaces.AgentGraphService) {
+	h.agentGraphService = s
+}
+
 // Subscribe subscribes to all agent streaming events on the dedicated EventBus
 // No SessionID filtering needed since we have a dedicated EventBus per request
 func (h *AgentStreamHandler) Subscribe() {
@@ -112,6 +121,7 @@ func (h *AgentStreamHandler) Subscribe() {
 	h.eventBus.On(event.EventToolApprovalResolved, h.handleToolApprovalResolved)
 	h.eventBus.On(event.EventMCPOAuthRequired, h.handleMCPOAuthRequired)
 	h.eventBus.On(event.EventMCPOAuthResolved, h.handleMCPOAuthResolved)
+	h.eventBus.On(event.EventAgentGraph, h.handleAgentGraph)
 }
 
 // handleThought handles agent thought events
@@ -159,6 +169,141 @@ func (h *AgentStreamHandler) handleThought(ctx context.Context, evt event.Event)
 		logger.GetLogger(h.ctx).Error("Append thought event to stream failed", "error", err)
 	}
 
+	return nil
+}
+
+// normalizeEntityName collapses the spellings BioDSA emits for the same entity
+// ("Parkinson's Disease", "Parkinson's disease", "Parkinson Disease") into one
+// key: lowercase, collapse whitespace, strip possessive 's, strip apostrophes.
+func normalizeEntityName(name string) string {
+	s := strings.ToLower(strings.TrimSpace(name))
+	s = strings.Join(strings.Fields(s), " ")
+	s = strings.ReplaceAll(s, "’", "'") // U+2019 right single quote
+	s = strings.ReplaceAll(s, "'s", "") // possessive
+	s = strings.ReplaceAll(s, "'", "")  // remaining apostrophes
+	return s
+}
+
+// registerGraphNode normalizes name, records it on first sight, and returns the
+// canonical (first-seen) name plus whether this is the first time the entity was
+// seen. Callers must rewrite their payload to the returned canonical name so
+// node and relation events share one spelling.
+func (h *AgentStreamHandler) registerGraphNode(name string) (canonical string, isNew bool) {
+	if name == "" {
+		return name, false
+	}
+	key := normalizeEntityName(name)
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if h.graphNodeNames == nil {
+		h.graphNodeNames = make(map[string]string)
+	}
+	if existing, ok := h.graphNodeNames[key]; ok {
+		return existing, false
+	}
+	h.graphNodeNames[key] = name
+	return name, true
+}
+
+// syntheticNodePayload builds a minimal EntityConfirmed payload so the frontend
+// creates a node before it renders an edge that references that entity.
+func syntheticNodePayload(name string) map[string]any {
+	return map[string]any{
+		"event_type":   types.AgentGraphEventEntityConfirmed,
+		"entity_name":  name,
+		"entity_type":  "",
+		"observations": []string{},
+	}
+}
+
+// appendAgentGraphEvent wraps one graph event in the SSE envelope and appends it.
+func (h *AgentStreamHandler) appendAgentGraphEvent(evtID string, seq int64, eventType, toolCallID string, payload map[string]any) {
+	if err := h.streamManager.AppendEvent(h.ctx, h.sessionID, h.assistantMessageID, interfaces.StreamEvent{
+		ID:        evtID,
+		Type:      types.ResponseTypeAgentGraph,
+		Content:   "",
+		Done:      false,
+		Timestamp: time.Now(),
+		Data: map[string]interface{}{
+			"seq":          seq,
+			"graph_event":  eventType,
+			"tool_call_id": toolCallID,
+			"payload":      payload,
+		},
+	}); err != nil {
+		logger.GetLogger(h.ctx).Error("Append agent graph event to stream failed", "error", err)
+	}
+}
+
+// handleAgentGraph forwards one incremental knowledge-graph event to the SSE
+// stream and persists it so the graph survives a page refresh.
+// Persistence failures are logged only — never fail the agent turn.
+func (h *AgentStreamHandler) handleAgentGraph(ctx context.Context, evt event.Event) error {
+	data, ok := evt.Data.(event.AgentGraphData)
+	if !ok {
+		return nil
+	}
+
+	// Make the forwarded stream self-consistent before it leaves the backend:
+	//  1. Node events register + rewrite entity_name to a canonical spelling.
+	//  2. RelationFound rewrites endpoints to canonical spellings and, for an
+	//     endpoint never seen as a node, emits a synthetic node event first so
+	//     every edge references a node the frontend already has (force-graph
+	//     throws "node not found" otherwise).
+	// Record() receives the same mutated payload, so DB and SSE stay aligned.
+	switch data.EventType {
+	case types.AgentGraphEventEntityPlanned,
+		types.AgentGraphEventEntitySearching,
+		types.AgentGraphEventEntityConfirmed:
+		if name, _ := data.Payload["entity_name"].(string); name != "" {
+			canonical, _ := h.registerGraphNode(name)
+			data.Payload["entity_name"] = canonical
+		}
+	case types.AgentGraphEventRelationFound:
+		if src, _ := data.Payload["source_entity"].(string); src != "" {
+			canonical, isNew := h.registerGraphNode(src)
+			data.Payload["source_entity"] = canonical
+			if isNew {
+				h.appendAgentGraphEvent(evt.ID, data.Seq, types.AgentGraphEventEntityConfirmed, data.ToolCallID, syntheticNodePayload(canonical))
+			}
+		}
+		if tgt, _ := data.Payload["target_entity"].(string); tgt != "" {
+			canonical, isNew := h.registerGraphNode(tgt)
+			data.Payload["target_entity"] = canonical
+			if isNew {
+				h.appendAgentGraphEvent(evt.ID, data.Seq, types.AgentGraphEventEntityConfirmed, data.ToolCallID, syntheticNodePayload(canonical))
+			}
+		}
+	}
+
+	ssePayload := data.Payload
+	if data.EventType == types.AgentGraphEventRunComplete {
+		ssePayload = graphstream.SummarizeRunCompletePayload(data.Payload)
+	}
+
+	h.appendAgentGraphEvent(evt.ID, data.Seq, data.EventType, data.ToolCallID, ssePayload)
+
+	if h.agentGraphService != nil {
+		timeout := 5 * time.Second
+		if data.EventType == types.AgentGraphEventRunComplete {
+			// RunComplete may reconcile a large entity/relation snapshot.
+			timeout = 30 * time.Second
+		}
+		persistCtx, cancel := context.WithTimeout(ctx, timeout)
+		defer cancel()
+		if data.TenantID > 0 {
+			if _, ok := types.TenantIDFromContext(persistCtx); !ok {
+				persistCtx = context.WithValue(persistCtx, types.TenantIDContextKey, data.TenantID)
+			}
+		}
+		if err := h.agentGraphService.Record(persistCtx, h.sessionID, h.assistantMessageID, data); err != nil {
+			logger.GetLogger(h.ctx).Error("Persist agent graph event failed",
+				"error", err, "seq", data.Seq, "type", data.EventType, "stream_key", data.StreamKey)
+		}
+	} else if data.Seq == 1 {
+		logger.Warnf(h.ctx, "[AgentGraph] agentGraphService is nil; SSE only (seq=%d stream_key=%s)",
+			data.Seq, data.StreamKey)
+	}
 	return nil
 }
 

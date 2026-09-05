@@ -78,7 +78,7 @@ builtin_agents:
         - "knowledge_search"
         - "grep_chunks"
         - "list_knowledge_chunks"
-        - "query_knowledge_graph"
+        - "graph_query"
         - "get_document_info"
       web_search_enabled: true
       web_search_max_results: 5
@@ -88,6 +88,54 @@ builtin_agents:
       faq_priority_enabled: true
       faq_direct_answer_threshold: 0.9
       faq_score_boost: 1.2
+      embedding_top_k: 10
+      keyword_threshold: 0.3
+      vector_threshold: 0.5
+      rerank_top_k: 10
+      rerank_threshold: 0.3
+
+  - id: "builtin-aidd"
+    avatar: "🧬"
+    is_builtin: true
+    i18n:
+      default:
+        name: "AIDD Assistant"
+        description: "EGFR small-molecule drug discovery agent: queries domain knowledge and calls the smol-pipeline via MCP"
+      zh-CN:
+        name: "药物研发助手"
+        description: "EGFR 小分子药物研发智能体：查询领域知识，并通过 MCP 调用 smol-pipeline 计算分子性质/过滤/查看候选"
+      zh-TW:
+        name: "藥物研發助手"
+        description: "EGFR 小分子藥物研發智能體：查詢領域知識，並透過 MCP 呼叫 smol-pipeline"
+      ja-JP:
+        name: "創薬アシスタント"
+        description: "EGFR 低分子創薬エージェント：ドメイン知識を検索し、MCP 経由で smol-pipeline を呼び出す"
+      ko-KR:
+        name: "신약개발 어시스턴트"
+        description: "EGFR 저분자 신약개발 에이전트: 도메인 지식을 검색하고 MCP를 통해 smol-pipeline 호출"
+    config:
+      agent_mode: "smart-reasoning"
+      agent_type: "rag-qa"
+      system_prompt: ""
+      temperature: 0.3
+      max_completion_tokens: 4096
+      max_iterations: 30
+      kb_selection_mode: "all"
+      retrieve_kb_only_when_mentioned: false
+      allowed_tools:
+        - "knowledge_search"
+        - "grep_chunks"
+        - "list_knowledge_chunks"
+        - "get_document_info"
+      mcp_selection_mode: "all"
+      skills_selection_mode: "selected"
+      selected_skills:
+        - "aidd-drug-discovery"
+      web_search_enabled: false
+      web_search_max_results: 0
+      reflection_enabled: false
+      multi_turn_enabled: true
+      history_turns: 10
       embedding_top_k: 10
       keyword_threshold: 0.3
       vector_threshold: 0.5

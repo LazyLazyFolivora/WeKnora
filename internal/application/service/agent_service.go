@@ -103,6 +103,7 @@ type agentService struct {
 	tenantService         interfaces.TenantService
 	storageResolver       interfaces.StorageBackendResolver
 	toolApprovalGate      approval.MCPApproval
+	graphRepo             interfaces.RetrieveGraphRepository
 }
 
 // NewAgentService creates a new agent service
@@ -124,6 +125,7 @@ func NewAgentService(
 	tenantService interfaces.TenantService,
 	storageResolver interfaces.StorageBackendResolver,
 	toolApprovalGate approval.MCPApproval,
+	graphRepo interfaces.RetrieveGraphRepository,
 ) interfaces.AgentService {
 	return &agentService{
 		cfg:                   cfg,
@@ -143,6 +145,7 @@ func NewAgentService(
 		tenantService:         tenantService,
 		storageResolver:       storageResolver,
 		toolApprovalGate:      toolApprovalGate,
+		graphRepo:             graphRepo,
 	}
 }
 
@@ -482,6 +485,7 @@ func (s *agentService) registerTools(
 			tools.ToolGrepChunks:          true,
 			tools.ToolListKnowledgeChunks: true,
 			tools.ToolQueryKnowledgeGraph: true,
+			tools.ToolGraphQuery:          true,
 			tools.ToolGetDocumentInfo:     true,
 			tools.ToolDatabaseQuery:       true,
 			tools.ToolDataAnalysis:        true,
@@ -530,7 +534,7 @@ func (s *agentService) registerTools(
 		tools.ToolGrepChunks:          true,
 		tools.ToolListKnowledgeChunks: true,
 		tools.ToolQueryKnowledgeGraph: true,
-		tools.ToolGetDocumentInfo:     true,
+				tools.ToolGetDocumentInfo:     true,
 		tools.ToolDatabaseQuery:       true,
 	}
 	allWikiToolSet := map[string]bool{
@@ -611,6 +615,8 @@ func (s *agentService) registerTools(
 		case tools.ToolQueryKnowledgeGraph:
 			toolToRegister = tools.NewQueryKnowledgeGraphTool(s.knowledgeBaseService, config.SearchTargets).
 				WithKnowledgeScope(s.knowledgeService)
+		case tools.ToolGraphQuery:
+			toolToRegister = tools.NewGraphQueryTool(s.graphRepo)
 		case tools.ToolGetDocumentInfo:
 			toolToRegister = tools.NewGetDocumentInfoTool(s.knowledgeService, s.chunkService, config.SearchTargets)
 		case tools.ToolDatabaseQuery:

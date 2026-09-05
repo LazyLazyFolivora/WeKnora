@@ -249,6 +249,37 @@ export async function getOIDCConfig(): Promise<OIDCConfigResponse> {
 }
 
 /**
+ * 获取 CAS 登录跳转地址
+ */
+export async function getCASLoginURL(redirectURI: string): Promise<OIDCAuthURLResponse> {
+  try {
+    const response = await get(`/api/v1/auth/cas/url?redirect_uri=${encodeURIComponent(redirectURI)}`)
+    return response as unknown as OIDCAuthURLResponse
+  } catch (error: any) {
+    return {
+      success: false,
+      message: error.message || t('error.auth.loginFailed')
+    }
+  }
+}
+
+/**
+ * 获取 CAS 登录配置
+ */
+export async function getCASConfig(): Promise<OIDCConfigResponse> {
+  try {
+    const response = await get('/api/v1/auth/cas/config')
+    return response as unknown as OIDCConfigResponse
+  } catch (error: any) {
+    return {
+      success: false,
+      enabled: false,
+      message: error.message || t('error.auth.loginFailed')
+    }
+  }
+}
+
+/**
  * 获取认证配置（仅返回前端渲染需要的公开字段，例如注册模式）。
  *
  * 后端通过 `auth.registration_mode` 控制是否允许自助注册：
