@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Tencent/WeKnora/internal/agent/approval"
+	"github.com/Tencent/WeKnora/internal/graphstream"
 	"github.com/Tencent/WeKnora/internal/logger"
 	"github.com/Tencent/WeKnora/internal/mcp"
 	"github.com/Tencent/WeKnora/internal/types"
@@ -99,6 +100,27 @@ func (t *MCPTool) Parameters() json.RawMessage {
 	}`)
 }
 
+// declaresSessionID reports whether this MCP tool's input schema accepts session_id.
+// Blindly injecting session_id into every MCP tool breaks strict schema validators.
+func (t *MCPTool) declaresSessionID() bool {
+	props := t.inputSchemaPropertyKeys()
+	_, ok := props["session_id"]
+	return ok
+}
+
+// inputSchemaPropertyKeys returns top-level inputSchema.properties keys (best-effort).
+func (t *MCPTool) inputSchemaPropertyKeys() map[string]any {
+	if t.mcpTool == nil || len(t.mcpTool.InputSchema) == 0 {
+		return nil
+	}
+	var schema map[string]any
+	if err := json.Unmarshal(t.mcpTool.InputSchema, &schema); err != nil {
+		return nil
+	}
+	props, _ := schema["properties"].(map[string]any)
+	return props
+}
+
 // Execute executes the MCP tool
 func (t *MCPTool) Execute(ctx context.Context, args json.RawMessage) (*types.ToolResult, error) {
 	logger.GetLogger(ctx).Infof("Executing MCP tool: %s from service: %s", t.mcpTool.Name, t.service.Name)
@@ -113,9 +135,13 @@ func (t *MCPTool) Execute(ctx context.Context, args json.RawMessage) (*types.Too
 		}, err
 	}
 
+	// Capture before approval may rebuild ctx from ApprovalCtx (which does not
+	// carry ToolExecContext). Graph-stream registration depends on this meta.
+	meta, hasMeta := ToolExecFromContext(ctx)
+
 	// Human approval gate for dangerous tools (issue #1173)
 	if t.gate != nil {
-		if meta, ok := ToolExecFromContext(ctx); ok && meta != nil && meta.EventBus != nil {
+		if hasMeta && meta != nil && meta.EventBus != nil {
 			tenantID, _ := types.TenantIDFromContext(ctx)
 			if t.gate.NeedsApproval(ctx, tenantID, t.service.ID, t.mcpTool.Name) {
 				// Use ApprovalCtx (round-level ctx WITHOUT defaultToolExecTimeout) so
@@ -169,6 +195,8 @@ func (t *MCPTool) Execute(ctx context.Context, args json.RawMessage) (*types.Too
 				// Approval may have consumed most/all of the per-tool exec budget set by the
 				// agent engine (act.go). Re-derive a fresh tool-exec ctx from ApprovalCtx so
 				// the actual MCP CallTool gets a full timeout window. (issue #1173 follow-up)
+				// CRITICAL: ApprovalCtx does not carry ToolExecContext — re-attach meta or
+				// graph-stream Register / session_id injection is silently skipped.
 				if meta.ApprovalCtx != nil {
 					freshTimeout := meta.ExecTimeout
 					if freshTimeout <= 0 {
@@ -176,14 +204,68 @@ func (t *MCPTool) Execute(ctx context.Context, args json.RawMessage) (*types.Too
 					}
 					freshCtx, freshCancel := context.WithTimeout(meta.ApprovalCtx, freshTimeout)
 					defer freshCancel()
-					ctx = freshCtx
+					ctx = WithToolExecContext(freshCtx, meta)
 				}
 			}
 		}
 	}
 
+	// BioDSA-style graph streaming: always server-generate session_id after
+	// approval so the model cannot forge/hijack the correlation key.
+	var graphStreamKey string
+	var graphRegToken uint64
+	schemaHasSessionID := t.declaresSessionID()
+	switch {
+	case !hasMeta || meta == nil:
+		logger.Infof(ctx, "[Tool][MCPTool] graph stream skip: no ToolExecContext tool=%s", t.mcpTool.Name)
+	case meta.EventBus == nil:
+		logger.Warnf(ctx, "[Tool][MCPTool] graph stream skip: EventBus nil tool=%s", t.mcpTool.Name)
+	case meta.ToolCallID == "" || meta.AssistantMessageID == "":
+		logger.Warnf(ctx, "[Tool][MCPTool] graph stream skip: missing ids tool=%s tool_call_id=%q assistant_message_id=%q",
+			t.mcpTool.Name, meta.ToolCallID, meta.AssistantMessageID)
+	case !schemaHasSessionID:
+		propKeys := make([]string, 0)
+		for k := range t.inputSchemaPropertyKeys() {
+			propKeys = append(propKeys, k)
+		}
+		sort.Strings(propKeys)
+		logger.Infof(ctx, "[Tool][MCPTool] graph stream skip: schema has no session_id tool=%s props=%v schema_len=%d",
+			t.mcpTool.Name, propKeys, len(t.mcpTool.InputSchema))
+	default:
+		if prev, present := input["session_id"]; present && prev != nil && fmt.Sprint(prev) != "" {
+			logger.Warnf(ctx, "[Tool][MCPTool] overriding caller session_id for graph stream correlation prev=%v", prev)
+		}
+		graphStreamKey = meta.AssistantMessageID + ":" + meta.ToolCallID
+		if len(graphStreamKey) > 200 {
+			graphStreamKey = graphStreamKey[:200]
+		}
+		input["session_id"] = graphStreamKey
+		tenantID, _ := types.TenantIDFromContext(ctx)
+		persistCtx := context.WithoutCancel(ctx)
+		if tenantID > 0 {
+			persistCtx = context.WithValue(persistCtx, types.TenantIDContextKey, tenantID)
+		}
+		graphRegToken = graphstream.Register(graphStreamKey, &graphstream.Sink{
+			Ctx:                persistCtx,
+			EventBus:           meta.EventBus,
+			SessionID:          meta.SessionID,
+			AssistantMessageID: meta.AssistantMessageID,
+			ToolCallID:         meta.ToolCallID,
+			ServiceID:          t.service.ID,
+			TenantID:           tenantID,
+		})
+		logger.Infof(ctx, "[Tool][MCPTool] graph stream registered stream_key=%s tool=%s tenant=%d token=%d",
+			graphStreamKey, t.mcpTool.Name, tenantID, graphRegToken)
+		defer func() {
+			graphstream.Unregister(graphStreamKey, graphRegToken)
+			logger.Infof(ctx, "[Tool][MCPTool] graph stream unregistered stream_key=%s token=%d", graphStreamKey, graphRegToken)
+		}()
+	}
+
 	isStdio := t.service.TransportType == types.MCPTransportStdio
-	meta, _ := ToolExecFromContext(ctx)
+	if !hasMeta || meta == nil {
+		meta, hasMeta = ToolExecFromContext(ctx)
+	}
 	oauthSess := oauthSessionFromToolExec(ctx, meta).withAuthWaitTimeout(t.authWaitTimeoutSeconds)
 	toolCallID := ""
 	if meta != nil {
@@ -225,6 +307,9 @@ func (t *MCPTool) Execute(ctx context.Context, args json.RawMessage) (*types.Too
 
 	result, err := connectAndCall(ctx)
 	if err != nil {
+		if graphStreamKey != "" {
+			graphstream.FailRunIfHooked(context.WithoutCancel(ctx), graphStreamKey)
+		}
 		logger.GetLogger(ctx).Errorf("MCP tool call failed: %v", err)
 		return &types.ToolResult{
 			Success: false,
@@ -234,6 +319,9 @@ func (t *MCPTool) Execute(ctx context.Context, args json.RawMessage) (*types.Too
 
 	// Check if result indicates error
 	if result.IsError {
+		if graphStreamKey != "" {
+			graphstream.FailRunIfHooked(context.WithoutCancel(ctx), graphStreamKey)
+		}
 		errorMsg := extractContentText(result.Content)
 		logger.GetLogger(ctx).Warnf("MCP tool returned error: %s", errorMsg)
 		return &types.ToolResult{

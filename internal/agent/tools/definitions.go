@@ -12,6 +12,7 @@ const (
 	ToolKnowledgeSearch     = "knowledge_search"
 	ToolListKnowledgeChunks = "list_knowledge_chunks"
 	ToolQueryKnowledgeGraph = "query_knowledge_graph"
+	ToolGraphQuery = "graph_query"
 	ToolGetDocumentInfo     = "get_document_info"
 	ToolSearchConversations = "search_conversations"
 	ToolSearchMemory        = "search_memory"
@@ -93,6 +94,7 @@ func AvailableToolDefinitions() []AvailableTool {
 		{Name: ToolKnowledgeSearch, Label: "语义搜索", Description: "理解问题并查找语义相关内容"},
 		{Name: ToolListKnowledgeChunks, Label: "查看文档分块", Description: "获取文档完整分块内容"},
 		{Name: ToolQueryKnowledgeGraph, Label: "查询知识图谱", Description: "从知识图谱中查询关系"},
+		{Name: ToolGraphQuery, Label: "图谱查询", Description: "执行只读Cypher查询，探索Neo4j知识图谱的结构和数据"},
 		{Name: ToolGetDocumentInfo, Label: "获取文档信息", Description: "查看文档元数据"},
 		{
 			Name:        ToolSearchConversations,
@@ -124,6 +126,7 @@ func DefaultAllowedTools() []string {
 		ToolGrepChunks,
 		ToolListKnowledgeChunks,
 		ToolQueryKnowledgeGraph,
+		ToolGraphQuery,
 		ToolGetDocumentInfo,
 		// Looking up what this user asked before is only ever a read of their
 		// own history, and it is what lets "上次你给我的那个配置" resolve at all

@@ -30,6 +30,10 @@ const (
 	BuiltinWikiFixerID = "builtin-wiki-fixer"
 	// BuiltinSkillInstallerID is the ID for the built-in skill installer agent
 	BuiltinSkillInstallerID = "builtin-skill-installer"
+	// BuiltinAIDDID is the ID for the built-in AIDD drug discovery agent
+	BuiltinAIDDID = "builtin-aidd"
+	// BuiltinBioDSAID is the ID for the built-in BioDSA drug discovery agent
+	BuiltinBioDSAID = "builtin-biodsa"
 )
 
 // AgentMode constants for agent running mode
@@ -582,6 +586,8 @@ var BuiltinAgentRegistry = map[string]func(uint64) *CustomAgent{}
 var builtinAgentIDsOrdered = []string{
 	BuiltinQuickAnswerID,
 	BuiltinSmartReasoningID,
+	BuiltinAIDDID,
+	BuiltinBioDSAID,
 	BuiltinWikiResearcherID,
 	BuiltinDeepResearcherID,
 	BuiltinDataAnalystID,

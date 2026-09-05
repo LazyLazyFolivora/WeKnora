@@ -1,6 +1,12 @@
 <template>
     <div class="dialogue-wrap">
         <div class="dialogue-answers">
+            <!-- 药小知形象 -->
+            <div class="mascot-wrapper">
+                <img src="@/assets/img/药小知-noeyes.png" alt="药小知" class="mascot-avatar" />
+                <span class="mascot-eye mascot-eye-left"></span>
+                <span class="mascot-eye mascot-eye-right"></span>
+            </div>
             <div class="dialogue-title" style="--wails-draggable: drag">
                 <span style="--wails-draggable: drag">{{ $t('createChat.title') }}</span>
             </div>
@@ -43,7 +49,11 @@
                     </div>
                 </transition>
             </div>
-            <InputField ref="inputFieldRef" @send-msg="sendMsg"></InputField>
+            <!-- 输入框光晕容器 -->
+            <div class="input-glow-wrapper">
+                <div class="input-glow"></div>
+                <InputField ref="inputFieldRef" @send-msg="sendMsg"></InputField>
+            </div>
         </div>
     </div>
 
@@ -265,6 +275,71 @@ const handleKBEditorSuccess = (kbId: string) => {
     }
 }
 
+/* 药小知形象 */
+.mascot-wrapper {
+    margin-bottom: -8px;
+    position: relative;
+    z-index: 2;
+
+    /* ===== 眼睛位置/大小可通过以下变量调整 ===== */
+    /* 眼睛尺寸 */
+    --eye-w: 5px;
+    --eye-h: 8px;
+    /* 左眼位置（百分比相对于头像） */
+    --eye-left-x: 40.5%;
+    --eye-left-y: 30%;
+    /* 右眼位置（百分比相对于头像） */
+    --eye-right-x: 59.5%;
+    --eye-right-y: 30%;
+    /* 眼睛颜色 */
+    --eye-color: #ffffff;
+    /* 眨眼周期 */
+    --blink-duration: 3s;
+}
+
+.mascot-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: contain;
+    position: relative;
+    z-index: 1;
+}
+
+.mascot-eye {
+    position: absolute;
+    width: var(--eye-w);
+    height: var(--eye-h);
+    background: var(--eye-color);
+    border-radius: 50%;
+    z-index: 2;
+    animation: mascot-blink var(--blink-duration) ease-in-out infinite;
+    transform-origin: center center;
+    /* 阴影让白色眼睛在浅色背景上更可见 */
+    box-shadow: 0 0 0.5px 0.5px rgba(0, 0, 0, 0.15);
+}
+
+.mascot-eye-left {
+    left: var(--eye-left-x);
+    top: var(--eye-left-y);
+    transform: translate(-50%, -50%);
+}
+
+.mascot-eye-right {
+    left: var(--eye-right-x);
+    top: var(--eye-right-y);
+    transform: translate(-50%, -50%);
+}
+
+@keyframes mascot-blink {
+    0%, 90%, 100% {
+        transform: translate(-50%, -50%) scaleY(1);
+    }
+    95% {
+        transform: translate(-50%, -50%) scaleY(0.08);
+    }
+}
+
 .dialogue-title {
     display: flex;
     color: var(--td-text-color-primary);
@@ -390,6 +465,69 @@ const handleKBEditorSuccess = (kbId: string) => {
 
     :deep(.t-textarea__inner) {
         width: 340px !important;
+    }
+}
+
+/* 输入框光晕效果 */
+.input-glow-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 800px;
+}
+
+.input-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    width: 480px;
+    height: 480px;
+    background:
+        radial-gradient(
+            circle at 50% 50%,
+            rgba(102, 126, 234, 0.50) 0%,
+            rgba(102, 126, 234, 0.25) 25%,
+            rgba(118, 75, 162, 0.08) 50%,
+            transparent 68%
+        ),
+        radial-gradient(
+            circle at 30% 35%,
+            rgba(74, 155, 232, 0.25) 0%,
+            transparent 40%
+        ),
+        radial-gradient(
+            circle at 72% 40%,
+            rgba(74, 155, 232, 0.22) 0%,
+            transparent 35%
+        ),
+        radial-gradient(
+            circle at 35% 65%,
+            rgba(74, 155, 232, 0.22) 0%,
+            transparent 38%
+        ),
+        radial-gradient(
+            circle at 68% 60%,
+            rgba(74, 155, 232, 0.24) 0%,
+            transparent 36%
+        );
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+    filter: blur(30px);
+    animation: glow-spread 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes glow-spread {
+    0% {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 0;
+    }
+    60% {
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
     }
 }
 

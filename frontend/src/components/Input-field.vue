@@ -2811,14 +2811,20 @@ const getImgSrc = (url: string) => {
 .rich-input-container {
   position: relative;
   width: 100%;
-  max-width: 960px;
-  background: var(--td-bg-color-container, #FFF);
+  max-width: 800px;
   border-radius: 12px;
-  border: 1px solid var(--td-component-stroke, #dcdcdc);
+  border: 1px solid var(--td-component-border, #e0e0e0);
+  background-color: var(--td-bg-color-container, #FFF);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 8px 16px -4px rgba(0, 0, 0, 0.06);
+  transition: border-color 0.3s, box-shadow 0.3s;
 
-  &:focus-within {
-    border-color: var(--td-brand-color, #07C05F);
+  &:focus-within,
+  &:has(textarea:not(:placeholder-shown)) {
+    border: 1.5px solid transparent;
+    background-image: linear-gradient(var(--td-bg-color-container, #fff), var(--td-bg-color-container, #fff)), linear-gradient(135deg, #667eea 0%, #7b68ee 20%, #764ba2 40%, #667eea 55%, #9b6bb5 70%, #764ba2 85%, #667eea 100%);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15), 0 2px 8px rgba(0, 0, 0, 0.04);
   }
 }
 
@@ -2938,7 +2944,7 @@ const getImgSrc = (url: string) => {
 }
 
 .mention-chip--kb .mention-chip__icon-wrap {
-  color: var(--td-brand-color, #07c05f);
+  color: var(--td-brand-color, #667eea);
 }
 
 .mention-chip--faq {
@@ -3195,15 +3201,15 @@ const getImgSrc = (url: string) => {
   }
 
   &.active {
-    background: rgba(16, 185, 129, 0.1);
-    color: #07C05F;
+    background: rgba(102, 126, 234, 0.1);
+    color: #667eea;
   }
 
   .image-count {
     position: absolute;
     top: -2px;
     right: -2px;
-    background: #07C05F;
+    background: #667eea;
     color: #fff;
     font-size: 10px;
     width: 14px;
@@ -3234,15 +3240,15 @@ const getImgSrc = (url: string) => {
   }
 
   &.active {
-    background: rgba(16, 185, 129, 0.1);
-    color: #07C05F;
+    background: rgba(102, 126, 234, 0.1);
+    color: #667eea;
   }
 
   .attachment-count {
     position: absolute;
     top: -2px;
     right: -2px;
-    background: #07C05F;
+    background: #667eea;
     color: #fff;
     font-size: 10px;
     width: 14px;
@@ -3309,14 +3315,14 @@ const getImgSrc = (url: string) => {
   position: relative;
 
   &.active {
-    background: rgba(16, 185, 129, 0.1);
+    background: rgba(102, 126, 234, 0.1);
 
     .websearch-icon {
       color: var(--td-brand-color);
     }
 
     &:hover {
-      background: rgba(16, 185, 129, 0.15);
+      background: rgba(102, 126, 234, 0.15);
     }
   }
 
@@ -3343,7 +3349,7 @@ const getImgSrc = (url: string) => {
     }
 
     &.active:hover {
-      background: rgba(16, 185, 129, 0.1);
+      background: rgba(102, 126, 234, 0.1);
     }
   }
 }
@@ -3400,21 +3406,21 @@ const getImgSrc = (url: string) => {
   width: 28px;
   height: 28px;
   padding: 0;
-  background: rgba(16, 185, 129, 0.08);
+  background: rgba(102, 126, 234, 0.08);
   color: var(--td-brand-color);
-  border: 1.5px solid rgba(16, 185, 129, 0.2);
+  border: 1.5px solid rgba(102, 126, 234, 0.2);
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
 
   &:hover {
-    background: rgba(16, 185, 129, 0.12);
+    background: rgba(102, 126, 234, 0.12);
     border-color: var(--td-brand-color);
   }
 
   &:active {
-    background: rgba(16, 185, 129, 0.15);
+    background: rgba(102, 126, 234, 0.15);
   }
 
   svg {
@@ -3457,7 +3463,7 @@ const getImgSrc = (url: string) => {
   }
 
   &.disabled {
-    background-color: var(--td-success-color-light);
+    background-color: rgba(124, 77, 255, 0.15);
   }
 
   img {

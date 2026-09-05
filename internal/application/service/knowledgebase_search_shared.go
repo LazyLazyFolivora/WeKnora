@@ -56,10 +56,15 @@ func (s *knowledgeBaseService) fetchKnowledgeDataWithShared(ctx context.Context,
 
 	logger.Infof(ctx, "[fetchKnowledgeDataWithShared] Looking up %d missing knowledge IDs with userID=%s", len(missingIDs), userID)
 	callerTenantRole := types.TenantRoleFromContext(ctx)
+	systemDefaultKBIDs := s.getSystemDefaultKBIDs(ctx)
 	for _, id := range missingIDs {
 		k, err := s.kgRepo.GetKnowledgeByIDOnly(ctx, id)
 		if err != nil || k == nil || k.KnowledgeBaseID == "" {
 			logger.Debugf(ctx, "[fetchKnowledgeDataWithShared] Knowledge %s not found or has no KB", id)
+			continue
+		}
+		if isSystemDefaultKB(k.KnowledgeBaseID, systemDefaultKBIDs) {
+			knowledgeMap[k.ID] = k
 			continue
 		}
 		hasPermission, err := s.kbShareService.HasTenantKBPermission(ctx, k.KnowledgeBaseID, tenantID, callerTenantRole, types.OrgRoleViewer)
@@ -112,6 +117,7 @@ func (s *knowledgeBaseService) listChunksByIDWithShared(ctx context.Context,
 
 	logger.Infof(ctx, "[listChunksByIDWithShared] Looking up %d missing chunks with userID=%s", len(missing), userID)
 	callerTenantRole := types.TenantRoleFromContext(ctx)
+	systemDefaultKBIDs := s.getSystemDefaultKBIDs(ctx)
 	crossChunks, err := s.chunkRepo.ListChunksByIDOnly(ctx, missing)
 	if err != nil {
 		logger.Warnf(ctx, "[listChunksByIDWithShared] Failed to fetch chunks by ID only: %v", err)
@@ -121,6 +127,10 @@ func (s *knowledgeBaseService) listChunksByIDWithShared(ctx context.Context,
 
 	for _, c := range crossChunks {
 		if c == nil || c.KnowledgeBaseID == "" {
+			continue
+		}
+		if isSystemDefaultKB(c.KnowledgeBaseID, systemDefaultKBIDs) {
+			chunks = append(chunks, c)
 			continue
 		}
 		hasPermission, err := s.kbShareService.HasTenantKBPermission(ctx, c.KnowledgeBaseID, tenantID, callerTenantRole, types.OrgRoleViewer)

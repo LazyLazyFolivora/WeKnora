@@ -315,6 +315,32 @@ type NavGroup = {
 //   ModelSettings.vue 里另用 hasRole('admin') 自己 gate，所以入口保留
 //   viewer 是合理的（contributor 也能浏览模型列表）。
 const SYSTEM_ADMIN_SECTIONS = SYSTEM_ADMIN_SETTINGS_SECTIONS
+// 暂时隐藏的设置项（先不删除，后续按需恢复）
+const HIDDEN_NAV_KEYS = new Set([
+  'userprofile',  // 用户信息
+  'api',          // API 信息
+  'members',      // 成员管理
+  'chathistory',  // 消息管理
+  'models',       // 模型管理
+  'ollama',       // Ollama
+  'weknoracloud', // WeKnora Cloud
+  // 数据与扩展
+  'vectorstore',
+  'parser',
+  'storage',
+  'websearch',
+  'mcp',
+  // 平台
+  'system-global',
+  'system',
+])
+
+// 暂时隐藏的导航分组 key
+const HIDDEN_NAV_GROUPS = new Set([
+  'models_runtime',   // 模型整个设置组
+  'data_extensions',  // 数据与扩展
+  'platform',         // 平台
+])
 
 const normalizeSettingsSection = (section: string) => {
   return normalizeSettingsSectionFromQuery(section, route.query.tab as string | undefined)
@@ -345,6 +371,12 @@ const canSeeSection = (key: string): boolean => {
     if (!min) return true
     if (authStore.canAccessAllTenants) return true
     return authStore.hasRole(min)
+  }
+  // 管理员租户（tenant_id=10000）显示全部设置；非管理员租户隐藏部分设置项
+  if (authStore.isAdminTenant && HIDDEN_NAV_KEYS.has(key)) {
+    // 管理员租户：不隐藏（即使 key 在 HIDDEN_NAV_KEYS 中）
+  } else if (!authStore.isAdminTenant && HIDDEN_NAV_KEYS.has(key)) {
+    return false
   }
   if (SYSTEM_ADMIN_SECTIONS.has(key)) {
     return authStore.isSystemAdmin
@@ -458,7 +490,12 @@ const navGroups = computed<NavGroup[]>(() => {
       label: t('settings.navGroups.platform'),
       items: pickItems(['system']),
     },
-  ].filter((group) => group.items.length > 0)
+  ].filter((group) => {
+    if (group.items.length === 0) return false
+    // 管理员租户显示全部分组；非管理员租户隐藏部分分组
+    if (!authStore.isAdminTenant && HIDDEN_NAV_GROUPS.has(group.key)) return false
+    return true
+  })
 })
 
 // 导航项点击处理

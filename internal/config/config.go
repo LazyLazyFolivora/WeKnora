@@ -24,6 +24,7 @@ type Config struct {
 	Auth            *AuthConfig            `yaml:"auth"             json:"auth"`
 	Audit           *AuditConfig           `yaml:"audit"            json:"audit"`
 	OIDCAuth        *OIDCAuthConfig        `yaml:"oidc_auth"        json:"oidc_auth"`
+	CASAuth         *CASAuthConfig         `yaml:"cas_auth"         json:"cas_auth"`
 	Models          []ModelConfig          `yaml:"models"           json:"models"`
 	VectorDatabase  *VectorDatabaseConfig  `yaml:"vector_database"  json:"vector_database"`
 	DocReader       *DocReaderConfig       `yaml:"docreader"        json:"docreader"`
@@ -322,6 +323,18 @@ type OIDCAuthConfig struct {
 	UserInfoMapping       *OIDCUserInfoMapping `yaml:"user_info_mapping"      json:"user_info_mapping"`
 }
 
+// CASAuthConfig holds the configuration for CAS (Central Authentication Service).
+// The only required field is ServerURL; all others have reasonable defaults.
+type CASAuthConfig struct {
+	Enable                bool   `yaml:"enable"                  json:"enable"`
+	ServerURL             string `yaml:"server_url"              json:"server_url"`
+	ProviderDisplayName   string `yaml:"provider_display_name"   json:"provider_display_name"`
+	CallbackURL           string `yaml:"callback_url"            json:"callback_url"`
+	UsernameAttribute     string `yaml:"username_attribute"      json:"username_attribute"`
+	EmailAttribute        string `yaml:"email_attribute"         json:"email_attribute"`
+	DisplayNameAttribute  string `yaml:"display_name_attribute"  json:"display_name_attribute"`
+}
+
 // PromptTemplateI18n holds localized name and description for a prompt template.
 type PromptTemplateI18n struct {
 	Name        string `yaml:"name"        json:"name"`
@@ -580,6 +593,7 @@ func LoadConfig() (*Config, error) {
 
 	// Validate configuration values
 	applyOIDCEnvOverrides(&cfg)
+	applyCASEnvOverrides(&cfg)
 	applyAgentEnvOverrides(&cfg)
 	applyKnowledgeBaseEnvOverrides(&cfg)
 	applyAuthAndTenantDefaults(&cfg)
@@ -748,6 +762,36 @@ func applyOIDCEnvOverrides(cfg *Config) {
 	}
 	if cfg.OIDCAuth.DiscoveryURL == "" && cfg.OIDCAuth.IssuerURL != "" {
 		cfg.OIDCAuth.DiscoveryURL = strings.TrimRight(cfg.OIDCAuth.IssuerURL, "/") + "/.well-known/openid-configuration"
+	}
+}
+
+func applyCASEnvOverrides(cfg *Config) {
+	if cfg.CASAuth == nil {
+		cfg.CASAuth = &CASAuthConfig{}
+	}
+	if value := strings.TrimSpace(os.Getenv("CAS_AUTH_ENABLE")); value != "" {
+		cfg.CASAuth.Enable = strings.EqualFold(value, "true")
+	}
+	if value := strings.TrimSpace(os.Getenv("CAS_AUTH_SERVER_URL")); value != "" {
+		cfg.CASAuth.ServerURL = value
+	}
+	if value := strings.TrimSpace(os.Getenv("CAS_AUTH_PROVIDER_DISPLAY_NAME")); value != "" {
+		cfg.CASAuth.ProviderDisplayName = value
+	}
+	if value := strings.TrimSpace(os.Getenv("CAS_AUTH_CALLBACK_URL")); value != "" {
+		cfg.CASAuth.CallbackURL = value
+	}
+	if value := strings.TrimSpace(os.Getenv("CAS_AUTH_USERNAME_ATTRIBUTE")); value != "" {
+		cfg.CASAuth.UsernameAttribute = value
+	}
+	if value := strings.TrimSpace(os.Getenv("CAS_AUTH_EMAIL_ATTRIBUTE")); value != "" {
+		cfg.CASAuth.EmailAttribute = value
+	}
+	if value := strings.TrimSpace(os.Getenv("CAS_AUTH_DISPLAY_NAME_ATTRIBUTE")); value != "" {
+		cfg.CASAuth.DisplayNameAttribute = value
+	}
+	if cfg.CASAuth.ProviderDisplayName == "" {
+		cfg.CASAuth.ProviderDisplayName = "CAS"
 	}
 }
 

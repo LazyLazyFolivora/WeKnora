@@ -65,6 +65,35 @@ type QueryKnowledgeGraphInput struct {
 	Query            string   `json:"query" jsonschema:"Query content (entity name or query text)"`
 }
 
+// UnmarshalJSON handles the common LLM mistake of passing a string instead of an array
+// for knowledge_base_ids (e.g. "kb-123" instead of ["kb-123"]).
+func (q *QueryKnowledgeGraphInput) UnmarshalJSON(data []byte) error {
+	type raw QueryKnowledgeGraphInput
+	var aux struct {
+		KnowledgeBaseIDs json.RawMessage `json:"knowledge_base_ids"`
+		*raw
+	}
+	aux.raw = (*raw)(q)
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	if len(aux.KnowledgeBaseIDs) == 0 || string(aux.KnowledgeBaseIDs) == "null" {
+		q.KnowledgeBaseIDs = nil
+		return nil
+	}
+	if aux.KnowledgeBaseIDs[0] == '"' {
+		var s string
+		if err := json.Unmarshal(aux.KnowledgeBaseIDs, &s); err != nil {
+			return err
+		}
+		if s != "" {
+			q.KnowledgeBaseIDs = []string{s}
+		}
+		return nil
+	}
+	return json.Unmarshal(aux.KnowledgeBaseIDs, &q.KnowledgeBaseIDs)
+}
+
 // QueryKnowledgeGraphTool queries the knowledge graph for entities and relationships
 type QueryKnowledgeGraphTool struct {
 	BaseTool

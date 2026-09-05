@@ -224,6 +224,21 @@ type AgentReflectionData struct {
 	Done       bool   `json:"done"` // Whether streaming is complete
 }
 
+// AgentGraphData carries one incremental knowledge-graph notification from an
+// MCP streaming agent (e.g. BioDSA DeepEvidence) into the agent EventBus.
+type AgentGraphData struct {
+	StreamKey          string         `json:"stream_key"`
+	Seq                int64          `json:"seq"`
+	EventType          string         `json:"event_type"`
+	EventID            string         `json:"event_id,omitempty"`
+	Timestamp          float64        `json:"timestamp,omitempty"`
+	Payload            map[string]any `json:"payload,omitempty"`
+	SessionID          string         `json:"session_id"`
+	AssistantMessageID string         `json:"assistant_message_id"`
+	ToolCallID         string         `json:"tool_call_id,omitempty"`
+	TenantID           uint64         `json:"tenant_id,omitempty"`
+}
+
 // SessionTitleData represents session title update data
 type SessionTitleData struct {
 	SessionID string `json:"session_id"`

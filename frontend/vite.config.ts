@@ -50,7 +50,7 @@ function embedHtmlDevFallback(): Plugin {
 const DEV_PROXY_TARGET =
   process.env.VITE_DEV_PROXY_TARGET ||
   process.env.FRONTEND_BACKEND_URL ||
-  'http://localhost:8080'
+  'https://zkagent.cpu.edu.cn'
 
 function resolveVueOfficePptxEntry(): string {
   try {

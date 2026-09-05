@@ -37,7 +37,7 @@ export default {
       settingsManage: '更新和重置平台级运行设置。',
       runtimeRead: '查看任务队列和任务详情。',
       runtimeManage: '重试、立即执行、取消或删除运行时任务。',
-      auditRead: '读取平台级审计日志。'
+      auditRead: '读取平台级审计日志。',
     },
     capabilities: {
       tenantsRead: '查看空间',
@@ -46,8 +46,8 @@ export default {
       settingsManage: '管理系统设置',
       runtimeRead: '查看运行时',
       runtimeManage: '管理运行时',
-      auditRead: '查看系统审计'
-    }
+      auditRead: '查看系统审计',
+    },
   },
   tenantInvitation: {
     inboxTooltip: '查看待接受的邀请',
@@ -68,7 +68,8 @@ export default {
       notPending: '邀请已不在待处理状态。',
       forbidden: '只有被邀请人本人可以接受或拒绝该邀请。',
       notFound: '邀请不存在或已被撤销。',
-      generic: '操作失败，请稍后重试。'
+      generic: '操作失败，请稍后重试。',
+      expired: '邀请已过期。',
     },
     myInbox: {
       title: '我的邀请',
@@ -81,7 +82,8 @@ export default {
       from: '邀请人',
       tenantLabel: '空间',
       expiresIn: '到期：{date}',
-      messageLabel: '留言'
+      messageLabel: '留言',
+      gotoLink: '进入收件箱',
     },
     status: {
       pending: '待接受',
@@ -89,7 +91,7 @@ export default {
       accepted: '已接受',
       declined: '已拒绝',
       revoked: '已撤销',
-      expired: '已过期'
+      expired: '已过期',
     },
     columns: {
       invitee: '被邀请人',
@@ -97,13 +99,14 @@ export default {
       inviter: '邀请人',
       expiresAt: '到期时间',
       status: '状态',
-      operations: '操作'
+      operations: '操作',
     },
     revoke: {
       button: '撤销',
       confirmBody: '撤销后，{email} 将无法再接受此邀请；如需再邀请请重新发出。',
       confirm: '撤销',
-      success: '邀请已撤销。'
+      success: '邀请已撤销。',
+      confirmTitle: '确认撤销邀请？',
     },
     shareLink: {
       button: '生成共享链接',
@@ -115,8 +118,10 @@ export default {
       generate: '生成链接',
       resultTitle: '邀请链接已生成',
       resultBody: '复制下方链接，通过任意私密渠道发给被邀请人。链接也会保存在下方列表中，随时可以重新复制或撤销。',
-      revokeConfirm: '撤销后，所有还未注册的人都无法再使用此链接；如需重发请生成新链接。'
-    }
+      revokeConfirm: '撤销后，所有还未注册的人都无法再使用此链接；如需重发请生成新链接。',
+      label: '共享链接',
+    },
+    pendingSectionCount: '{n} 条',
   },
   tenantMember: {
     title: '成员管理',
@@ -142,11 +147,11 @@ export default {
         targetUserId: '目标用户 ID',
         targetType: '目标类型',
         targetId: '目标 ID',
-        details: '原始详情'
+        details: '原始详情',
       },
       outcome: {
         success: '成功',
-        denied: '拒绝'
+        denied: '拒绝',
       },
       action: {
         'rbac.member_added': '新增成员',
@@ -158,7 +163,7 @@ export default {
         'rbac.invitation_accepted': '接受邀请',
         'rbac.invitation_declined': '拒绝邀请',
         'rbac.invitation_revoked': '撤销邀请',
-        'rbac.invitation_expired': '邀请过期'
+        'rbac.invitation_expired': '邀请过期',
       },
       columns: {
         time: '时间',
@@ -166,8 +171,9 @@ export default {
         action: '事件',
         target: '目标',
         path: '请求',
-        outcome: '结果'
-      }
+        outcome: '结果',
+      },
+      loadMore: '加载更多',
     },
     errors: {
       emailRequired: '请输入邮箱',
@@ -177,41 +183,49 @@ export default {
       lastOwner: '无法降级、移除或退出最后一位 Owner，请先把其他成员提升为 Owner。',
       notFound: '未找到对应的成员。',
       invalidRole: '角色必须是 owner / admin / contributor / viewer 之一。',
-      generic: '操作失败，请稍后重试。'
+      generic: '操作失败，请稍后重试。',
+      alreadyMember: '该用户已经是当前空间的成员。',
+      noTenant: '当前没有可操作的空间。',
     },
     roleChange: {
-      success: '角色已更新'
+      success: '角色已更新',
     },
     leave: {
       confirmTitle: '确认退出当前空间？',
       confirmBody: '退出后您将无法访问当前空间内的所有知识库和智能体。后续可被再次邀请加入。',
       confirm: '退出',
-      success: '已退出当前空间'
+      success: '已退出当前空间',
+      button: '退出空间',
     },
     remove: {
       button: '移除',
       confirmBody: '确定要将 {name} 从当前空间中移除吗？该用户会立即失去访问权限。',
       confirm: '移除',
-      success: '已移除成员'
+      success: '已移除成员',
+      confirmTitle: '确认移除？',
     },
     add: {
       button: '邀请成员',
       dialogTitle: '邀请成员',
       emailLabel: '邮箱',
       emailPlaceholder: 'invitee{\'@\'}example.com',
-      roleLabel: '角色'
+      roleLabel: '角色',
+      submit: '邀请',
+      success: '已添加成员',
     },
     role: {
       owner: '所有者',
       admin: '管理员',
       contributor: '编辑',
-      viewer: '访客'
+      viewer: '访客',
     },
     columns: {
       member: '姓名与邮箱',
       role: '角色',
       joinedAt: '加入时间',
-      operations: '操作'
+      operations: '操作',
+      username: '姓名',
+      email: '邮箱',
     },
     permissions: {
       title: '角色权限说明',
@@ -221,8 +235,14 @@ export default {
       manageTenantConfig: '修改空间配置',
       manageInfra: '配置模型 / 向量库 / IM 通道',
       createOwnKB: '创建并编辑自己的知识库和智能体',
-      readAll: '查看空间内容'
-    }
+      readAll: '查看空间内容',
+    },
+    totalCount: '共 {n} 位成员',
+    filterMatched: '筛选出 {n} 位',
+    tabs: {
+      members: '成员',
+      audit: '审计日志',
+    },
   },
   userProfile: {
     title: '用户信息',
@@ -258,7 +278,9 @@ export default {
     removedToast: '凭据已移除',
     removeFailed: '移除凭据失败',
     confirmRemovePrompt: '确认移除？此操作不可撤销',
-    confirmRemove: '确认移除'
+    confirmRemove: '确认移除',
+    confirmRemoveTitle: '移除 {field}？',
+    confirmRemoveBody: '此操作将永久删除已保存的凭据，依赖它的集成将停止工作，直到您重新配置。',
   },
   integrations: {
     title: '发布集成',
@@ -284,43 +306,43 @@ export default {
       steps: {
         verify: {
           title: '验证连接',
-          desc: '安装后让 Agent 列出知识库或执行一次检索，确认 API 凭证与网络可达。'
+          desc: '安装后让 Agent 列出知识库或执行一次检索，确认 API 凭证与网络可达。',
         },
         install: {
           title: '安装 Skill',
-          desc: '在已安装 OpenClaw CLI 的环境中执行下方命令，或前往 ClawHub 页面按指引安装。'
+          desc: '在已安装 OpenClaw CLI 的环境中执行下方命令，或前往 ClawHub 页面按指引安装。',
         },
         env: {
           title: '配置环境变量',
-          desc: '在终端或 ~/.zshrc、~/.bashrc 中设置 WEKNORA_BASE_URL 与 WEKNORA_API_KEY。下方示例已填入当前 API 地址，请将 API Key 替换为实际值。'
+          desc: '在终端或 ~/.zshrc、~/.bashrc 中设置 WEKNORA_BASE_URL 与 WEKNORA_API_KEY。下方示例已填入当前 API 地址，请将 API Key 替换为实际值。',
         },
         api: {
           title: '获取 API 凭证',
-          desc: '在「设置 → API 信息」中复制 API Key 与 API 地址。'
-        }
+          desc: '在「设置 → API 信息」中复制 API Key 与 API 地址。',
+        },
       },
       capabilities: {
         browse: {
           title: '浏览知识库',
-          desc: '列出知识库与条目、查看详情，管理已导入的知识内容。'
+          desc: '列出知识库与条目、查看详情，管理已导入的知识内容。',
         },
         search: {
           title: '混合检索',
-          desc: '单库 hybrid-search 与跨库 knowledge-search，结合向量与关键词召回。'
+          desc: '单库 hybrid-search 与跨库 knowledge-search，结合向量与关键词召回。',
         },
         manual: {
           title: '写入 Markdown',
-          desc: '以 Markdown 形式创建或编辑知识条目，适合会议记录与结构化笔记。'
+          desc: '以 Markdown 形式创建或编辑知识条目，适合会议记录与结构化笔记。',
         },
         url: {
           title: '导入网页',
-          desc: '通过 URL 抓取网页内容并写入知识库，支持解析状态轮询。'
+          desc: '通过 URL 抓取网页内容并写入知识库，支持解析状态轮询。',
         },
         upload: {
           title: '上传文件',
-          desc: '将 PDF、Word、Excel 等文档上传至知识库，自动解析与向量化。'
-        }
-      }
+          desc: '将 PDF、Word、Excel 等文档上传至知识库，自动解析与向量化。',
+        },
+      },
     },
     chrome: {
       title: '知识管理助手',
@@ -336,55 +358,61 @@ export default {
       steps: {
         connect: {
           title: '在插件中完成连接',
-          desc: '打开插件设置，选择「企业/开发者」模式，填入服务 API 地址与 API Key。下方为当前服务地址。'
+          desc: '打开插件设置，选择「企业/开发者」模式，填入服务 API 地址与 API Key。下方为当前服务地址。',
         },
         install: {
           title: '安装 Chrome 插件',
-          desc: '前往 Chrome 应用商店安装「知识管理助手」。'
+          desc: '前往 Chrome 应用商店安装「知识管理助手」。',
         },
         port: {
           title: '桌面版配置固定端口（推荐）',
-          desc: '使用 WeKnora 桌面版时，在 API 信息中设置固定端口（如 37841），避免每次启动后地址变化导致插件断连。'
+          desc: '使用 WeKnora 桌面版时，在 API 信息中设置固定端口（如 37841），避免每次启动后地址变化导致插件断连。',
         },
         api: {
           title: '获取 API 凭证',
-          desc: '在「设置 → API 信息」中复制 API Key 与 API 地址。'
-        }
+          desc: '在「设置 → API 信息」中复制 API Key 与 API 地址。',
+        },
       },
       scenarios: {
         research: '日常资料调研',
         learning: '学习笔记整理',
         tech: '技术资料收集',
-        work: '工作知识沉淀'
+        work: '工作知识沉淀',
       },
       capabilities: {
         shortcuts: {
           title: '高效快捷键',
-          desc: '可自定义快捷键快速提问、打开侧边栏等操作，提升日常效率。'
+          desc: '可自定义快捷键快速提问、打开侧边栏等操作，提升日常效率。',
         },
         notes: {
           title: 'Markdown 速记',
-          desc: '内置 Markdown 编辑器，随时记录灵感与笔记，一键保存到知识库。'
+          desc: '内置 Markdown 编辑器，随时记录灵感与笔记，一键保存到知识库。',
         },
         clip: {
           title: '网页内容一键采集',
-          desc: '保存页面 URL、AI 智能剪藏正文，或手动框选区域，精准写入指定知识库。'
+          desc: '保存页面 URL、AI 智能剪藏正文，或手动框选区域，精准写入指定知识库。',
         },
         qa: {
           title: '知识库智能问答',
-          desc: '侧边栏对话面板，支持多知识库切换与快速/深度/精确三种回答模式，边浏览边提问不打断工作流。'
-        }
-      }
+          desc: '侧边栏对话面板，支持多知识库切换与快速/深度/精确三种回答模式，边浏览边提问不打断工作流。',
+        },
+      },
+      scenariosTitle: '适用场景',
     },
     agentEditor: {
       label: '发布渠道',
-      desc: '将智能体发布到 IM 平台或网站，在集成中心统一管理'
+      desc: '将智能体发布到 IM 平台或网站，在集成中心统一管理',
+      manage: '管理',
     },
     embedOverview: {
-      title: '网页嵌入渠道'
+      title: '网页嵌入渠道',
+      subtitle: '当前空间下所有智能体的网页嵌入渠道，可快速启停或选择下方进行详细配置',
+      empty: '当前空间还没有配置网页嵌入渠道',
+      loadFailed: '加载网页嵌入渠道失败',
     },
     imOverview: {
-      title: '已接入的 IM'
+      title: '已接入的 IM',
+      subtitle: '当前空间下所有智能体已接入的 IM 渠道，可快速启停或选择下方进行详细配置',
     },
     api: {
       title: 'API 集成',
@@ -404,7 +432,6 @@ export default {
       apiKeyValue: 'API Key',
       apiKeyNamePlaceholder: '例如：MCP 只读访问',
       apiKeyNameRequired: '请输入 API Key 名称',
-      apiKeyCapabilitiesRequired: 'Scoped API Key 至少需要选择一项能力',
       apiKeyAccessMode: '授权方式',
       apiKeyScopedAccess: '能力授权',
       apiKeyAccessType: '访问类型',
@@ -443,7 +470,7 @@ export default {
       capabilityManageVectorStores: '管理检索基础设施',
       capabilityManageVectorStoresHint: '允许管理向量库配置，以及解析器、文档读取器和存储引擎连通性检查。',
       capabilityManageStorageBackends: '管理存储后端',
-      capabilityManageStorageBackendsHint: '允许管理对象/文件存储后端实例（如 S3 兼容或本地文件存储）的增删改查、连通性测试及空间默认存储设置。',
+      capabilityManageStorageBackendsHint: '允许管理对象/文件存储后端实例（如 S3 兼容或本地文件存储）的增删改查、连通性测试及租户默认存储设置。',
       capabilityManageWebSearch: '管理联网搜索',
       capabilityManageWebSearchHint: '允许管理联网搜索供应商配置、凭据和连接测试。',
       capabilityRunEvaluations: '运行评测',
@@ -457,11 +484,6 @@ export default {
       apiKeyKnowledgeScope: '知识库范围',
       apiKeyKnowledgeScopePlaceholder: '留空表示允许访问全部知识库',
       allKnowledgeBases: '全部知识库',
-      editApiKeyScope: '编辑 API Key',
-      editApiKeyScopeDesc: '修改 API Key「{name}」的名称和授权范围。',
-      editApiKeyScopeHint: '留空表示允许访问本空间的全部知识库。所有修改保存后立即生效。',
-      updateApiKeyScopeSuccess: 'API Key 已更新',
-      updateApiKeyScopeFailed: '更新 API Key 失败',
       createdAt: '创建时间',
       actions: '操作',
       deleteApiKey: '删除',
@@ -541,15 +563,48 @@ export default {
       loadFailed: '加载 API 集成设置失败',
       saveFailed: '保存 API 集成设置失败',
       saveSuccess: 'API 集成设置已保存',
-      autoSaveNeedSecret: '签名 Token 模式需要填写 HMAC 密钥后才能自动保存。'
+      autoSaveNeedSecret: '签名 Token 模式需要填写 HMAC 密钥后才能自动保存。',
+      apiKeyCapabilitiesRequired: 'Scoped API Key 至少需要选择一项能力',
+      editApiKeyScope: '编辑 API Key',
+      editApiKeyScopeDesc: '修改 API Key「{name}」的名称和授权范围。',
+      editApiKeyScopeHint: '留空表示允许访问本空间的全部知识库。所有修改保存后立即生效。',
+      updateApiKeyScopeSuccess: 'API Key 已更新',
+      updateApiKeyScopeFailed: '更新 API Key 失败',
+      save: '保存',
+      apiKey: '空间 API Key',
+      apiKeyDesc: '为集成创建带权限和知识库范围的 API Key。',
+      toggleApiKeyVisible: '显示或隐藏 API Key',
+      apiKeyAccessRole: '访问角色',
+      accessTypeKnowledgeBase: '知识库',
+      accessTypeTenantFull: '空间完全访问',
+      apiKeyPermissionLevel: '权限级别',
+      apiKeyAccessRoleHint: '前三档仅限知识库范围内操作；「空间完全访问」额外开放模型、数据源等空间级接口。',
+      accessRoleViewer: '知识库只读',
+      accessRoleContributor: '知识库读写',
+      accessRoleAdmin: '知识库管理员',
+      accessRoleOwner: '空间完全访问',
+      accessRoleViewerDesc: '查询、检索和对话，不修改知识库内容。',
+      accessRoleContributorDesc: '创建、更新或删除知识库内容，受知识库范围限制。',
+      accessRoleAdminDesc: '知识库管理，包含清空知识库等破坏性操作，受知识库范围限制；不涉及空间级配置。',
+      accessRoleOwnerDesc: '完全访问，等同空间所有者：可调用模型、向量库、数据源、渠道等全部空间级接口，不受知识库范围限制。',
+      apiKeyKnowledgeScopeOwnerHint: '完全访问密钥不受知识库范围限制。',
+      apiKeyCreatedDesc: 'API Key 已创建，可在列表中查看或复制。',
+      playgroundBadge: '真实请求',
     },
     tabs: {
       im: 'IM 集成',
       embed: '网页嵌入',
       api: 'API 集成',
       chrome: 'Chrome 插件',
-      claw: 'Claw Skill'
-    }
+      claw: 'Claw Skill',
+    },
+    subtitle: '将智能体发布到 IM、网站、浏览器与 AI 助手',
+    manageSectionTitle: '渠道配置',
+    manageSectionDesc: '选择智能体后，可创建或编辑该智能体下的集成渠道',
+    selectAgent: '选择智能体',
+    selectAgentDesc: '每个集成渠道绑定一个智能体，请先选择要配置的智能体',
+    manageChannel: '管理渠道',
+    goToCenter: '前往集成中心',
   },
   datasource: {
     title: '数据源管理',
@@ -583,16 +638,6 @@ export default {
     connectionFailed: '连接失败',
     isRequired: '为必填项',
     credentialsLabel: '凭证',
-    gitlab: {
-      baseUrl: 'GitLab 地址',
-      accessToken: '个人访问令牌',
-      projects: 'GitLab 项目',
-      projectsHint: '填写项目 ID 或命名空间路径（如 group/project），可选指定分支和目录。',
-      project: '项目', projectId: '项目 ID', projectIdPlaceholder: '例如：12345 或 group/project',
-      ref: '分支', refPlaceholder: '留空时使用默认分支',
-      paths: '同步目录', pathsPlaceholder: '每行一个目录；留空同步整个项目',
-      addProject: '添加项目', projectRequired: '请至少添加一个 GitLab 项目',
-    },
     resourceHint: '选择要同步的内容空间/文件夹',
     untitled: '无标题',
     resourceLoadFailed: '加载资源列表失败',
@@ -630,38 +675,30 @@ export default {
     prereqStep3Brief_yuque: '（可选）企业版填写 Base URL',
     prereqStep3Desc_yuque: '公有云用户无需填写；语雀企业版或私有部署请填写企业域名',
     prereqOpenConsole_yuque: '前往语雀 Token 设置',
-    prereqBarText_ima: '首次使用？点击查看腾讯 IMA OpenAPI 授权指引',
-    prereqStep1Brief_ima: '开通 IMA 智能体接入',
-    prereqStep1Desc_ima: '登录 https://ima.qq.com/agent-interface 并申请 OpenAPI 接入',
-    prereqStep2Brief_ima: '获取 ClientID 与 APIKey',
-    prereqStep2Desc_ima: '在智能体接入页复制 ima-openapi-clientid 与 ima-openapi-apikey 两个凭证',
-    prereqStep3Brief_ima: '授权目标知识库',
-    prereqStep3Desc_ima: '在 IMA 客户端为该凭证授权需要同步的知识库，未授权的知识库不会出现在列表中',
-    prereqOpenConsole_ima: '前往 IMA OpenAPI 控制台',
-    prereqStep1Brief_feishu: "创建飞书自建应用",
-    prereqStep1Desc_feishu: "登录飞书开放平台 → 创建企业自建应用",
-    prereqStep2Brief_feishu: "添加机器人能力",
-    prereqStep2Desc_feishu: "开放平台 → 你的应用 → 添加应用能力 → 机器人",
-    prereqStep3Brief_feishu: "配置应用权限",
-    prereqStep3Desc_feishu: "为应用开通 wiki:wiki:readonly, drive:drive:readonly, drive:export:readonly, docx:document:readonly 权限",
-    prereqStep1Brief_lark: "创建 Lark 自建应用",
-    prereqStep1Desc_lark: "登录 Lark 开放平台 → 创建企业自建应用",
-    prereqStep2Brief_lark: "添加机器人能力",
-    prereqStep2Desc_lark: "开放平台 → 你的应用 → 添加应用能力 → 机器人",
-    prereqStep3Brief_lark: "配置应用权限",
-    prereqStep3Desc_lark: "为应用开通 wiki:wiki:readonly, drive:drive:readonly, drive:export:readonly, docx:document:readonly 权限",
-    prereqStep1Brief_feishu_drive: "创建飞书自建应用",
-    prereqStep1Desc_feishu_drive: "登录飞书开放平台 → 创建企业自建应用",
-    prereqStep2Brief_feishu_drive: "添加机器人能力",
-    prereqStep2Desc_feishu_drive: "开放平台 → 你的应用 → 添加应用能力 → 机器人",
-    prereqStep3Brief_feishu_drive: "配置应用权限",
-    prereqStep3Desc_feishu_drive: "为应用开通 drive:drive:readonly, drive:export:readonly, docx:document:readonly 权限",
-    prereqStep1Brief_lark_drive: "创建 Lark 自建应用",
-    prereqStep1Desc_lark_drive: "登录 Lark 开放平台 → 创建企业自建应用",
-    prereqStep2Brief_lark_drive: "添加机器人能力",
-    prereqStep2Desc_lark_drive: "开放平台 → 你的应用 → 添加应用能力 → 机器人",
-    prereqStep3Brief_lark_drive: "配置应用权限",
-    prereqStep3Desc_lark_drive: "为应用开通 drive:drive:readonly, drive:export:readonly, docx:document:readonly 权限",
+    prereqStep1Brief_feishu: '创建飞书自建应用',
+    prereqStep1Desc_feishu: '登录飞书开放平台 → 创建企业自建应用',
+    prereqStep2Brief_feishu: '添加机器人能力',
+    prereqStep2Desc_feishu: '开放平台 → 你的应用 → 添加应用能力 → 机器人',
+    prereqStep3Brief_feishu: '配置应用权限',
+    prereqStep3Desc_feishu: '为应用开通 wiki:wiki:readonly, drive:drive:readonly, drive:export:readonly, docx:document:readonly 权限',
+    prereqStep1Brief_lark: '创建 Lark 自建应用',
+    prereqStep1Desc_lark: '登录 Lark 开放平台 → 创建企业自建应用',
+    prereqStep2Brief_lark: '添加机器人能力',
+    prereqStep2Desc_lark: '开放平台 → 你的应用 → 添加应用能力 → 机器人',
+    prereqStep3Brief_lark: '配置应用权限',
+    prereqStep3Desc_lark: '为应用开通 wiki:wiki:readonly, drive:drive:readonly, drive:export:readonly, docx:document:readonly 权限',
+    prereqStep1Brief_feishu_drive: '创建飞书自建应用',
+    prereqStep1Desc_feishu_drive: '登录飞书开放平台 → 创建企业自建应用',
+    prereqStep2Brief_feishu_drive: '添加机器人能力',
+    prereqStep2Desc_feishu_drive: '开放平台 → 你的应用 → 添加应用能力 → 机器人',
+    prereqStep3Brief_feishu_drive: '配置应用权限',
+    prereqStep3Desc_feishu_drive: '为应用开通 drive:drive:readonly, drive:export:readonly, docx:document:readonly 权限',
+    prereqStep1Brief_lark_drive: '创建 Lark 自建应用',
+    prereqStep1Desc_lark_drive: '登录 Lark 开放平台 → 创建企业自建应用',
+    prereqStep2Brief_lark_drive: '添加机器人能力',
+    prereqStep2Desc_lark_drive: '开放平台 → 你的应用 → 添加应用能力 → 机器人',
+    prereqStep3Brief_lark_drive: '配置应用权限',
+    prereqStep3Desc_lark_drive: '为应用开通 drive:drive:readonly, drive:export:readonly, docx:document:readonly 权限',
     prereqBotBrief: '为应用添加「机器人」能力',
     prereqBotDesc: '开放平台 → 添加应用能力 → 机器人 → 创建版本并发布',
     prereqPermBrief: '开通 API 权限',
@@ -684,119 +721,170 @@ export default {
     resourceType: {
       wikiSpace: '知识库空间',
       docCategory: '文档标签',
-      book: '语雀知识库'
+      book: '语雀知识库',
     },
     scheduleHuman: {
       '30min': '每 30 分钟',
       '1h': '每小时',
       '6h': '每 6 小时',
       '12h': '每 12 小时',
-      '24h': '每天'
+      '24h': '每天',
     },
     field: {
       appId: 'App ID',
       appSecret: 'App Secret',
       integrationToken: 'Integration Token',
       apiToken: 'API Token',
-      imaClientId: 'IMA ClientID',
-      imaApiKey: 'IMA APIKey',
       baseUrl: 'Base URL（可选）',
-      baseUrlHint: '留空将使用默认公有云地址；如果是私有部署/企业内网部署，或需要通过反向代理访问，请填写自定义地址（例如 https://api-proxy.example.com）',
+      baseUrlHint: '留空将使用语雀公有云 https://www.yuque.com；如果你使用的是语雀企业版或私有部署，请填写企业域名（例如 https://your-company.yuque.com）',
       feedUrls: '订阅源地址',
       feedUrlsHint: '每行一个 RSS / Atom 订阅源地址，支持同时填写多个',
       authHeaders: '自定义请求头（可选）',
-      authHeadersHint: '用于访问私有订阅源，每行一个，格式为「名称: 值」，例如 Authorization: Bearer xxxx'
+      authHeadersHint: '用于访问私有订阅源，每行一个，格式为「名称: 值」，例如 Authorization: Bearer xxxx',
+      imaClientId: 'IMA ClientID',
+      imaApiKey: 'IMA APIKey',
     },
     connectorDesc: {
       feishu: '同步飞书知识库中的文档、表格、文件',
       lark: '同步 Lark 知识库中的文档、表格、文件（飞书国际版）',
-      feishu_drive: "同步飞书云盘文件夹中的文档、表格、文件",
-      lark_drive: "同步 Lark 云盘文件夹中的文档、表格、文件（飞书国际版）",
+      feishu_drive: '同步飞书云盘文件夹中的文档、表格、文件',
+      lark_drive: '同步 Lark 云盘文件夹中的文档、表格、文件（飞书国际版）',
       notion: '同步 Notion 中的页面和数据库',
       yuque: '同步语雀知识库中的文档',
-      ima: '同步腾讯 IMA 知识库中的文档、笔记与文件（暂不支持 AI 会话与视频解析）',
       rss: '同步 RSS / Atom 订阅源中的文章',
-      gitlab: '同步 GitLab 项目中的文件'
+      ima: '同步腾讯 IMA 知识库中的文档、笔记与文件（暂不支持 AI 会话与视频解析）',
+      gitlab: '同步 GitLab 项目中的文件',
     },
     connector: {
       feishu: '飞书',
       lark: 'Lark（飞书国际版）',
-      feishu_drive: "飞书云盘",
-      lark_drive: "Lark 云盘",
+      feishu_drive: '飞书云盘',
+      lark_drive: 'Lark 云盘',
       notion: 'Notion',
       yuque: '语雀',
-      ima: '腾讯 IMA',
       rss: 'RSS / Atom 订阅',
-      gitlab: 'GitLab'
+      ima: '腾讯 IMA',
+      gitlab: 'GitLab',
     },
     logDetail: {
       startTime: '开始时间',
       endTime: '结束时间',
       failedItems: '失败文档',
       failedItemsMore: '还有 {n} 个失败文档未显示',
-      docsFailedSummary: '{n} 个文档同步失败'
+      docsFailedSummary: '{n} 个文档同步失败',
+      duration: '耗时',
     },
     logSummary: {
       total: '总次数',
       success: '成功',
       failed: '失败',
-      items: '同步条目'
+      items: '同步条目',
     },
     logMetric: {
       total: '总计',
       skipped: '跳过',
-      failed: '失败'
+      failed: '失败',
+      created: '新增',
+      updated: '更新',
+      deleted: '删除',
     },
     logStatus: {
       running: '同步中',
       success: '成功',
       partial: '部分成功',
       failed: '失败',
-      canceled: '已取消'
+      canceled: '已取消',
     },
     step: {
       selectType: '选择类型',
       credentials: '配置凭证',
       resources: '选择范围',
-      strategy: '同步策略'
+      strategy: '同步策略',
     },
     conflict: {
       overwrite: '覆盖更新',
-      skip: '跳过已存在'
+      skip: '跳过已存在',
     },
     status: {
       active: '已连接',
       paused: '已暂停',
-      error: '异常'
+      error: '异常',
     },
     syncMode: {
       incremental: '增量同步',
-      full: '全量同步'
+      full: '全量同步',
     },
     drive: {
-      folderTokenLabel: "云盘文件夹 Token",
-      folderTokenPlaceholder: "输入 folder_token 或飞书云盘文件夹链接",
-      folderTokenRequired: "请输入具体文件夹的 folder_token，不支持云空间根目录",
-      rootNotSupportedHint: "根目录不分页且不返回快捷方式，请选择具体文件夹",
-      load: "加载",
-      shareHint: "需先将该云盘文件夹分享给应用所在的群，应用才能访问",
-      placeholderTitle: "请先加载云盘文件夹",
-      placeholderDesc: "在上方输入 folder_token（或从飞书云盘文件夹 URL 复制）并点击「加载」",
-      loadForbiddenHint: "应用无权访问该文件夹。请在飞书云盘中将该文件夹分享给应用所在的群后再试。",
-      loadAuthHint: "应用凭证无效或缺少云盘权限，请检查 App ID / App Secret 及 drive:drive:readonly 等权限。",
-      loadNotFoundHint: "folder_token 不存在或已删除，请确认从飞书云盘文件夹 URL 复制的 token 正确。",
+      folderTokenLabel: '云盘文件夹 Token',
+      folderTokenPlaceholder: '输入 folder_token 或飞书云盘文件夹链接',
+      folderTokenRequired: '请输入具体文件夹的 folder_token，不支持云空间根目录',
+      rootNotSupportedHint: '根目录不分页且不返回快捷方式，请选择具体文件夹',
+      load: '加载',
+      shareHint: '需先将该云盘文件夹分享给应用所在的群，应用才能访问',
+      placeholderTitle: '请先加载云盘文件夹',
+      placeholderDesc: '在上方输入 folder_token（或从飞书云盘文件夹 URL 复制）并点击「加载」',
+      loadForbiddenHint: '应用无权访问该文件夹。请在飞书云盘中将该文件夹分享给应用所在的群后再试。',
+      loadAuthHint: '应用凭证无效或缺少云盘权限，请检查 App ID / App Secret 及 drive:drive:readonly 等权限。',
+      loadNotFoundHint: 'folder_token 不存在或已删除，请确认从飞书云盘文件夹 URL 复制的 token 正确。',
     },
+    gitlab: {
+      baseUrl: 'GitLab 地址',
+      accessToken: '个人访问令牌',
+      projects: 'GitLab 项目',
+      projectsHint: '填写项目 ID 或命名空间路径（如 group/project），可选指定分支和目录。',
+      project: '项目',
+      projectId: '项目 ID',
+      projectIdPlaceholder: '例如：12345 或 group/project',
+      ref: '分支',
+      refPlaceholder: '留空时使用默认分支',
+      paths: '同步目录',
+      pathsPlaceholder: '每行一个目录；留空同步整个项目',
+      addProject: '添加项目',
+      projectRequired: '请至少添加一个 GitLab 项目',
+    },
+    prereqBarText_ima: '首次使用？点击查看腾讯 IMA OpenAPI 授权指引',
+    prereqStep1Brief_ima: '开通 IMA 智能体接入',
+    prereqStep1Desc_ima: '登录 https://ima.qq.com/agent-interface 并申请 OpenAPI 接入',
+    prereqStep2Brief_ima: '获取 ClientID 与 APIKey',
+    prereqStep2Desc_ima: '在智能体接入页复制 ima-openapi-clientid 与 ima-openapi-apikey 两个凭证',
+    prereqStep3Brief_ima: '授权目标知识库',
+    prereqStep3Desc_ima: '在 IMA 客户端为该凭证授权需要同步的知识库，未授权的知识库不会出现在列表中',
+    prereqOpenConsole_ima: '前往 IMA OpenAPI 控制台',
     syncError: {
       deletion_lookup_failed: '删除前查找文档失败，请查看服务器日志',
       deletion_failed: '删除失败，请查看服务器日志',
-      ingest_failed: '导入失败，请查看服务器日志'
+      ingest_failed: '导入失败，请查看服务器日志',
     },
+    channelsTitle: '数据源',
+    addFirst: '添加第一个数据源',
+    lastSync: '上次同步',
+    lastStatus: '同步结果',
+    schedule: '同步频率',
+    createSuccess: '数据源创建成功',
+    updateSuccess: '数据源更新成功',
+    logLatest: '最新',
+    copyUrl: '复制 URL',
+    copied: '已复制',
+    pleaseTestFirst: '请先测试连接',
+    prereqTitle: '使用前请先完成以下配置（缺一不可）',
+    prereqBotLabel: '1. 为应用添加「机器人」能力（否则知识库中搜不到该应用）：',
+    prereqBotStep1: '在飞书开放平台打开你的应用，点击左侧「添加应用能力」',
+    prereqBotStep2: '选择「机器人」并确认添加',
+    prereqBotStep3: '创建新版本并发布（或在测试企业中调试）',
+    prereqPermLabel: '2. 为应用开通以下 API 权限：',
+    prereqMemberLabel: '3. 通过群聊将应用添加为知识库成员（知识库无法直接搜到应用）：',
+    addCard: '添加数据源',
+    wikiSpace: '知识库空间',
+    syncResultCreated: '+{n}',
+    syncResultUpdated: '~{n}',
+    syncResultDeleted: '-{n}',
+    moreActions: '更多',
   },
   ollama: {
     unknown: '未知',
     today: '今天',
     yesterday: '昨天',
-    daysAgo: '{days} 天前'
+    daysAgo: '{days} 天前',
   },
   mermaid: {
     diagram: '图表',
@@ -806,7 +894,7 @@ export default {
     reset: '重置',
     download: '下载图片',
     close: '关闭',
-    downloading: '下载中...'
+    downloading: '下载中...',
   },
   faqManager: {
     import: {
@@ -827,8 +915,10 @@ export default {
       importFailed: '导入失败',
       waiting: '等待中...',
       importInProgress: '导入正在进行中，请等待完成后再试',
-      noFailedRecords: '暂无失败记录可下载'
-    }
+      noFailedRecords: '暂无失败记录可下载',
+      unit: '条',
+    },
+    retry: '重试',
   },
   agentEditor: {
     builtinHint: '这是内置智能体，名称和描述不可修改，但可以调整配置参数',
@@ -844,15 +934,15 @@ export default {
       csv: '逗号分隔值文件',
       excel: 'Excel 表格 (.xlsx/.xls)',
       imageLabel: '图片',
-      image: '图片文件 (.jpg/.jpeg/.png)'
+      image: '图片文件 (.jpg/.jpeg/.png)',
     },
     fallback: {
       fixed: '固定回复',
-      model: '模型生成'
+      model: '模型生成',
     },
     dataAnalysis: {
       enableLabel: '启用表格数据分析',
-      enableDesc: '命中 CSV/Excel 类文件时，先调用大模型生成 DuckDB SQL 进行统计或筛选，再据此回答。会额外增加一次模型调用与几秒延迟，仅在确实需要时开启。'
+      enableDesc: '命中 CSV/Excel 类文件时，先调用大模型生成 DuckDB SQL 进行统计或筛选，再据此回答。会额外增加一次模型调用与几秒延迟，仅在确实需要时开启。',
     },
     faq: {
       title: 'FAQ 优先策略',
@@ -861,20 +951,21 @@ export default {
       thresholdLabel: '直接回答阈值',
       thresholdDesc: '当问题与 FAQ 相似度超过此值时，直接使用 FAQ 答案',
       boostLabel: 'FAQ 分数加权',
-      boostDesc: 'FAQ 结果的相关性分数乘以此系数，使其排序更靠前'
+      boostDesc: 'FAQ 结果的相关性分数乘以此系数，使其排序更靠前',
+      tooltip: '当知识库中包含 FAQ（问答对）时，可以启用此策略让 FAQ 答案优先于普通文档',
     },
     chatParser: {
       label: '聊天附件解析策略',
       desc: '为不同文件类型指定解析引擎，仅对当前智能体的聊天附件生效',
       waitTimeoutLabel: '附件解析等待超时（秒）',
-      waitTimeoutDesc: '单轮问答等待附件解析完成的最长时间，超时后未完成的附件会被跳过。大文件 / 扫描件可调大。0 表示使用全局默认。'
+      waitTimeoutDesc: '单轮问答等待附件解析完成的最长时间，超时后未完成的附件会被跳过。大文件 / 扫描件可调大。0 表示使用全局默认。',
     },
     audioUpload: {
       label: '语音上传',
       desc: '启用后用户可在对话中上传音频文件，系统将使用 ASR 模型自动转录为文字',
       asrModel: 'ASR 模型',
       asrModelDesc: '用于音频转录的语音识别模型，未配置时音频文件将以占位符形式传递',
-      asrModelPlaceholder: '请选择 ASR 模型'
+      asrModelPlaceholder: '请选择 ASR 模型',
     },
     imageUpload: {
       navLabel: '附件上传',
@@ -896,13 +987,13 @@ export default {
       storageProviderPlaceholder: '选择存储引擎',
       storageDefault: '系统默认',
       notConfigured: '未配置',
-      goStorageSettings: '去存储设置中配置'
+      goStorageSettings: '去存储设置中配置',
     },
     llmCallTimeout: {
       label: 'LLM 调用超时',
       desc: '单次 LLM 调用的最大等待时间（秒），超过此时间后调用将被中止',
       hint: '留空或填 0 表示使用默认值（120 秒）',
-      placeholder: '输入秒数，建议范围 60-1800'
+      placeholder: '输入秒数，建议范围 60-1800',
     },
     mcp: {
       label: 'MCP 服务',
@@ -913,7 +1004,7 @@ export default {
       authWaitTimeout: '授权等待超时（秒）',
       authWaitTimeoutDesc: '对话中触发 OAuth 授权时，等待你完成授权的最长秒数，超时后自动跳过授权提示（仅对使用 OAuth 的 MCP 服务生效）。',
       authWaitTimeoutPlaceholder: '默认 600 秒',
-      unavailableService: '不可用服务'
+      unavailableService: '不可用服务',
     },
     agentType: {
       label: '智能体类型',
@@ -926,12 +1017,12 @@ export default {
         hybridRagWiki: '未启用任何检索能力',
         dataAnalysis: '需启用 RAG（不支持 FAQ）',
         quickAnswer: '快速问答模式需启用 RAG 检索',
-        generic: '不适用于当前类型'
-      }
+        generic: '不适用于当前类型',
+      },
     },
     im: {
       title: 'IM 集成',
-      description: '将智能体接入即时通讯平台，支持企业微信、飞书、Slack、Telegram、钉钉、Mattermost、微信、QQBot 和云之家',
+      description: '将智能体接入即时通讯平台，支持企业微信、飞书、Slack、Telegram、钉钉、Mattermost、微信和 QQBot',
       feishu: '飞书',
       lark: 'Lark（飞书国际版）',
       slack: 'Slack',
@@ -997,7 +1088,6 @@ export default {
       consoleTip: '前往获取凭证信息',
       wecomWSEndpointHint: '可选，私有化部署时填写自定义 WebSocket 地址，留空则使用默认公有云地址。内网地址需将域名加入 SSRF_WHITELIST 环境变量',
       wecomAPIBaseURLHint: '可选，私有化部署时填写自定义 API 地址，留空则使用默认公有云地址。内网地址需将域名加入 SSRF_WHITELIST 环境变量',
-      feishuAPIBaseURLHint: '可选。若服务器能直连外网则留空；若需通过代理才能访问飞书，填写反向代理地址（如 nginx，http://host:port）。内网地址需将域名加入 SSRF_WHITELIST 环境变量',
       fileKnowledgeBase: '文件保存知识库',
       fileKnowledgeBasePlaceholder: '选择知识库（可选）',
       fileKnowledgeBaseHint: '配置后，用户发送的文件将自动保存到该知识库中',
@@ -1026,11 +1116,12 @@ export default {
       sectionSession: '会话设置',
       sectionCallback: '回调地址',
       sectionKnowledge: '文件存储',
-      sectionStatus: '运行状态'
+      sectionStatus: '运行状态',
+      feishuAPIBaseURLHint: '可选。若服务器能直连外网则留空；若需通过代理才能访问飞书，填写反向代理地址（如 nginx，http://host:port）。内网地址需将域名加入 SSRF_WHITELIST 环境变量',
     },
     embed: {
       title: '网页嵌入',
-      description: '将智能体嵌入到您的网页，访客可通过页面内聊天窗口或右下角浮窗发起对话，知识库范围跟随本智能体配置。'
+      description: '将智能体嵌入到您的网页，访客可通过页面内聊天窗口或右下角浮窗发起对话，知识库范围跟随本智能体配置。',
     },
     tools: {
       thinking: '思考',
@@ -1092,7 +1183,10 @@ export default {
       statusInactive: '有 {count} 个已勾选工具在当前配置下无法生效',
       effectiveLabel: '最终启用的工具',
       effectiveDesc: '根据当前配置计算，这是智能体保存后实际能调用的工具集合',
-      effectiveEmpty: '当前没有可用工具，智能体将退化为纯模型问答'
+      effectiveEmpty: '当前没有可用工具，智能体将退化为纯模型问答',
+      graphQuery: '图谱查询',
+      graphQueryDesc: '执行只读Cypher查询，探索Neo4j知识图谱的结构和数据',
+      statusKb: '作用域内：{rag} 个 RAG 知识库 · {wiki} 个 Wiki 知识库',
     },
     desc: {
       name: '为智能体设置一个易于识别的名称',
@@ -1103,15 +1197,11 @@ export default {
       model: '选择智能体使用的大语言模型',
       temperature: '控制输出的随机性，0 最确定，1 最随机',
       maxTokens: '模型生成回复的最大 Token 数。选「默认」时为 2048；选「自定义」后按你填的数保存。',
-      maxTokensAgent: '每一轮推理的最大生成 Token（含工具调用 JSON）。选「默认」时，未绑沙箱为 4096，绑了沙箱（可写/改文件）为 24576。选「自定义」后按你填的数保存，不再自动改。',
       thinking: '启用模型的扩展思考能力（需要模型支持）',
       conversationSection: '配置多轮对话开关与问题改写开关（改写提示词见「提示词」）',
-      conversationSectionAgent: '配置每轮携带多少历史对话。智能推理始终为多轮模式。',
       multiTurn: '开启后将保留历史对话上下文',
       historyRounds: '保留最近几轮对话作为上下文',
-      retainRetrievalHistory: '保留此前轮次的知识库检索结果。关闭时每轮重新检索',
       rewrite: '多轮对话时自动改写用户问题，消解指代和补全省略',
-      memoryEnabled: '允许该智能体读取并补充你的长期记忆。关闭后，与它的对话既不会读取记忆，也不会新增记忆。空间或个人设置关闭时，这里开启也不会生效',
       queryUnderstandModel: '用于问题理解（改写与意图识别）的模型，留空则复用主对话模型',
       rewriteSystemPrompt: '用于问题改写的系统提示词（留空使用默认）',
       rewriteUserPrompt: '用于问题改写的用户提示词模板（留空使用默认）',
@@ -1132,12 +1222,16 @@ export default {
       rerankThreshold: '重排序的最低相关性分数',
       fallbackStrategy: '当无法从知识库找到相关内容时的处理方式',
       fallbackResponse: '当无法回答时返回的固定文本',
-      fallbackPrompt: '当无法从知识库找到答案时，引导模型生成回复的提示词'
+      fallbackPrompt: '当无法从知识库找到答案时，引导模型生成回复的提示词',
+      maxTokensAgent: '每一轮推理的最大生成 Token（含工具调用 JSON）。选「默认」时，未绑沙箱为 4096，绑了沙箱（可写/改文件）为 24576。选「自定义」后按你填的数保存，不再自动改。',
+      conversationSectionAgent: '配置每轮携带多少历史对话。智能推理始终为多轮模式。',
+      retainRetrievalHistory: '保留此前轮次的知识库检索结果。关闭时每轮重新检索',
+      memoryEnabled: '允许该智能体读取并补充你的长期记忆。关闭后，与它的对话既不会读取记忆，也不会新增记忆。空间或个人设置关闭时，这里开启也不会生效',
     },
     selection: {
       all: '全部',
       selected: '指定',
-      disabled: '禁用'
+      disabled: '禁用',
     },
     promptNav: {
       ariaLabel: '提示词目录',
@@ -1146,7 +1240,11 @@ export default {
       intent: '意图提示词',
       rewriteSystem: '改写 · 系统',
       rewriteUser: '改写 · 用户',
-      fallback: '检索兜底'
+      fallback: '检索兜底',
+      itemCount: '共 {n} 项',
+      groupCore: '核心提示词',
+      groupConversation: '对话理解',
+      groupFallback: '检索兜底',
     },
     intentPrompts: {
       title: '意图提示词',
@@ -1154,12 +1252,13 @@ export default {
       intentLabel: '意图',
       promptPlaceholder: '输入自定义系统提示词...',
       customized: '已自定义',
-      empty: '暂无可用的意图模板'
+      empty: '暂无可用的意图模板',
+      intentDescription: '选择要编辑的意图专属系统提示词',
     },
     placeholders: {
       available: '可用变量：',
       clickToInsert: '（点击插入）',
-      hint: '（点击插入，或输入 {\'{{\'} 唤起列表）'
+      hint: '（点击插入，或输入 {\'{{\'} 唤起列表）',
     },
     questionSuggestions: {
       navLabel: '问题推荐',
@@ -1194,24 +1293,25 @@ export default {
       modeHybrid: '混合',
       categoryClarify: '澄清',
       categoryDeepen: '深入',
-      categoryAction: '下一步'
+      categoryAction: '下一步',
+      advancedSettingsDesc: '上下文、问题类型、生成要求与展示规则',
     },
     navGroups: {
       basic: '基础',
       knowledge: '知识检索',
       capability: '能力扩展',
-      integration: '发布集成'
-    }
+      integration: '发布集成',
+    },
   },
   agentStream: {
     saveToKb: {
       emptyContent: '当前回答为空，无法保存到知识库',
-      editorOpened: '已打开编辑器，请选择知识库后保存'
+      editorOpened: '已打开编辑器，请选择知识库后保存',
     },
     copy: {
       emptyContent: '当前回答为空，无法复制',
       success: '已复制到剪贴板',
-      failed: '复制失败，请手动复制'
+      failed: '复制失败，请手动复制',
     },
     toolStatus: {
       calling: '正在调用 {name}...',
@@ -1240,7 +1340,7 @@ export default {
       queryUnderstandDone: '已完成问题理解',
       called: '调用 {name}',
       calledFailed: '调用 {name} 失败',
-      shellExecRunning: '正在执行沙箱命令...'
+      shellExecRunning: '正在执行沙箱命令...',
     },
     ragPipeline: {
       searching: '正在检索知识库...',
@@ -1249,48 +1349,56 @@ export default {
       searchingWebWithQuery: '正在检索网络：「{query}」',
       searchingMixed: '正在检索知识库和网络...',
       searchingMixedWithQuery: '正在检索知识库和网络：「{query}」',
-      searchDone: '检索完成'
+      searchDone: '检索完成',
+      understanding: '正在理解问题...',
+      understandDone: '已完成问题理解',
+      searchDoneWithQuery: '检索知识库：「{query}」',
+      referencedDocs: '引用 <strong>{count}</strong> 篇文档',
+      referencedWebs: '引用 <strong>{count}</strong> 条网页',
+      referencedDocAndWeb: '引用 <strong>{docCount}</strong> 篇文档和 <strong>{webCount}</strong> 条网页',
     },
     attachmentParsing: {
       parsedSummary: '已解析 {count} 个附件',
       parsedWithSkipped: '已解析 {parsed} 个附件，{skipped} 个未完成已跳过',
-      noneReady: '没有可用的已解析附件'
+      noneReady: '没有可用的已解析附件',
     },
     knowledgeChunksList: {
       chunkRange: '已加载 {fetched} / {total} 个分块',
-      page: '第 {page} 页，每页 {pageSize} 个'
+      page: '第 {page} 页，每页 {pageSize} 个',
     },
     grepResults: {
       chunkHits: '{count} 片段',
       keywordHits: '{count} 次',
       titleMatch: '标题匹配',
-      faqEntry: 'FAQ 条目'
+      faqEntry: 'FAQ 条目',
     },
     search: {
       noResults: '未找到匹配的内容',
-      candidatesBelowThreshold: '命中 {count} 条候选，相关性不足，未用于回答',
       foundResultsFromFiles: '找到 {count} 个结果，来自 {files} 个文件',
       foundResults: '找到 {count} 个结果',
       foundMixedResults: '找到 {count} 个结果（{docCount} 篇文档，{webCount} 条网页）',
       webResults: '找到 {count} 条网页',
-      grepSummary: '找到 {chunks} 个匹配片段，来自 {docs} 个文档'
+      grepSummary: '找到 {chunks} 个匹配片段，来自 {docs} 个文档',
+      candidatesBelowThreshold: '命中 {count} 条候选，相关性不足，未用于回答',
     },
     plan: {
       inProgress: '进行中',
       pending: '待处理',
-      completed: '已完成'
+      completed: '已完成',
     },
     toolSummary: {
       getDocument: '获取文档：{title}',
       document: '文档',
       listChunks: '查看 {title}',
       listFaqEntry: '查看 FAQ：{question}',
-      deepThinking: '深度思考'
+      deepThinking: '深度思考',
     },
     citation: {
       notFound: '未找到内容',
       loadFailed: '加载失败',
-      noKbForWiki: '无法识别关联的知识库，无法打开 Wiki'
+      noKbForWiki: '无法识别关联的知识库，无法打开 Wiki',
+      loading: '加载中...',
+      chunkId: '片段ID',
     },
     tools: {
       searchKnowledge: '知识库检索',
@@ -1311,38 +1419,14 @@ export default {
       queryKnowledgeGraph: '知识图谱查询',
       readSkill: '读取技能',
       executeSkillScript: '执行技能脚本',
+      dataAnalysis: '数据分析',
+      dataSchema: '数据结构',
+      databaseQuery: '数据库查询',
       listSandboxFiles: '列出沙箱文件',
       readSandboxFile: '读取沙箱文件',
       writeSandboxFile: '写入沙箱文件',
       editSandboxFile: '编辑沙箱文件',
       shellExec: '执行沙箱命令',
-      dataAnalysis: '数据分析',
-      dataSchema: '数据结构',
-      databaseQuery: '数据库查询'
-    },
-    skillFiles: {
-      heading: '技能文件',
-      script: '脚本',
-      instructions: '技能说明'
-    },
-    sandboxFiles: {
-      found: '找到 {count} 个文件',
-      empty: '暂无文件',
-      truncated: '列表已截断',
-      wrote: '已写入',
-      edited: '已编辑',
-      replacements: '替换 {count} 处',
-      moreLines: '另有 {count} 行'
-    },
-    shellExec: {
-      workDir: '目录',
-      exitCode: '退出码',
-      stdout: '标准输出',
-      stderr: '标准错误',
-      emptyOutput: '无输出',
-      truncated: '输出已截断',
-      killed: '已超时终止',
-      binarySuppressed: '二进制输出已省略，请将文件写入产物目录后下载'
     },
     mcpOAuth: {
       waiting: '等待授权 · {target}',
@@ -1360,7 +1444,12 @@ export default {
       authorizedToast: '授权成功，正在继续',
       startFailed: '发起授权失败',
       resumeFailed: '恢复执行失败，请重试',
-      skipFailed: '跳过失败，请重试'
+      skipFailed: '跳过失败，请重试',
+      banner: '该 MCP 服务需要 OAuth 授权后才能调用',
+      resolvedAuthorized: '已授权 · {target}',
+      resolvedTimedOut: '授权超时 · {target}',
+      resolvedCanceled: '已跳过 · {target}',
+      countdown: '剩余约 {seconds} 秒',
     },
     toolApproval: {
       waiting: '等待审核 · {target}',
@@ -1377,8 +1466,47 @@ export default {
       invalidJson: '参数不是合法 JSON',
       submitted: '已提交',
       submitFailed: '提交失败',
-      userRejected: '用户拒绝'
-    }
+      userRejected: '用户拒绝',
+      banner: '该 MCP 工具已标记为「需人工审核」，确认参数后再执行',
+      resolvedApproved: '已通过 · {target}',
+      resolvedRejected: '已拒绝 · {target}',
+      service: '服务',
+      tool: '工具',
+      countdown: '剩余约 {seconds} 秒',
+    },
+    skillFiles: {
+      heading: '技能文件',
+      script: '脚本',
+      instructions: '技能说明',
+    },
+    sandboxFiles: {
+      found: '找到 {count} 个文件',
+      empty: '暂无文件',
+      truncated: '列表已截断',
+      wrote: '已写入',
+      edited: '已编辑',
+      replacements: '替换 {count} 处',
+      moreLines: '另有 {count} 行',
+    },
+    shellExec: {
+      workDir: '目录',
+      exitCode: '退出码',
+      stdout: '标准输出',
+      stderr: '标准错误',
+      emptyOutput: '无输出',
+      truncated: '输出已截断',
+      killed: '已超时终止',
+      binarySuppressed: '二进制输出已省略，请将文件写入产物目录后下载',
+    },
+    summary: {
+      searchKb: '检索知识库 <strong>{count}</strong> 次',
+      thinking: '思考 <strong>{count}</strong> 次',
+      callTool: '调用 {name}',
+      callTools: '调用工具 {names}',
+      intermediateSteps: '<strong>{count}</strong> 个中间步骤',
+      separator: '、',
+      comma: '，',
+    },
   },
   kbSettings: {
     parser: {
@@ -1404,45 +1532,47 @@ export default {
       engines: {
         opendataloader: {
           name: 'OpenDataLoader',
-          desc: 'OpenDataLoader PDF 解析引擎（版面分析，需 Java 11+ 与 opendataloader-pdf）'
+          desc: 'OpenDataLoader PDF 解析引擎（版面分析，需 Java 11+ 与 opendataloader-pdf）',
         },
         markitdown: {
           name: 'MarkItDown',
-          desc: 'Microsoft MarkItDown 文档转换工具（支持 PDF/Office/HTML 等）'
+          desc: 'Microsoft MarkItDown 文档转换工具（支持 PDF/Office/HTML 等）',
         },
         weknoracloud: {
           name: 'WeKnora Cloud',
-          desc: '使用 WeKnora Cloud 进行文档解析'
+          desc: '使用 WeKnora Cloud 进行文档解析',
         },
         paddleocr_vl_cloud: {
           name: 'PaddleOCR-VL Cloud',
-          desc: 'PaddleOCR-VL 云 API'
+          desc: 'PaddleOCR-VL 云 API',
         },
         paddleocr_vl: {
           name: 'PaddleOCR-VL',
-          desc: 'PaddleOCR-VL 自部署服务'
+          desc: 'PaddleOCR-VL 自部署服务',
         },
         mineru_cloud: {
           name: 'MinerU Cloud',
-          desc: 'MinerU Cloud API'
+          desc: 'MinerU Cloud API',
         },
         mineru: {
           name: 'MinerU',
-          desc: 'MinerU 自部署服务'
+          desc: 'MinerU 自部署服务',
         },
         simple: {
           name: 'Simple',
-          desc: '简单格式 & 图片解析（无需外部服务）'
-        },
-        anydoc: {
-          name: 'anydoc',
-          desc: '进程内 Office 文档解析（无需外部服务）'
+          desc: '简单格式 & 图片解析（无需外部服务）',
         },
         builtin: {
           name: '内置',
-          desc: 'DocReader 内置解析引擎（docx/pdf/xlsx 等复杂格式）'
-        }
-      }
+          desc: 'DocReader 内置解析引擎（docx/pdf/xlsx 等复杂格式）',
+        },
+        anydoc: {
+          name: 'anydoc',
+          desc: '进程内 Office 文档解析（无需外部服务）',
+        },
+      },
+      unavailable: '不可用',
+      goSettings: '去设置 →',
     },
     storage: {
       title: '存储引擎',
@@ -1453,7 +1583,31 @@ export default {
       migrateHint: '知识库中已有文件，需通过存储迁移流程才能更换实例。',
       manageInstances: '管理存储实例',
       localStorage: '本地存储',
-      loading: '加载中...'
+      loading: '加载中...',
+      description: '选择文件存储引擎，影响文档上传存储和文档中图片的存储方式。参数在全局设置中配置。',
+      engineLabel: '存储引擎',
+      engineDesc: '选择该知识库使用的存储引擎，需在全局设置中已配置对应引擎。',
+      selectPlaceholder: '请选择存储引擎',
+      notConfigured: '未配置',
+      unavailable: '不可用',
+      lockedHint: '知识库中已有文件，无法切换存储引擎。如需更换，请先清空知识库中的所有文件。',
+      changeWarning: '更改存储引擎仅影响新上传的文件。已有文件仍使用原存储引擎读取，但部分旧文件可能无法自动识别而导致访问失败。',
+      goGlobalSettings: '去全局设置中配置',
+      engineLocal: 'Local（本地存储）',
+      engineLocalDesc: '仅适合单机部署，简单轻量',
+      engineMinioDesc: 'S3 兼容，适合内网或私有云',
+      engineCos: '腾讯云 COS',
+      engineCosDesc: '公有云部署，支持 CDN 加速',
+      engineTos: '火山引擎 TOS',
+      engineTosDesc: '火山引擎对象存储，适合公有云部署',
+      engineS3: 'AWS S3',
+      engineS3Desc: 'AWS S3 及兼容存储，适合公有云部署',
+      engineOss: '阿里云 OSS',
+      engineOssDesc: '阿里云对象存储，适合公有云部署',
+      engineKs3: '金山云 KS3',
+      engineKs3Desc: '金山云对象存储，适合公有云部署',
+      engineObs: '华为云 OBS',
+      engineObsDesc: '华为云对象存储，适合公有云部署',
     },
     vectorStore: {
       title: '向量存储',
@@ -1466,14 +1620,15 @@ export default {
       immutableHint: '创建后不可更改。如需迁移，请创建一个绑定到目标存储的新 KB 并重新索引。',
       immutableEdit: '向量存储绑定在创建后无法更改。',
       unavailableHint: '绑定的向量存储当前不可用，请在设置 → 向量存储中检查其连接配置。',
-      goGlobalSettings: '前往向量存储设置'
-    }
+      goGlobalSettings: '前往向量存储设置',
+    },
+    supportedFormats: '支持格式',
   },
   vectorStoreBadge: {
     systemDefault: '系统默认',
     sharedFromOrg: '来自其他组织的共享',
     unknownStore: '未知存储',
-    unavailable: '不可用'
+    unavailable: '不可用',
   },
   tools: {
     multiKbSearch: '跨库搜索',
@@ -1485,7 +1640,7 @@ export default {
     getDocumentInfo: '获取文档信息',
     queryKnowledgeGraph: '查询知识图谱',
     think: '深度思考',
-    todoWrite: '制定计划'
+    todoWrite: '制定计划',
   },
   commandPalette: {
     placeholder: '搜索知识库、文件、对话…',
@@ -1497,12 +1652,12 @@ export default {
       enter: '打开',
       cmdNumber: '直接打开',
       cmdEnter: '发起对话',
-      esc: '关闭'
+      esc: '关闭',
     },
     empty: {
       noResults: '没有找到匹配结果',
       askAi: '直接向 AI 提问',
-      adjustRetrieval: '调整检索参数'
+      adjustRetrieval: '调整检索参数',
     },
     quick: {
       newChat: '新建对话',
@@ -1510,11 +1665,11 @@ export default {
       agents: '打开智能体',
       organizations: '打开共享空间',
       settings: '打开设置',
-      productTour: '新手引导'
+      productTour: '新手引导',
     },
     match: {
       vector: '向量',
-      keyword: '关键字'
+      keyword: '关键字',
     },
     group: {
       chunks: '知识库文件',
@@ -1524,12 +1679,13 @@ export default {
       sessionsByTitle: '对话（按标题）',
       commands: '命令',
       recent: '最近搜索',
-      quickActions: '快捷操作'
+      quickActions: '快捷操作',
     },
     scope: {
       placeholder: '在本知识库中搜索…',
-      remove: '移除范围过滤（Backspace）'
-    }
+      remove: '移除范围过滤（Backspace）',
+    },
+    searching: '搜索中…',
   },
   preview: {
     tab: '预览',
@@ -1540,25 +1696,25 @@ export default {
     unsupportedHint: '请下载文件后使用本地应用查看',
     fullscreen: '全屏预览',
     exitFullscreen: '退出全屏',
-    htmlRendered: '渲染预览',
-    htmlSource: '查看源码',
     audioLoading: '加载音频中…',
     audioNotSupported: '您的浏览器不支持音频播放',
-    videoNotSupported: '您的浏览器不支持视频播放'
+    htmlRendered: '渲染预览',
+    htmlSource: '查看源码',
+    videoNotSupported: '您的浏览器不支持视频播放',
   },
   organization: {
     title: '共享空间',
     subtitle: '创建或加入共享空间，让多个空间互相协作，共享知识库与智能体',
-    createOrg: '创建共享空间',
-    joinOrg: '加入共享空间',
-    name: '共享空间名称',
-    namePlaceholder: '请输入共享空间名称',
-    nameRequired: '请输入共享空间名称',
-    avatar: '共享空间头像',
+    createOrg: '创建空间',
+    joinOrg: '加入空间',
+    name: '空间名称',
+    namePlaceholder: '请输入空间名称',
+    nameRequired: '请输入空间名称',
+    avatar: '空间头像',
     avatarClear: '清除',
-    avatarPickerHint: '选择 Emoji 作为共享空间头像',
-    description: '共享空间描述',
-    descriptionPlaceholder: '请输入共享空间描述（选填）',
+    avatarPickerHint: '选择 Emoji 作为空间头像',
+    description: '空间描述',
+    descriptionPlaceholder: '请输入空间描述（选填）',
     noDescription: '暂无描述',
     memberCount: '成员数量',
     owner: '创建者',
@@ -1568,19 +1724,19 @@ export default {
     refreshInviteCode: '刷新邀请码',
     inviteCodeRefreshed: '邀请码已刷新',
     inviteCodeRefreshFailed: '刷新邀请码失败',
-    leave: '退出共享空间',
-    leaveConfirmTitle: '退出共享空间',
-    leaveConfirmMessage: '确定要退出共享空间「{name}」吗？退出后将无法访问该共享空间共享的知识库。',
-    leaveSuccess: '已退出共享空间',
-    leaveFailed: '退出共享空间失败',
-    deleteConfirmTitle: '删除共享空间',
-    deleteConfirmMessage: '确定要删除共享空间「{name}」吗？删除后所有成员将被移除，此操作不可撤销。',
-    deleteSuccess: '共享空间已删除',
-    deleteFailed: '删除共享空间失败',
-    createSuccess: '共享空间创建成功',
-    createFailed: '创建共享空间失败',
-    joinSuccess: '成功加入共享空间',
-    joinFailed: '加入共享空间失败',
+    leave: '退出空间',
+    leaveConfirmTitle: '退出空间',
+    leaveConfirmMessage: '确定要退出空间「{name}」吗？退出后将无法访问该空间共享的知识库。',
+    leaveSuccess: '已退出空间',
+    leaveFailed: '退出空间失败',
+    deleteConfirmTitle: '删除空间',
+    deleteConfirmMessage: '确定要删除空间「{name}」吗？删除后所有成员将被移除，此操作不可撤销。',
+    deleteSuccess: '空间已删除',
+    deleteFailed: '删除空间失败',
+    createSuccess: '空间创建成功',
+    createFailed: '创建空间失败',
+    joinSuccess: '成功加入空间',
+    joinFailed: '加入空间失败',
     manageMembers: '成员管理',
     noMembers: '暂无成员',
     roleUpdated: '角色已更新',
@@ -1588,17 +1744,17 @@ export default {
     memberRemoved: '成员已移除',
     memberRemoveFailed: '移除成员失败',
     empty: '您还没有加入任何共享空间',
-    emptyDesc: '创建一个共享空间或通过邀请码加入现有共享空间',
+    emptyDesc: '创建一个空间或通过邀请码加入现有空间',
     createdByMe: '我创建的',
     joinedByMe: '我加入的',
     emptyCreated: '您还没有创建任何共享空间',
-    emptyCreatedDesc: '点击「创建共享空间」创建一个新的共享空间',
+    emptyCreatedDesc: '点击「创建空间」创建一个新空间',
     emptyJoined: '您还没有加入任何共享空间',
-    emptyJoinedDesc: '通过邀请码加入现有共享空间',
+    emptyJoinedDesc: '通过邀请码加入现有空间',
     share: {
-      title: '共享到共享空间',
-      selectOrg: '选择共享空间',
-      selectOrgPlaceholder: '请选择要共享的共享空间',
+      title: '共享到空间',
+      selectOrg: '选择空间',
+      selectOrgPlaceholder: '请选择要共享的空间',
       permission: '权限',
       permissionTip: '可编辑权限允许成员修改知识库内容，只读权限仅允许检索和问答',
       shareSuccess: '已共享',
@@ -1606,14 +1762,14 @@ export default {
       unshareSuccess: '已取消共享',
       unshareFailed: '取消共享失败',
       sharedTo: '已共享到',
-      noShares: '尚未共享到任何共享空间',
+      noShares: '尚未共享到任何空间',
       searchPlaceholder: '搜索共享空间…',
       loading: '加载中…',
       emptySearch: '未找到匹配「{q}」的共享空间',
       addShareDialogTitle: '共享到共享空间',
       unshareAction: '取消共享',
       sharedKnowledgeBase: '共享知识库',
-      agentShareDesc: '将智能体共享到共享空间，共享空间成员可使用该智能体',
+      agentShareDesc: '将智能体共享到空间，空间成员可使用该智能体',
       sharedFrom: '来自',
       permissionReadonly: '只读',
       permissionEditable: '可编辑',
@@ -1621,25 +1777,42 @@ export default {
         space: '共享空间',
         permission: '权限',
         sharedAt: '共享时间',
-        operations: '操作'
-      }
+        operations: '操作',
+      },
+      shareToSpace: '共享到空间',
+      shareModelToSpace: '共享「{name}」到空间',
+      shareAgentToSpace: '共享「{name}」到空间',
+      modelShareDesc: '将模型共享到空间，空间成员可使用该模型',
+      spaceAgentShareCountTip: '该空间的共享智能体数量',
+      sharedBadge: '共享',
+      sharedKBs: '个知识库',
+      sharedAgents: '个智能体',
     },
     addMember: {
       button: '添加成员',
       dialogTitle: '添加成员',
       tipTenant: '共享空间的成员单位是空间：选定一个空间后，其下全部用户都将获得访问权限。下方搜索结果按空间去重。',
       searchTenant: '选择空间',
-      searchTenantPlaceholder: '输入空间名搜索...',
+      searchTenantPlaceholder: '输入空间名、用户名或邮箱搜索...',
       searchTenantHint: '输入至少 2 个字符开始搜索，按空间去重并自动过滤已加入的空间',
       selectRole: '分配角色',
       confirmBtn: '添加',
       success: '成员添加成功',
-      failed: '添加失败'
+      failed: '添加失败',
+      tip: '添加的用户将立即成为空间成员，可以访问空间内共享的知识库。',
+      searchUser: '选择用户',
+      searchPlaceholder: '输入用户名或邮箱搜索...',
+      searchHint: '输入至少 2 个字符开始搜索',
+      roleHint: {
+        viewer: '可查看和搜索',
+        editor: '可编辑内容',
+        admin: '完整管理权限',
+      },
     },
     upgrade: {
-      requestUpgrade: '申请升级',
-      pending: '审核中',
-      dialogTitle: '申请升级',
+      requestUpgrade: '申请权限升级',
+      pending: '已提交申请',
+      dialogTitle: '申请权限升级',
       dialogDesc: '管理员审核通过后更新您的角色。',
       currentRole: '当前角色',
       selectRole: '申请角色',
@@ -1647,68 +1820,69 @@ export default {
       reasonPlaceholder: '请简要说明申请更高权限的原因...',
       submitBtn: '提交申请',
       submitSuccess: '权限升级申请已提交，等待管理员审核',
-      submitFailed: '提交申请失败'
+      submitFailed: '提交申请失败',
+      upgradeRequest: '权限升级',
     },
     editor: {
       navBasic: '基本信息',
       navPermissions: '权限说明',
-      navJoin: '加入共享空间',
+      navJoin: '加入空间',
       basicTitle: '基本信息',
-      basicDesc: '设置共享空间的名称和描述，便于成员识别',
+      basicDesc: '设置空间的名称和描述，便于成员识别',
       nameTip: '建议使用团队或项目名称，便于成员识别',
-      descriptionTip: '描述共享空间的用途和目标，帮助成员了解共享空间',
+      descriptionTip: '描述空间的用途和目标，帮助成员了解空间',
       permissionsTitle: '成员权限',
-      permissionsDesc: '了解共享空间中不同角色对知识库与智能体的权限范围',
+      permissionsDesc: '了解空间中不同角色对知识库与智能体的权限范围',
       permissionFeature: '权限功能',
       fullAccess: '完整权限',
       editAccess: '编辑权限',
       viewAccess: '只读权限',
-      adminPerm1: '管理共享空间设置、成员及知识库与智能体共享',
+      adminPerm1: '管理空间设置、成员及知识库与智能体共享',
       adminPerm2: '共享和管理知识库与智能体',
       adminPerm3: '编辑共享知识库内容',
       adminPerm4: '查看和检索知识库',
       useSharedAgentsPerm: '使用共享智能体',
-      shareKBPerm: '共享知识库到共享空间',
+      shareKBPerm: '共享知识库到空间',
       editorPerm1: '编辑共享知识库内容',
       editorPerm2: '查看和检索知识库',
-      editorPerm3: '管理共享空间设置和成员',
+      editorPerm3: '管理空间设置和成员',
       viewerPerm1: '查看和检索知识库',
       viewerPerm2: '编辑知识库内容',
-      viewerPerm3: '管理共享空间设置',
-      ownerNote: '作为共享空间创建者，您将自动成为共享空间的管理员，拥有完整权限。',
-      joinTitle: '加入共享空间',
-      joinDesc: '通过邀请码加入现有共享空间，获得知识库与智能体访问权限',
-      joinIllustration: '输入共享空间管理员提供的邀请码即可加入',
-      inviteCodeTip: '邀请码由共享空间管理员生成，请向他们索取',
+      viewerPerm3: '管理空间设置',
+      ownerNote: '作为空间创建者，您将自动成为空间的管理员，拥有完整权限。',
+      joinTitle: '加入空间',
+      joinDesc: '通过邀请码加入现有空间，获得知识库与智能体访问权限',
+      joinIllustration: '输入空间管理员提供的邀请码即可加入',
+      inviteCodeTip: '邀请码由空间管理员生成，请向他们索取',
       howToGetCode: '如何获取邀请码？',
-      step1: '联系您要加入的共享空间管理员',
-      step2: '请求他们分享共享空间邀请码',
-      step3: '将邀请码粘贴到上方输入框'
+      step1: '联系您要加入的空间管理员',
+      step2: '请求他们分享空间邀请码',
+      step3: '将邀请码粘贴到上方输入框',
     },
     navGroups: {
       basic: '基础',
       management: '成员与协作',
-      resources: '共享资源'
+      resources: '共享资源',
     },
     settings: {
-      editTitle: '共享空间设置',
+      editTitle: '空间设置',
       membersDesc: '查看和管理共享空间成员、调整成员角色。成员的最小单位是空间——加入后该空间下的所有用户都将获得访问权限。',
       permissionsIconHint: '查看各角色权限说明',
-      sharedDesc: '查看共享到此共享空间的所有知识库',
+      sharedDesc: '查看共享到此空间的所有知识库',
       noSharedKB: '暂无共享的知识库',
-      noSharedKBTip: '知识库拥有者可以在知识库设置中将其共享到此共享空间',
+      noSharedKBTip: '知识库拥有者可以在知识库设置中将其共享到此空间',
       sharedAgents: '共享智能体',
       noSharedAgents: '暂无共享的智能体',
-      sharedAgentsDesc: '已共享到本共享空间的智能体，成员可在对话中使用',
-      sharedAgentsKbHint: '智能体绑定的知识库仅在成员使用该智能体对话时可 {\'@\'} 使用（只读），不会出现在「知识库列表」中。若需成员在列表中看到或编辑知识库，请单独将知识库共享到本共享空间。',
+      sharedAgentsDesc: '已共享到本空间的智能体，成员可在对话中使用',
+      sharedAgentsKbHint: '智能体绑定的知识库仅在成员使用该智能体对话时可 {\'@\'} 使用（只读），不会出现在「知识库列表」中。若需成员在列表中看到或编辑知识库，请单独将知识库共享到本空间。',
       sharedAgentsKbHintShort: '智能体绑定知识仅对话内只读；需在列表看到或编辑请单独共享知识库',
-      noSharedAgentsTip: '管理员可将智能体从智能体设置中共享到本共享空间',
-      sharePermissionLabel: '共享空间权限',
-      myPermissionLabel: '生效权限',
-      permissionCalcFormula: '共享空间权限为共享时设定；生效权限取共享空间权限与你的共享空间角色中较低值',
-      permissionCalcTip: '生效权限取共享空间权限与你的共享空间角色中较低值；只读成员对此库最多只读。',
+      noSharedAgentsTip: '管理员可将智能体从智能体设置中共享到本空间',
+      sharePermissionLabel: '空间权限',
+      myPermissionLabel: '我的实际权限',
+      permissionCalcFormula: '空间权限为共享时给该空间设定的权限；我的实际权限 = min(空间权限, 我在本空间的角色)',
+      permissionCalcTip: '我的实际权限 = min(空间权限, 我在本空间的角色)。我在空间内是只读时，对此知识库最多只读；是编辑或管理员时，不超过空间权限。',
       inviteMembers: '邀请成员',
-      inviteMembersDesc: '通过邀请码或链接邀请他人加入共享空间',
+      inviteMembersDesc: '通过邀请码或链接邀请他人加入空间',
       inviteLink: '邀请链接',
       inviteLinkValidity: '邀请链接有效期',
       inviteLinkValidityDesc: '新生成的邀请链接的有效期，仅影响之后刷新生成的链接',
@@ -1719,21 +1893,21 @@ export default {
       remainingValidity: '剩余 {n} 天',
       remainingValidityNever: '永不过期',
       remainingValidityExpired: '已过期',
-      removeShareFromOrg: '从共享空间中移除',
-      removeShareConfirm: '确定将「{name}」从本共享空间中移除？移除后共享空间成员将无法再访问该知识库。',
-      removeAgentShareConfirm: '确定将「{name}」从本共享空间中移除？移除后共享空间成员将无法再访问该智能体。',
-      removeShareSuccess: '已从共享空间中移除',
+      removeShareFromOrg: '从空间中移除',
+      removeShareConfirm: '确定将「{name}」从本空间中移除？移除后空间成员将无法再访问该知识库。',
+      removeAgentShareConfirm: '确定将「{name}」从本空间中移除？移除后空间成员将无法再访问该智能体。',
+      removeShareSuccess: '已从空间中移除',
       removeShareFailed: '移除失败，请重试',
       requireApproval: '需要审核',
       requireApprovalDesc: '开启后，新成员加入需要管理员审核',
       searchable: '开放可被搜索',
-      searchableDesc: '开启后，共享空间将出现在「加入共享空间」的搜索列表中，他人可搜索并申请加入，无需邀请码',
+      searchableDesc: '开启后，空间将出现在「加入空间」的搜索列表中，他人可搜索并申请加入，无需邀请码',
       memberLimit: '成员数量上限',
       memberLimitDesc: '超过上限后无法再添加新成员；设为 0 表示不限制',
       memberLimitPlaceholder: '0 表示不限制',
       memberLimitHint: '当前成员数：{count}',
       joinRequests: '加入申请',
-      joinRequestsDesc: '审核待加入共享空间的申请',
+      joinRequestsDesc: '审核待加入空间的申请',
       noPendingRequests: '暂无待审核的申请',
       pendingJoinRequestsBadge: '有待审批的加入申请',
       pendingReview: '待审批',
@@ -1742,16 +1916,21 @@ export default {
       reject: '拒绝',
       approveSuccess: '已通过申请',
       rejectSuccess: '已拒绝申请',
-      reviewFailed: '操作失败，请重试'
+      reviewFailed: '操作失败，请重试',
+      detailTitle: '空间详情',
+      myRoleDesc: '您在此空间中的角色决定了您的权限范围',
     },
     detail: {
       removeMemberConfirm: '确定要移除成员「{name}」吗？',
-      removeMember: '移除成员'
+      removeMember: '移除成员',
+      myRole: '我的角色',
+      removeMemberTitle: '移除成员',
+      shareKBTip: '在知识库列表中选择知识库，点击共享按钮将其共享到此空间',
     },
     role: {
       admin: '管理员',
       editor: '编辑',
-      viewer: '只读'
+      viewer: '只读',
     },
     sharedResources: {
       kbListTitle: '共享知识库',
@@ -1761,8 +1940,8 @@ export default {
         name: '名称',
         sharedBy: '共享者',
         sharedAt: '共享时间',
-        permission: '权限'
-      }
+        permission: '权限',
+      },
     },
     joinRequests: {
       listTitle: '待审核申请',
@@ -1779,34 +1958,23 @@ export default {
         type: '类型',
         requestedRole: '申请角色',
         message: '申请说明',
-        appliedAt: '申请时间'
-      }
+        appliedAt: '申请时间',
+      },
     },
-    members: {
-      listTitle: '共享空间成员',
-      searchPlaceholder: '搜索成员…',
-      loading: '加载成员中…',
-      emptySearch: '未找到匹配「{q}」的成员',
-      columns: {
-        member: '成员',
-        role: '角色',
-        joinedAt: '加入时间',
-        operations: '操作'
-      }
-    },
+    members: '成员',
     invite: {
       loading: '加载中...',
-      previewTitle: '加入共享空间',
-      inputDesc: '输入邀请码或粘贴邀请链接中的邀请码，查看共享空间信息后加入',
+      previewTitle: '加入空间',
+      inputDesc: '输入邀请码或粘贴邀请链接中的邀请码，查看空间信息后加入',
       previewAction: '查看',
       primaryJoin: '加入',
       invalidCode: '邀请码无效或已过期',
       previewFailed: '预览失败，请稍后重试',
       knowledgeBases: '知识库',
       agents: '智能体',
-      alreadyMember: '您已经是该共享空间的成员',
+      alreadyMember: '您已经是该空间的成员',
       submitRequest: '申请加入',
-      requireApprovalTip: '该共享空间需要管理员审核后才能加入',
+      requireApprovalTip: '该空间需要管理员审核后才能加入',
       approvalLabel: '加入方式',
       needApproval: '需要审核',
       noApproval: '无需审核',
@@ -1815,43 +1983,58 @@ export default {
       selectRole: '选择角色',
       messagePlaceholder: '选填：申请说明（如自我介绍或加入原因）',
       applicationNote: '申请说明（选填）',
-      joinSuccess: '成功加入共享空间！',
+      joinSuccess: '成功加入空间！',
       joinFailed: '加入失败，请稍后重试',
       requestSubmitted: '申请已提交，请等待管理员审核',
       requestFailed: '申请提交失败，请稍后重试',
-      viewOrganization: '查看共享空间'
+      viewOrganization: '查看空间',
+      previewInfo: '空间概览',
+      invalidTitle: '无效邀请',
+      members: '成员',
+      confirmJoin: '确认加入',
     },
     join: {
-      title: '加入共享空间',
-      joining: '正在加入共享空间...',
-      success: '成功加入共享空间！',
-      failed: '加入共享空间失败',
+      title: '加入空间',
+      joining: '正在加入空间...',
+      success: '成功加入空间！',
+      failed: '加入空间失败',
       noCode: '未找到邀请码',
-      goToOrganizations: '前往共享空间列表',
-      confirmTitle: '确认加入共享空间',
+      goToOrganizations: '前往空间列表',
+      confirmTitle: '确认加入空间',
       confirm: '确认加入',
       preview: '预览并加入',
       memberCount: '{count} 个成员',
       shareCount: '{count} 个共享知识库',
       agentShareCount: '{count} 个智能体',
-      alreadyMember: '您已经是该共享空间的成员',
+      alreadyMember: '您已经是该空间的成员',
       invalidCode: '无效的邀请码',
       byInviteCode: '输入邀请码',
-      searchSpaces: '搜索共享空间',
-      searchSpacesDesc: '浏览或搜索已开放可被搜索的共享空间，无需邀请码即可加入',
-      searchSpacesPlaceholder: '按共享空间名称、描述或 ID 搜索',
-      spaceId: '共享空间ID',
-      noSearchResult: '未找到匹配的共享空间',
-      noSearchableSpaces: '暂无开放可被搜索的共享空间，或输入关键词搜索',
+      searchSpaces: '搜索空间',
+      searchSpacesDesc: '浏览或搜索已开放可被搜索的空间，无需邀请码即可加入',
+      searchSpacesPlaceholder: '按空间名称、描述或空间ID搜索',
+      spaceId: '空间ID',
+      noSearchResult: '未找到匹配的空间',
+      noSearchableSpaces: '暂无开放可被搜索的空间，或输入关键词搜索',
       memberLimitReached: '成员已满',
-      backToSearch: '返回搜索'
+      backToSearch: '返回搜索',
+      membersWithLimit: '{current}/{limit} 成员',
     },
     rbac: {
       needTenantAdminTip: '此操作需要当前空间的 admin 或更高角色，请联系空间 Owner 调整权限。',
       cannotCreate: '当前空间角色不足，无法创建共享空间',
       cannotJoin: '当前空间角色不足，无法加入或申请加入共享空间',
-      cannotManage: '当前空间角色不足，无法管理共享空间'
-    }
+      cannotManage: '当前空间角色不足，无法管理共享空间',
+      needTenantAdmin: '需要空间管理员权限',
+    },
+    createOrgShort: '新建',
+    joinOrgShort: '加入',
+    inviteCodeTip: '分享此邀请码给他人，他们可以通过邀请码加入空间',
+    leaveConfirm: '确定要退出该空间吗？',
+    deleteConfirm: '确定要删除该空间吗？此操作不可撤销。',
+    all: '全部',
+    createdTag: '创建',
+    joinedTag: '加入',
+    joinedLabel: '已加入',
   },
   promptTemplate: {
     noTemplates: '暂无模板',
@@ -1860,7 +2043,7 @@ export default {
     resetDefault: '恢复默认',
     default: '默认',
     withKnowledgeBase: '知识库',
-    withWebSearch: '网络搜索'
+    withWebSearch: '网络搜索',
   },
   mcpServiceDialog: {
     addTitle: '添加 MCP 服务',
@@ -1901,36 +2084,66 @@ export default {
       editOverwriteHint: '导入会覆盖当前表单内容（不影响已保存的凭证，需点保存生效）',
       toasts: {
         filled: '已填充表单，请检查后保存',
-        multipleServers: '检测到多个服务，已导入第一个：{name}'
+        multipleServers: '检测到多个服务，已导入第一个：{name}',
       },
       errors: {
         empty: '请先粘贴配置内容',
         invalidJson: '无法解析，请检查 JSON 格式',
         noServer: '未找到 MCP 服务配置',
         missingUrl: '配置缺少 url',
-        stdioUnsupported: '暂不支持 stdio（command/args）配置，请使用带 url 的远程配置'
-      }
+        stdioUnsupported: '暂不支持 stdio（command/args）配置，请使用带 url 的远程配置',
+      },
     },
     customHeaders: {
       label: '自定义请求头（可选）',
       desc: '附加到每次 MCP 请求的 HTTP 请求头，常用于企业网关鉴权、链路追踪等场景。',
       add: '添加请求头',
       keyPlaceholder: 'Header 名称',
-      valuePlaceholder: 'Header 值'
+      valuePlaceholder: 'Header 值',
     },
     toasts: {
       created: 'MCP 服务已创建',
       updated: 'MCP 服务已更新',
       createFailed: '创建 MCP 服务失败',
       updateFailed: '更新 MCP 服务失败',
-      oauthRequired: '该服务需要 OAuth 授权，已自动切换为 OAuth 2.0，请保存后点击「去授权」。'
+      oauthRequired: '该服务需要 OAuth 授权，已自动切换为 OAuth 2.0，请保存后点击「去授权」。',
+      authorized: '授权成功',
+      authorizeFailed: '发起授权失败',
+      revoked: '已撤销授权',
+      revokeFailed: '撤销失败',
     },
     rules: {
       nameRequired: '请输入服务名称',
       transportRequired: '请选择传输类型',
       urlRequired: '请输入服务 URL',
-      urlInvalid: '请输入有效的 URL'
-    }
+      urlInvalid: '请输入有效的 URL',
+      commandRequired: '请选择命令 (uvx 或 npx)',
+      argsRequired: '请至少输入一个参数',
+    },
+    testResultTitle: '测试结果',
+    transport: {
+      sse: 'SSE (Server-Sent Events)',
+      httpStreamable: 'HTTP Streamable',
+      stdio: 'Stdio',
+    },
+    command: '命令',
+    args: '参数',
+    argPlaceholder: '参数 {index}',
+    addArg: '添加参数',
+    envVars: '环境变量',
+    envKeyPlaceholder: '变量名',
+    envValuePlaceholder: '变量值',
+    addEnvVar: '添加环境变量',
+    oauthScopes: 'Scopes（可选，空格分隔）',
+    oauthAuthorization: '授权状态',
+    oauthAuthorized: '已授权',
+    oauthUnauthorized: '未授权',
+    oauthAuthorize: '去授权',
+    oauthReauthorize: '重新授权',
+    oauthRevoke: '撤销授权',
+    oauthSaveFirstHint: '保存服务后，可在编辑页发起首次授权（每个用户独立授权）。',
+    apiKey: 'API Key',
+    bearerToken: 'Bearer Token',
   },
   ollamaSettings: {
     title: 'Ollama 配置',
@@ -1942,12 +2155,12 @@ export default {
       downloadFailed: '下载失败，请稍后重试',
       downloadStarted: '已开始下载模型 {name}',
       downloadCompleted: '模型 {name} 下载完成',
-      progressFailed: '查询下载进度失败'
+      progressFailed: '查询下载进度失败',
     },
     installed: {
       title: '已下载的模型',
       desc: '已安装在 Ollama 中的模型列表',
-      empty: '暂无已下载的模型'
+      empty: '暂无已下载的模型',
     },
     download: {
       title: '下载新模型',
@@ -1955,13 +2168,13 @@ export default {
       browse: '浏览 Ollama 模型库',
       placeholder: '如：qwen2.5:0.5b',
       download: '下载',
-      downloading: '正在下载: {name}'
+      downloading: '正在下载: {name}',
     },
     address: {
       label: '服务地址',
       desc: '本地 Ollama 服务的 API 地址，由系统自动检测。如需修改，请在 .env 配置文件中设置',
       placeholder: 'http://localhost:11434',
-      failed: '连接失败，请检查 Ollama 是否运行或服务地址是否正确'
+      failed: '连接失败，请检查 Ollama 是否运行或服务地址是否正确',
     },
     status: {
       label: 'Ollama 服务状态',
@@ -1970,8 +2183,12 @@ export default {
       available: '可用',
       unavailable: '不可用',
       untested: '未检测',
-      retest: '重新检测'
-    }
+      retest: '重新检测',
+    },
+    unknown: '未知',
+    today: '今天',
+    yesterday: '昨天',
+    daysAgo: '{days} 天前',
   },
   modelSettings: {
     title: '模型配置',
@@ -1979,29 +2196,6 @@ export default {
     copySuffix: ' 副本',
     builtinTag: '内置',
     confirmDelete: '确定删除模型「{name}」吗？',
-    usage: {
-      title: '模型无法删除',
-      description: '模型「{name}」仍被以下配置引用。请先打开对应配置并更换模型，再重新删除。',
-      knowledgeBases: '知识库（{count}）',
-      agents: '智能体（{count}）',
-      longTermMemory: '长期记忆',
-      openConfiguration: '打开配置',
-      truncated: '仅显示前 {shown} 个，共 {total} 个',
-      bindings: {
-        embedding_model: 'Embedding 模型',
-        summary_model: '摘要模型',
-        image_processing_model: '图片处理模型',
-        vlm_model: '视觉理解模型',
-        asr_model: '语音识别模型',
-        wiki_synthesis_model: 'Wiki 综合模型',
-        chat_model: '对话模型',
-        rerank_model: '重排序模型',
-        query_understand_model: '问题理解模型',
-        follow_up_model: '追问模型',
-        extract_model: '记忆提取模型',
-        unknown: '其他模型配置'
-      }
-    },
     debug: {
       title: '模型测试',
       description: '向已配置的模型发送真实请求，查看响应与耗时',
@@ -2047,14 +2241,14 @@ export default {
         reasoningChars: '推理字符数',
         reasoningReturned: '返回推理内容',
         textChars: '转写字符数',
-        segmentCount: '分段数量'
-      }
+        segmentCount: '分段数量',
+      },
     },
     builtinModels: {
       title: '内置模型',
       description: '内置模型对所有空间可见，敏感信息会被隐藏，且不可编辑或删除。',
       descriptionAdmin: '内置模型对所有空间可见。系统管理员可编辑配置和凭据；删除仍由部署配置管理。',
-      viewGuide: '查看内置模型管理指南'
+      viewGuide: '查看内置模型管理指南',
     },
     toasts: {
       nameRequired: '模型名称不能为空',
@@ -2072,49 +2266,76 @@ export default {
       builtinCannotDelete: '内置模型不能删除',
       builtinCannotCopy: '内置模型不能复制',
       copied: '模型已复制',
-      copyFailed: '复制模型失败'
+      copyFailed: '复制模型失败',
+      setDefault: '已设为默认模型',
+      setDefaultFailed: '设置默认模型失败',
     },
     asr: {
       title: 'ASR 语音模型',
       desc: '配置用于语音识别和音频转录的语音转文本模型（如 OpenAI Whisper）',
-      empty: '暂无 ASR 语音模型'
+      empty: '暂无 ASR 语音模型',
     },
     vllm: {
       title: 'VLLM 视觉模型',
       desc: '配置用于视觉理解和多模态的视觉语言模型',
-      empty: '暂无 VLLM 视觉模型'
+      empty: '暂无 VLLM 视觉模型',
     },
     rerank: {
       title: 'ReRank 模型',
       desc: '配置用于结果重排序的模型',
-      empty: '暂无 ReRank 模型'
+      empty: '暂无 ReRank 模型',
     },
     embedding: {
       title: 'Embedding 模型',
       desc: '配置用于文本向量化的嵌入模型',
-      empty: '暂无 Embedding 模型'
+      empty: '暂无 Embedding 模型',
     },
     chat: {
       title: '对话模型',
       desc: '配置用于对话的大语言模型',
-      empty: '暂无对话模型'
+      empty: '暂无对话模型',
     },
     source: {
       remote: 'Remote',
       openaiCompatible: 'OpenAI兼容',
-      custom: '自定义'
+      custom: '自定义',
     },
     actions: {
       addModel: '添加模型',
-      debugModel: '模型测试'
+      debugModel: '模型测试',
+      setDefault: '设为默认',
     },
     typeShort: {
       chat: '对话',
       embedding: 'Embedding',
       rerank: 'ReRank',
       vllm: '视觉',
-      asr: '语音'
-    }
+      asr: '语音',
+    },
+    usage: {
+      title: '模型无法删除',
+      description: '模型「{name}」仍被以下配置引用。请先打开对应配置并更换模型，再重新删除。',
+      knowledgeBases: '知识库（{count}）',
+      agents: '智能体（{count}）',
+      longTermMemory: '长期记忆',
+      openConfiguration: '打开配置',
+      truncated: '仅显示前 {shown} 个，共 {total} 个',
+      bindings: {
+        embedding_model: 'Embedding 模型',
+        summary_model: '摘要模型',
+        image_processing_model: '图片处理模型',
+        vlm_model: '视觉理解模型',
+        asr_model: '语音识别模型',
+        wiki_synthesis_model: 'Wiki 综合模型',
+        chat_model: '对话模型',
+        rerank_model: '重排序模型',
+        query_understand_model: '问题理解模型',
+        follow_up_model: '追问模型',
+        extract_model: '记忆提取模型',
+        unknown: '其他模型配置',
+      },
+    },
+    rawModelName: '模型名称',
   },
   mcpSettings: {
     title: 'MCP 服务管理',
@@ -2137,99 +2358,258 @@ export default {
       noResponse: '测试失败：未收到服务器响应',
       testFailed: '测试 MCP 服务失败',
       deleted: 'MCP 服务已删除',
-      deleteFailed: '删除 MCP 服务失败'
+      deleteFailed: '删除 MCP 服务失败',
     },
     actions: {
-      test: '测试连接'
-    }
+      test: '测试连接',
+    },
+    addFirst: '添加第一个 MCP 服务',
   },
   conversationSettings: {
     maxTokens: {
-      desc: '生成回答的最大Token数量'
+      desc: '生成回答的最大Token数量',
+      label: '最大Token数',
     },
     temperature: {
-      desc: '控制模型输出的随机性，0最确定，1最随机'
+      desc: '控制模型输出的随机性，0最确定，1最随机',
+      label: '温度参数',
     },
     systemPrompt: {
-      desc: '用于普通模式对话的系统级Prompt'
+      desc: '用于普通模式对话的系统级Prompt',
+      label: '系统Prompt',
+      descWithDefault: '用于普通模式对话的系统级Prompt（留空则使用系统默认）',
+      placeholder: '请输入系统Prompt...',
+      custom: '自定义 Prompt',
+      disabledHint: '当前使用系统默认 Prompt，开启自定义后才会应用下方内容。',
     },
     contextTemplate: {
-      desc: '用于普通模式下基于检索结果生成回答的Prompt模板'
+      desc: '用于普通模式下基于检索结果生成回答的Prompt模板',
+      label: '总结Prompt',
+      descWithDefault: '用于普通模式下基于检索结果生成回答的Prompt模板（留空则使用系统默认）',
+      placeholder: '请输入检索结果总结的Prompt模板...',
+      custom: '自定义模板',
+      disabledHint: '当前使用系统默认总结 Prompt，开启自定义后才会应用下方内容。',
     },
     rerankModel: {
-      desc: '用于搜索结果重排序的模型（可选）'
+      desc: '用于搜索结果重排序的模型（可选）',
+      label: 'ReRank 模型',
     },
     chatModel: {
-      desc: '用于总结和摘要的大语言模型'
+      desc: '用于总结和摘要的大语言模型',
+      label: 'LLM 模型',
     },
     rewritePrompt: {
-      desc: '控制问题改写的系统提示词'
+      desc: '控制问题改写的系统提示词',
+      system: 'Rewrite System Prompt',
+      user: 'Rewrite User Prompt',
+      userDesc: '控制问题改写的用户提示词',
     },
     fallbackPrompt: {
-      desc: '当选择模型兜底时使用的提示模板'
+      desc: '当选择模型兜底时使用的提示模板',
+      label: '兜底 Prompt',
     },
     fallbackResponse: {
-      desc: '当兜底策略为固定回复时返回的文本'
+      desc: '当兜底策略为固定回复时返回的文本',
+      label: '固定兜底回复',
     },
     fallbackStrategy: {
-      desc: '检索无结果时采用的处理方式'
+      desc: '检索无结果时采用的处理方式',
+      label: '兜底策略',
+      fixed: '固定回复',
+      model: '交给模型继续生成',
     },
     enableQueryExpansion: {
-      desc: '召回不足时调用大模型生成扩展查询（增加时延与成本）'
+      desc: '召回不足时调用大模型生成扩展查询（增加时延与成本）',
+      label: '启用查询扩展',
     },
     enableRewrite: {
-      desc: '多轮对话自动改写问题以获得更优召回'
+      desc: '多轮对话自动改写问题以获得更优召回',
+      label: '开启问题改写',
     },
     rerankThreshold: {
-      desc: '重排序阶段的最低得分阈值'
+      desc: '重排序阶段的最低得分阈值',
+      label: 'ReRank 阈值',
     },
     rerankTopK: {
-      desc: '重排序后进入答案生成的文档数量'
+      desc: '重排序后进入答案生成的文档数量',
+      label: 'ReRank TopK',
     },
     vectorThreshold: {
-      desc: '向量召回的最低相似度阈值'
+      desc: '向量召回的最低相似度阈值',
+      label: '向量阈值',
     },
     keywordThreshold: {
-      desc: '关键词检索的最低得分阈值'
+      desc: '关键词检索的最低得分阈值',
+      label: '关键词阈值',
     },
     embeddingTopK: {
-      desc: '向量召回阶段保留的文档数量'
+      desc: '向量召回阶段保留的文档数量',
+      label: 'Embedding TopK',
     },
     maxRounds: {
-      desc: '用于多轮上下文和问题改写的历史轮数'
+      desc: '用于多轮上下文和问题改写的历史轮数',
+      label: '历史保留轮数',
     },
     models: {
-      chatGroupLabel: '思考 / 对话模型'
-    }
+      chatGroupLabel: '思考 / 对话模型',
+      description: '统一管理 Agent 和普通模式使用的对话/总结模型与 ReRank 模型',
+      chatGroupDesc: '包含 Agent 推理与规划模型，以及普通模式默认的对话/总结模型',
+      chatModel: {
+        label: '普通模式默认对话模型',
+        desc: '普通模式默认使用的对话/总结模型，当会话未指定模型时生效',
+        placeholder: '请选择默认对话模型',
+      },
+      rerankModel: {
+        label: '普通模式默认 ReRank 模型',
+        desc: '普通模式默认使用的重排序模型',
+        placeholder: '请选择默认 ReRank 模型',
+      },
+      rerankGroupLabel: 'ReRank 模型',
+      rerankGroupDesc: '包含 Agent 使用的重排序模型，以及普通模式默认 ReRank 模型',
+    },
+    description: '配置对话模式的默认行为和参数，包括Agent模式和普通模式的Prompt设置',
+    agentMode: 'Agent模式',
+    normalMode: '普通模式',
+    menus: {
+      modes: '模式设置',
+      models: '模型配置',
+      thresholds: '检索阈值',
+      advanced: '高级设置',
+    },
+    thresholds: {
+      description: '调整召回与重排序的阈值与 TopK，平衡准确率与性能',
+    },
+    advanced: {
+      description: '配置问题改写、兜底策略等高级设置',
+    },
+    resetSystemPrompt: {
+      header: '恢复默认系统 Prompt',
+      body: '确定要恢复为系统默认的系统 Prompt 吗？',
+    },
+    resetContextTemplate: {
+      header: '恢复默认总结 Prompt',
+      body: '确定要恢复为系统默认的总结 Prompt 吗？',
+    },
+    toasts: {
+      chatModelSaved: 'LLM 模型已保存',
+      rerankModelSaved: 'ReRank 模型已保存',
+      contextTemplateSaved: '总结Prompt已保存',
+      systemPromptSaved: '系统Prompt已保存',
+      temperatureSaved: '温度参数已保存',
+      maxTokensSaved: '最大Token数已保存',
+      maxRoundsSaved: '历史轮数已保存',
+      embeddingSaved: 'Embedding TopK 已保存',
+      keywordThresholdSaved: '关键词阈值已保存',
+      vectorThresholdSaved: '向量阈值已保存',
+      rerankTopKSaved: 'ReRank TopK 已保存',
+      rerankThresholdSaved: 'ReRank 阈值已保存',
+      enableRewriteSaved: '问题改写开关已保存',
+      enableQueryExpansionSaved: '查询扩展策略已保存',
+      fallbackStrategySaved: '兜底策略已保存',
+      fallbackResponseSaved: '兜底回复已保存',
+      fallbackPromptSaved: '兜底 Prompt 已保存',
+      rewritePromptSystemSaved: '改写 System Prompt 已保存',
+      rewritePromptUserSaved: '改写 User Prompt 已保存',
+      customPromptEnabled: '已启用自定义 Prompt',
+      defaultPromptEnabled: '已使用系统默认 Prompt',
+      customContextTemplateEnabled: '已启用自定义总结 Prompt',
+      defaultContextTemplateEnabled: '已使用系统默认总结 Prompt',
+      resetSystemPromptSuccess: '已恢复为系统默认 Prompt',
+      resetContextTemplateSuccess: '已恢复为系统默认总结 Prompt',
+    },
   },
   agentSettings: {
     systemPrompt: {
-      desc: '配置 Agent 的系统提示词，支持占位符模板。占位符会在运行时自动替换为实际内容。'
+      desc: '配置 Agent 的系统提示词，支持占位符模板。占位符会在运行时自动替换为实际内容。',
+      label: '系统 Prompt',
+      availablePlaceholders: '可用占位符：',
+      hintPrefix: '提示：输入',
+      hintSuffix: '时会自动显示可用占位符',
+      custom: '自定义 Prompt',
+      disabledHint: '当前使用系统默认 Prompt，开启自定义后才会应用下方内容。',
+      placeholder: '请输入系统 Prompt，或留空使用默认 Prompt...',
+      tabHint: '统一的系统提示词，使用 {\'{{\'}web_search_status{\'}}\'} 占位符动态控制网络搜索行为',
+      tabHintDetail: '统一的系统提示词，使用 {\'{{\'}web_search_status{\'}}\'} 占位符动态控制网络搜索行为（留空则使用系统默认，使用 {\'{{\'}web_search_status{\'}}\'} 占位符动态控制网络搜索行为）',
     },
     allowedTools: {
-      desc: '当前 Agent 可使用的工具列表'
+      desc: '当前 Agent 可使用的工具列表',
+      label: '允许的工具',
+      placeholder: '请选择工具...',
+      empty: '尚未配置任何工具',
     },
     temperature: {
-      desc: '控制模型输出的随机性，0 最确定，1 最随机'
+      desc: '控制模型输出的随机性，0 最确定，1 最随机',
+      label: '温度参数',
     },
     rerankModel: {
-      desc: '搜索结果重排序，统一不同来源的相关度分数'
+      desc: '搜索结果重排序，统一不同来源的相关度分数',
+      label: 'Rerank 模型',
     },
     thinkingModel: {
-      desc: '用于 Agent 推理和规划的 LLM 模型'
+      desc: '用于 Agent 推理和规划的 LLM 模型',
+      label: '思考模型',
+      hint: '需要支持 Function call 的大尺寸模型，如 deepseek 等',
     },
     maxIterations: {
-      desc: '限制 Agent 单次任务的推理步数。选「不限制」时会一直跑到模型自然结束或你手动停止。'
+      desc: '限制 Agent 单次任务的推理步数。选「不限制」时会一直跑到模型自然结束或你手动停止。',
+      label: '最大迭代次数',
     },
     modelRecommendation: {
-      title: '模型推荐'
-    }
+      title: '模型推荐',
+      content: '为获得更好的 Agent 体验，建议使用支持 FunctionCalling 的长上下文大语言模型，如 deepseek-v3.1-terminus 等',
+    },
+    title: 'Agent 配置',
+    description: '配置 AI Agent 的默认行为和参数，这些设置将应用于所有启用 Agent 模式的对话',
+    status: {
+      label: 'Agent 状态',
+      ready: '可用',
+      notReady: '未就绪',
+      hint: '配置完成后，Agent 状态将自动变为"可用"，此时可在对话界面开启 Agent 模式',
+      missingThinkingModel: '思考模型',
+      missingSummaryModel: '对话模型',
+      missingRerankModel: '重排模型',
+      missingAllowedTools: '允许的工具',
+      pleaseConfigure: '请配置{items}',
+      goToConfig: '前往配置对话模型',
+      goConfigureModels: '前往配置模型 →',
+    },
+    model: {
+      placeholder: '搜索模型...',
+      addChat: '添加新的对话模型',
+      addRerank: '添加新的 Rerank 模型',
+    },
+    reset: {
+      header: '恢复默认 Prompt',
+      body: '确定要恢复为默认 Prompt 吗？当前的自定义 Prompt 将被覆盖。',
+    },
+    globalConfigNotice: '这些是全局默认配置，新建智能体时会继承这些设置。您也可以在智能体列表中单独配置每个智能体。',
+    loadConfigFailed: '加载Agent配置失败',
+    loadModelsFailed: '加载模型列表失败',
+    errors: {
+      selectThinkingModel: '启用Agent模式前，请先选择思考模型',
+      selectAtLeastOneTool: '至少需要选择一个允许的工具',
+      iterationsRange: '最大迭代次数必须在1-20之间',
+      temperatureRange: '温度参数必须在0-2之间',
+      validationFailed: '配置验证失败',
+    },
+    toasts: {
+      iterationsSaved: '最大迭代次数已保存',
+      thinkingModelSaved: '思考模型已保存',
+      rerankModelSaved: 'Rerank 模型已保存',
+      temperatureSaved: '温度参数已保存',
+      toolsUpdated: '工具配置已更新',
+      customPromptEnabled: '已启用自定义 Prompt',
+      defaultPromptEnabled: '已切换为默认 Prompt',
+      resetToDefault: '已恢复为默认 Prompt',
+      systemPromptSaved: '系统 Prompt 已保存',
+      autoDisabled: 'Agent 配置不完整，已自动关闭 Agent 模式',
+    },
   },
   upload: {
     uploadDocument: '上传文档',
     uploadFolder: '上传文件夹',
     onlineEdit: '在线编辑',
-    deleteRecord: '删除记录'
+    deleteRecord: '删除记录',
   },
   time: {
     today: '今天',
@@ -2238,7 +2618,7 @@ export default {
     last30Days: '近30天',
     lastYear: '近1年',
     earlier: '更早',
-    pinned: '已置顶'
+    pinned: '已置顶',
   },
   platform: {
     subtitle: '大模型驱动的企业级知识框架',
@@ -2247,10 +2627,10 @@ export default {
     agent: 'ReAct 智能体',
     wiki: 'Wiki 知识库',
     hybridSearch: '混合检索',
-    multimodalParsing: '多模态文档解析',
-    hybridSearchEngine: '混合检索 + 知识图谱',
-    ragQandA: 'ReAct 智能体问答',
-    independentTenant: '独立空间',
+    multimodalParsing: '自建知识库',
+    hybridSearchEngine: '定向引用',
+    ragQandA: '图谱推理',
+    independentTenant: '独立租户空间',
     fullApiAccess: '完整 API 访问',
     knowledgeBaseManagement: '知识库管理',
     carousel: {
@@ -2261,8 +2641,9 @@ export default {
       wikiTitle: 'Wiki 知识库',
       wikiDesc: '文档蒸馏为结构化互联知识',
       smartDocRetrievalTitle: '智能文档检索',
-      smartDocRetrievalDesc: 'PDF/Word/图片多格式解析'
-    }
+      smartDocRetrievalDesc: 'PDF/Word/图片多格式解析',
+    },
+    localDeploy: '本地部署',
   },
   font: {
     uiFont: '界面字体',
@@ -2277,7 +2658,7 @@ export default {
     size: {
       small: '小',
       normal: '正常',
-      large: '大'
+      large: '大',
     },
     mono: {
       system: '系统默认',
@@ -2287,7 +2668,7 @@ export default {
       cascadia: 'Cascadia Code',
       'dejavu-mono': 'DejaVu Sans Mono',
       'liberation-mono': 'Liberation Mono',
-      monospace: '通用等宽'
+      monospace: '通用等宽',
     },
     sans: {
       system: '系统默认',
@@ -2297,8 +2678,8 @@ export default {
       times: 'Times New Roman 衬线',
       'noto-cjk': 'Noto Sans CJK',
       'dejavu-serif': 'DejaVu Serif 衬线',
-      'sans-serif': '通用无衬线'
-    }
+      'sans-serif': '通用无衬线',
+    },
   },
   theme: {
     theme: '主题模式',
@@ -2306,7 +2687,7 @@ export default {
     light: '浅色',
     dark: '深色',
     system: '跟随系统',
-    selectTheme: '选择主题'
+    selectTheme: '选择主题',
   },
   general: {
     title: '常规设置',
@@ -2315,7 +2696,7 @@ export default {
     helpAndDocs: '帮助与文档',
     description: '配置语言、外观等基础选项',
     settings: '设置',
-    close: '关闭设置'
+    close: '关闭设置',
   },
   language: {
     zhCN: '简体中文',
@@ -2325,7 +2706,7 @@ export default {
     selectLanguage: '选择语言',
     language: '语言',
     languageDescription: '选择界面显示语言',
-    languageSaved: '语言设置已保存'
+    languageSaved: '语言设置已保存',
   },
   model: {
     modelName: '模型名称',
@@ -2374,11 +2755,6 @@ export default {
       dimensionOverrideDesc: '仅在确认该模型支持 dimensions 参数时开启；默认只使用检测到的实际维度。',
       supportsVisionLabel: '支持视觉/多模态',
       supportsVisionDesc: '模型是否支持图片等多模态输入',
-      contextWindowLabel: '上下文窗口',
-      contextWindowPlaceholder: '默认 {value}',
-      contextWindowDesc: '该模型一次请求能容纳的 token 数。智能体压缩对话历史会按此上限工作。留空则使用默认 200000（200K）。请按厂商文档填写真实值，填大会导致压缩不触发、上游直接拒绝请求。',
-      contextWindowDefaultHint: '未设置，使用默认 {value}',
-      contextWindowTokens: '{count} tokens',
       maxConcurrencyLabel: '后台并发上限',
       maxConcurrencyPlaceholder: '0 表示使用全局默认',
       maxConcurrencyDesc: '限制文档入库/富化等后台任务对该模型的并发调用数（按模型全副本共享）。0 或留空表示沿用全局默认；不影响交互式对话。',
@@ -2405,108 +2781,108 @@ export default {
       providers: {
         novita: {
           label: 'Novita AI',
-          description: 'moonshotai/kimi-k2.5, zai-org/glm-5, minimax/minimax-m2.7, qwen/qwen3-embedding-0.6b 等'
+          description: 'moonshotai/kimi-k2.5, zai-org/glm-5, minimax/minimax-m2.7, qwen/qwen3-embedding-0.6b 等',
         },
         nvidia: {
           label: 'NVIDIA',
-          description: 'deepseek-ai-deepseek-v3_1, nv-embed-v1, rerank-qa-mistral-4b, etc.'
+          description: 'deepseek-ai-deepseek-v3_1, nv-embed-v1, rerank-qa-mistral-4b, etc.',
         },
         lkeap: {
           label: '腾讯云 LKEAP',
-          description: 'DeepSeek-R1、DeepSeek-V3、lke-reranker-base 等'
+          description: 'DeepSeek-R1、DeepSeek-V3、lke-reranker-base 等',
         },
         longcat: {
           label: 'LongCat AI',
-          description: 'LongCat-Flash-Chat, LongCat-Flash-Thinking, etc.'
+          description: 'LongCat-Flash-Chat, LongCat-Flash-Thinking, etc.',
         },
         qianfan: {
           label: '百度千帆 Baidu Cloud',
-          description: 'ernie-5.0-thinking-preview, embedding-v1, bce-reranker-base, etc.'
+          description: 'ernie-5.0-thinking-preview, embedding-v1, bce-reranker-base, etc.',
         },
         moonshot: {
           label: '月之暗面 Moonshot',
-          description: 'kimi-k2-turbo-preview, moonshot-v1-8k-vision-preview, etc.'
+          description: 'kimi-k2-turbo-preview, moonshot-v1-8k-vision-preview, etc.',
         },
         qiniu: {
           label: '七牛云 Qiniu',
-          description: 'deepseek/deepseek-v3.2-251201, z-ai/glm-4.7, etc.'
+          description: 'deepseek/deepseek-v3.2-251201, z-ai/glm-4.7, etc.',
         },
         modelscope: {
           label: '魔搭 ModelScope',
-          description: 'Qwen/Qwen3-8B, Qwen/Qwen3-Embedding-8B, etc.'
+          description: 'Qwen/Qwen3-8B, Qwen/Qwen3-Embedding-8B, etc.',
         },
         gpustack: {
           label: 'GPUStack',
-          description: 'Choose your deployed model on GPUStack'
+          description: 'Choose your deployed model on GPUStack',
         },
         gemini: {
           label: 'Google Gemini',
-          description: 'gemini-3-flash-preview, gemini-2.5-pro 等'
+          description: 'gemini-3-flash-preview, gemini-2.5-pro 等',
         },
         mimo: {
           label: '小米 MiMo',
-          description: 'mimo-v2-flash'
+          description: 'mimo-v2-flash',
         },
         minimax: {
           label: 'MiniMax',
-          description: 'MiniMax-M3, MiniMax-M2.7, MiniMax-M2.7-highspeed 等'
+          description: 'MiniMax-M3, MiniMax-M2.7, MiniMax-M2.7-highspeed 等',
         },
         hunyuan: {
           label: '腾讯混元 Hunyuan',
-          description: 'hunyuan-pro, hunyuan-standard, hunyuan-embedding, etc.'
+          description: 'hunyuan-pro, hunyuan-standard, hunyuan-embedding, etc.',
         },
         deepseek: {
           label: 'DeepSeek',
-          description: 'deepseek-chat, deepseek-reasoner 等'
+          description: 'deepseek-chat, deepseek-reasoner 等',
         },
         volcengine: {
           label: '火山引擎 Volcengine',
-          description: 'doubao-1-5-pro-32k-250115, doubao-embedding-vision-250615, etc.'
+          description: 'doubao-1-5-pro-32k-250115, doubao-embedding-vision-250615, etc.',
         },
         jina: {
           label: 'Jina',
-          description: 'jina-clip-v1, jina-embeddings-v2-base-zh, etc.'
+          description: 'jina-clip-v1, jina-embeddings-v2-base-zh, etc.',
         },
         siliconflow: {
           label: '硅基流动 SiliconFlow',
-          description: 'deepseek-ai/DeepSeek-V3.1, etc.'
+          description: 'deepseek-ai/DeepSeek-V3.1, etc.',
         },
         generic: {
           label: '自定义 (OpenAI兼容接口)',
-          description: 'Generic API endpoint (OpenAI-compatible)'
+          description: 'Generic API endpoint (OpenAI-compatible)',
         },
         requesty: {
           label: 'Requesty',
-          description: 'openai/gpt-4o-mini, anthropic/claude-sonnet-4-5, etc.'
+          description: 'openai/gpt-4o-mini, anthropic/claude-sonnet-4-5, etc.',
         },
         openrouter: {
           label: 'OpenRouter',
-          description: 'openai/gpt-5.2-chat, google/gemini-3-flash-preview, etc.'
-        },
-        litellm: {
-          label: 'LiteLLM',
-          description: '自托管代理，统一接入 OpenAI、Anthropic、Gemini、Bedrock 等 100+ 厂商。请将占位 URL 换成可访问地址；localhost 需加入 SSRF_WHITELIST。'
+          description: 'openai/gpt-5.2-chat, google/gemini-3-flash-preview, etc.',
         },
         zhipu: {
           label: '智谱 BigModel',
-          description: 'glm-4.7, embedding-3, rerank, etc.'
+          description: 'glm-4.7, embedding-3, rerank, etc.',
         },
         aliyun: {
           label: '阿里云 DashScope',
-          description: 'qwen-plus, tongyi-embedding-vision-plus, qwen3-rerank, etc.'
+          description: 'qwen-plus, tongyi-embedding-vision-plus, qwen3-rerank, etc.',
         },
         azure_openai: {
           label: 'Azure OpenAI',
-          description: 'Microsoft Azure 上的 OpenAI 服务'
+          description: 'Microsoft Azure 上的 OpenAI 服务',
         },
         anthropic: {
           label: 'Anthropic',
-          description: 'Claude models via native Anthropic Messages API'
+          description: 'Claude models via native Anthropic Messages API',
         },
         openai: {
           label: 'OpenAI',
-          description: 'gpt-5.2, gpt-5-mini, etc.'
-        }
+          description: 'gpt-5.2, gpt-5-mini, etc.',
+        },
+        litellm: {
+          label: 'LiteLLM',
+          description: '自托管代理，统一接入 OpenAI、Anthropic、Gemini、Bedrock 等 100+ 厂商。请将占位 URL 换成可访问地址；localhost 需加入 SSRF_WHITELIST。',
+        },
       },
       validation: {
         modelNameRequired: '请输入模型名称',
@@ -2514,32 +2890,32 @@ export default {
         modelNameMax: '模型名称不能超过100个字符',
         baseUrlRequired: '请输入 Base URL',
         baseUrlEmpty: 'Base URL 不能为空',
-        baseUrlInvalid: 'Base URL 格式不正确，请输入有效的 URL'
+        baseUrlInvalid: 'Base URL 格式不正确，请输入有效的 URL',
       },
       thinkingControl: {
         thinkingType: {
           label: 'thinking.type',
-          hint: '火山引擎 Ark；腾讯云 LKEAP（DeepSeek V3 等，选 LKEAP 时默认此项；R1 请改「不写入」）'
+          hint: '火山引擎 Ark；腾讯云 LKEAP（DeepSeek V3 等，选 LKEAP 时默认此项；R1 请改「不写入」）',
         },
         enableThinking: {
           label: 'enable_thinking',
-          hint: '阿里云 DashScope：qwen3、qwen-plus、qwen-max、qwen-turbo'
+          hint: '阿里云 DashScope：qwen3、qwen-plus、qwen-max、qwen-turbo',
         },
         chatTemplateKwargs: {
           label: 'chat_template_kwargs',
-          hint: '自定义 OpenAI 兼容、NVIDIA NIM、vLLM / 本地 Qwen 部署'
+          hint: '自定义 OpenAI 兼容、NVIDIA NIM、vLLM / 本地 Qwen 部署',
         },
         none: {
           label: '不写入思考参数',
-          hint: '智能体「思考模式」开关不生效，不会在请求中写入思考相关参数'
-        }
+          hint: '智能体「思考模式」开关不生效，不会在请求中写入思考相关参数',
+        },
       },
       volcengine: {
         accessKeyLabel: 'Access Key ID',
         accessKeyPlaceholder: '火山引擎访问密钥 Access Key ID',
         secretKeyLabel: 'Secret Access Key',
         secretKeyPlaceholder: '火山引擎访问密钥 Secret Access Key',
-        rerankCredentialHint: 'Rerank 使用 VikingDB AK/SK 签名（非方舟 API Key），模型建议填写 doubao-seed-rerank。'
+        rerankCredentialHint: 'Rerank 使用 VikingDB AK/SK 签名（非方舟 API Key），模型建议填写 doubao-seed-rerank。',
       },
       lkeap: {
         secretIdLabel: 'SecretId',
@@ -2549,14 +2925,14 @@ export default {
         regionLabel: '地域',
         regionPlaceholder: 'ap-guangzhou',
         regionDesc: 'RunRerank 支持 ap-beijing、ap-guangzhou 等，默认 ap-guangzhou',
-        rerankCredentialHint: 'Rerank 使用腾讯云 API 签名（非 OpenAI API Key）。请在云 API 密钥控制台创建 SecretId/SecretKey。'
+        rerankCredentialHint: 'Rerank 使用腾讯云 API 签名（非 OpenAI API Key）。请在云 API 密钥控制台创建 SecretId/SecretKey。',
       },
       modelNamePlaceholder: {
         local: '例如：llama2:latest',
         remote: '例如：gpt-4, claude-3-opus',
         localVllm: '例如：llava:latest',
         remoteVllm: '例如：gpt-4-vision-preview',
-        remoteAsr: '例如：whisper-1'
+        remoteAsr: '例如：whisper-1',
       },
       description: {
         chat: '配置用于对话的大语言模型',
@@ -2564,9 +2940,33 @@ export default {
         rerank: '配置用于结果重排序的模型',
         vllm: '配置用于视觉理解和多模态的视觉语言模型',
         asr: '配置用于语音识别和音频转录的语音转文本模型',
-        default: '配置模型信息'
-      }
-    }
+        default: '配置模型信息',
+      },
+      contextWindowLabel: '上下文窗口',
+      contextWindowPlaceholder: '默认 {value}',
+      contextWindowDesc: '该模型一次请求能容纳的 token 数。智能体压缩对话历史会按此上限工作。留空则使用默认 200000（200K）。请按厂商文档填写真实值，填大会导致压缩不触发、上游直接拒绝请求。',
+      contextWindowDefaultHint: '未设置，使用默认 {value}',
+      contextWindowTokens: '{count} tokens',
+      connectionTest: '连接测试',
+      searchPlaceholder: '搜索模型...',
+    },
+    llmModel: 'LLM模型',
+    embeddingModel: '嵌入模型',
+    rerankModel: '重排序模型',
+    vlmModel: '多模态模型',
+    modelProvider: '模型提供商',
+    modelUrl: '模型地址',
+    apiKey: 'API密钥',
+    testConnection: '测试连接',
+    connectionSuccess: '连接成功',
+    connectionFailed: '连接失败',
+    dimension: '维度',
+    maxTokens: '最大令牌数',
+    temperature: '温度',
+    topP: 'Top P',
+    selectModel: '选择模型',
+    customModel: '自定义模型',
+    builtinModel: '内置模型',
   },
   error: {
     networkError: '网络错误，请检查您的网络连接',
@@ -2582,7 +2982,7 @@ export default {
     streamFailed: '流式连接失败',
     initialization: {
       checkFailed: '检查失败',
-      testFailed: '测试失败'
+      testFailed: '测试失败',
     },
     tenant: {
       listFailed: '获取空间列表失败',
@@ -2591,13 +2991,13 @@ export default {
       updateApiPrincipalConfigFailed: '更新 API 用户身份配置失败',
       createApiPrincipalTestTokenFailed: '生成 API 测试 Token 失败',
       updateFailed: '更新空间信息失败',
-      deleteFailed: '删除空间失败'
+      deleteFailed: '删除空间失败',
     },
     model: {
       createFailed: '创建模型失败',
       getFailed: '获取模型失败',
       updateFailed: '更新模型失败',
-      deleteFailed: '删除模型失败'
+      deleteFailed: '删除模型失败',
     },
     auth: {
       loginFailed: '登录失败',
@@ -2607,8 +3007,15 @@ export default {
       updatePreferencesFailed: '更新个性化设置失败',
       refreshTokenFailed: '刷新Token失败',
       logoutFailed: '登出失败',
-      validateTokenFailed: 'Token验证失败'
-    }
+      validateTokenFailed: 'Token验证失败',
+    },
+    network: '网络错误',
+    server: '服务器错误',
+    notFound: '未找到',
+    unauthorized: '未授权',
+    forbidden: '禁止访问',
+    unknown: '未知错误',
+    tryAgain: '请重试',
   },
   mcp: {
     testResult: {
@@ -2622,8 +3029,8 @@ export default {
       emptyDescription: '该服务未提供工具或资源',
       requireApproval: '需人工审核',
       requireApprovalTip: '开启后，Agent 调用该工具前会暂停并等待确认，适用于可能改库/删文件等高危操作',
-      approvalSaveFailed: '保存审核设置失败'
-    }
+      approvalSaveFailed: '保存审核设置失败',
+    },
   },
   system: {
     title: '系统信息',
@@ -2691,14 +3098,14 @@ export default {
           sectionIdentifiers: '关联标识',
           sectionRequest: '请求信息',
           targetChange: '变更内容',
-          requestMethod: '请求方法'
+          requestMethod: '请求方法',
         },
         expanded: {
           actorId: '操作人 ID',
           targetUserId: '目标用户 ID',
           targetType: '目标类型',
           targetId: '目标 ID',
-          details: '原始详情'
+          details: '原始详情',
         },
         target: {
           bulkQuota: '批量同步：默认存储配额',
@@ -2706,11 +3113,11 @@ export default {
           promoteIdempotent: '目标已是系统管理员（幂等）',
           revokeNoop: '目标本就不是系统管理员（幂等）',
           requiredRole: '需要角色：{role}',
-          valueNull: '(空)'
+          valueNull: '(空)',
         },
         outcome: {
           success: '成功',
-          denied: '拒绝'
+          denied: '拒绝',
         },
         action: {
           'system.setting_changed': '系统设置变更',
@@ -2723,7 +3130,7 @@ export default {
           'system.queue_task_deleted': '清除失败任务记录',
           'system.queue_task_run_now': '立即执行队列任务',
           'system.queue_task_cancelled': '终止队列任务',
-          'system.queue_archived_purged': '清除全部失败任务'
+          'system.queue_archived_purged': '清除全部失败任务',
         },
         columns: {
           time: '时间',
@@ -2731,14 +3138,14 @@ export default {
           action: '事件',
           target: '目标',
           path: '请求',
-          outcome: '结果'
+          outcome: '结果',
         },
         actorRole: {
-          system_admin: '系统管理员'
+          system_admin: '系统管理员',
         },
         errors: {
-          generic: '加载审计日志失败'
-        }
+          generic: '加载审计日志失败',
+        },
       },
       bulkApply: {
         label: '应用到所有现有空间',
@@ -2746,7 +3153,7 @@ export default {
         confirmBtn: '确认应用',
         confirmBody: '将把所有现有空间的存储配额覆盖为 {value} GB。如有空间被运维单独调整过的配额，也会一并被覆盖。是否继续？',
         success: '已将 {count} 个空间的存储配额更新为 {gb} GB',
-        failed: '应用到所有空间失败'
+        failed: '应用到所有空间失败',
       },
       passwordReset: {
         label: '重置用户密码',
@@ -2763,6 +3170,16 @@ export default {
         confirmBtn: '确认重置',
         success: '密码已重置，该用户的现有会话已失效',
         failed: '重置密码失败',
+        validation: {
+          emailRequired: '请输入用户邮箱',
+          emailInvalid: '请输入有效的邮箱地址',
+          passwordRequired: '请输入新密码',
+          passwordLength: '密码长度必须为 8-32 个字符',
+          passwordLetter: '密码必须包含字母',
+          passwordNumber: '密码必须包含数字',
+          confirmRequired: '请再次输入新密码',
+          passwordMismatch: '两次输入的密码不一致',
+        },
       },
       admins: {
         label: '系统管理员',
@@ -2775,14 +3192,14 @@ export default {
           revoke: {
             header: '撤销系统管理员',
             body: '确认撤销 {email} 的系统管理员权限？撤销后该用户将无法再访问任何系统级功能。',
-            confirmBtn: '确认撤销'
+            confirmBtn: '确认撤销',
           },
           promote: {
             header: '提升为系统管理员',
             body: '确认将 {email} 提升为系统管理员？该用户将获得平台级权限，可访问所有空间、修改系统设置、管理其他管理员。',
-            confirmBtn: '确认提升'
-          }
-        }
+            confirmBtn: '确认提升',
+          },
+        },
       },
       reset: {
         label: '重置',
@@ -2790,12 +3207,12 @@ export default {
         confirmBtn: '确认重置',
         confirmBody: '确定要重置「{label}」吗？该操作会删除数据库中的覆盖值，回退到环境变量或内置默认值。',
         success: '已重置为默认值',
-        failed: '重置失败'
+        failed: '重置失败',
       },
       messages: {
         loadFailed: '加载系统设置失败',
         saveSuccess: '已保存',
-        saveFailed: '保存失败'
+        saveFailed: '保存失败',
       },
       listConfirm: {
         ssrf: {
@@ -2803,38 +3220,40 @@ export default {
             remove: {
               header: '移除 SSRF 白名单条目',
               body: '确认从 SSRF 白名单中移除 {entry}？移除后该条目将重新受 SSRF 防护拦截。',
-              confirmBtn: '确认移除'
+              confirmBtn: '确认移除',
             },
             add: {
               header: '添加 SSRF 白名单条目',
               body: '确认把 {entry} 加入 SSRF 白名单？该条目匹配到的主机 / IP / 网段会绕过 SSRF 防护，可能让 Agent 访问内网服务，请仅在确知用途时添加。',
-              confirmBtn: '确认添加'
-            }
-          }
-        }
+              confirmBtn: '确认添加',
+            },
+          },
+        },
       },
       confirm: {
         confirmBtn: '确认保存',
         cancelBtn: '取消',
         emptyValue: '（空）',
         bodyAuthRegistrationMode: '即将把「{label}」改为：{value}\n\n如果切到 self_serve，公网任何人都可以注册账号 — 务必确认是预期行为。',
-        bodySandboxDockerEnabled: '打开后，空间管理员可以把沙箱指到本机 Docker。本机 docker.sock 等同宿主机 root，只适合已挂载 daemon 或配了 TLS 远程 tcp:// 的私有化单机。'
+        bodySandboxDockerEnabled: '打开后，空间管理员可以把沙箱指到本机 Docker。本机 docker.sock 等同宿主机 root，只适合已挂载 daemon 或配了 TLS 远程 tcp:// 的私有化单机。',
+        header: '高危操作确认',
+        defaultBody: '即将把「{label}」改为：{value}',
       },
       enumLabels: {
         auth: {
           default_tenant_mode: {
             create_personal: '自动创建个人空间',
-            tenantless: '不自动创建空间'
+            tenantless: '不自动创建空间',
           },
           registration_mode: {
             self_serve: '自助注册（任何人可注册）',
-            invite_only: '仅邀请（关闭公网注册）'
-          }
-        }
+            invite_only: '仅邀请（关闭公网注册）',
+          },
+        },
       },
       keyDescriptions: {
         model: {
-          max_concurrency: '后台任务（文档入库/富化）对单个模型的默认并发上限，按模型 ID 全副本共享。每次调用实时读取，修改后立即生效、无需重启。0 或负数表示关闭默认限制（各模型仍会尊重自身在模型管理里配置的上限）。仅影响后台任务，不影响交互式对话。'
+          max_concurrency: '后台任务（文档入库/富化）对单个模型的默认并发上限，按模型 ID 全副本共享。每次调用实时读取，修改后立即生效、无需重启。0 或负数表示关闭默认限制（各模型仍会尊重自身在模型管理里配置的上限）。仅影响后台任务，不影响交互式对话。',
         },
         asynq: {
           core_concurrency: '文档解析与手工重解析的每实例保底并发，可额外借用共享弹性池；修改后需重启。',
@@ -2842,30 +3261,30 @@ export default {
           enrichment_concurrency: '摘要、图片、图谱与问题生成的每实例保底并发，可额外借用共享弹性池；修改后需重启。',
           maintenance_concurrency: '数据源同步、批处理和清理任务的每实例并发，与用户面流水线硬隔离；修改后需重启。',
           shared_concurrency: '核心解析与内容富化共同使用的每实例弹性并发，由有积压的一侧自动借用；修改后需重启。',
-          wiki_concurrency: '每个服务实例的 Wiki 专用 Worker 并发数，与上游任务池相互隔离。最小值为 1；修改后需重启服务进程方可生效。'
+          wiki_concurrency: '每个服务实例的 Wiki 专用 Worker 并发数，与上游任务池相互隔离。最小值为 1；修改后需重启服务进程方可生效。',
         },
         tenant: {
           max_owned_per_user: '每个非超管用户通过自助创建可拥有的最大空间数。每次创建空间时实时读取，修改后立即生效。0 表示使用内置默认值 10；负数表示完全关闭限制（不建议在公开部署使用）。',
           self_service_creation_enabled: '是否允许非超管用户主动创建空间。关闭后，普通用户只能通过邀请加入已有空间；跨空间超管仍可创建。修改后立即生效。',
           default_storage_quota_gb: '新建空间时默认分配的存储配额（GB），包含向量、原文、文本、索引等。仅在创建时读取，修改后只对之后新建的空间生效，不会回写已存在的空间。0 或负数表示使用内置默认值 10GB。',
           auto_create_api_key: '为新空间自动生成 full_access API Key，并在创建响应中返回明文 token。仅用于兼容依赖旧行为的集成；默认关闭，建议通过 API Key 管理显式创建。',
-          auto_accept_invitation: '开启后，空间管理员通过邮箱邀请已注册用户时，对方会立即成为成员，不再经过收件箱确认。关闭时保持「发出邀请 → 被邀请人确认」流程。修改后立即生效。'
+          auto_accept_invitation: '开启后，空间管理员通过邮箱邀请已注册用户时，对方会立即成为成员，不再经过收件箱确认。关闭时保持「发出邀请 → 被邀请人确认」流程。修改后立即生效。',
         },
         ssrf: {
-          whitelist: 'SSRF 防护白名单。可填入 example.com / *.foo.com / 10.0.0.0/8 / 2001:db8::1。修改后立即生效。SSRF_WHITELIST_EXTRA 环境变量仍由部署方维护，不在此处覆盖。'
-        },
-        sandbox: {
-          docker_enabled: '是否允许 Docker 沙箱后端。本机 docker.sock 等同宿主机 root，默认关闭。仅系统管理员可打开；打开后立即生效，无需重启。私有化单机且已挂载 daemon socket，或配置了带 TLS 的远程 tcp:// 时再启用。'
+          whitelist: 'SSRF 防护白名单。可填入 example.com / *.foo.com / 10.0.0.0/8 / 2001:db8::1。修改后立即生效。SSRF_WHITELIST_EXTRA 环境变量仍由部署方维护，不在此处覆盖。',
         },
         auth: {
           registration_mode: '自助注册模式。self_serve = 任何人可注册账号；invite_only = 关闭公网注册，仅 Owner/Admin 可邀请。修改后立即生效，但谨慎对待 self_serve（公网会接受 spam）。',
           default_tenant_mode: '公开注册后的空间初始化策略。create_personal 会自动创建个人空间并授予 Owner；tenantless 仅创建账户，用户需要接受邀请或主动创建空间。只影响之后注册的用户。',
-          complex_password_enabled: '是否启用复杂密码。开启后密码必须包含大小写字母、数字和特殊字符。修改后立即生效，只影响新注册用户或新密码修改/重置操作。特殊字符包含：{specialChars}'
-        }
+          complex_password_enabled: '是否启用复杂密码。开启后密码必须包含大小写字母、数字和特殊字符。修改后立即生效，只影响新注册用户或新密码修改/重置操作。特殊字符包含：{specialChars}',
+        },
+        sandbox: {
+          docker_enabled: '是否允许 Docker 沙箱后端。本机 docker.sock 等同宿主机 root，默认关闭。仅系统管理员可打开；打开后立即生效，无需重启。私有化单机且已挂载 daemon socket，或配置了带 TLS 的远程 tcp:// 时再启用。',
+        },
       },
       keyLabels: {
         model: {
-          max_concurrency: '模型默认并发上限'
+          max_concurrency: '模型默认并发上限',
         },
         asynq: {
           core_concurrency: '核心解析保底并发数',
@@ -2873,26 +3292,26 @@ export default {
           enrichment_concurrency: '内容富化保底并发数',
           maintenance_concurrency: '维护与同步并发数',
           shared_concurrency: '共享弹性并发数',
-          wiki_concurrency: 'Wiki Worker 并发数'
+          wiki_concurrency: 'Wiki Worker 并发数',
         },
         tenant: {
           max_owned_per_user: '每用户最大空间数',
           self_service_creation_enabled: '允许用户自助创建空间',
           default_storage_quota_gb: '新空间默认存储配额 (GB)',
           auto_create_api_key: '创建空间时自动生成 API Key',
-          auto_accept_invitation: '邀请已注册用户时自动加入'
+          auto_accept_invitation: '邀请已注册用户时自动加入',
         },
         ssrf: {
-          whitelist: 'SSRF 防护白名单'
-        },
-        sandbox: {
-          docker_enabled: '启用 Docker 沙箱'
+          whitelist: 'SSRF 防护白名单',
         },
         auth: {
           registration_mode: '自助注册模式',
           default_tenant_mode: '注册默认空间策略',
-          complex_password_enabled: '启用复杂密码'
-        }
+          complex_password_enabled: '启用复杂密码',
+        },
+        sandbox: {
+          docker_enabled: '启用 Docker 沙箱',
+        },
       },
       runtime: {
         title: '任务队列运行时',
@@ -2925,14 +3344,14 @@ export default {
           backgroundOnly: '仅统计后台任务，不包含交互式对话',
           status: {
             queued: '限流中',
-            full: '已满载'
+            full: '已满载',
           },
           columns: {
             model: '模型 ID',
             active: '调用中',
             waiting: '限流等待',
-            usage: '并发用量'
-          }
+            usage: '并发用量',
+          },
         },
         tasks: {
           title: '任务明细 · {queue}',
@@ -2982,12 +3401,12 @@ export default {
           actionError: {
             cancel: '终止任务失败',
             run_now: '立即执行任务失败',
-            delete: '清除失败记录失败'
+            delete: '清除失败记录失败',
           },
           actionSuccess: {
             cancel: '任务已终止',
             run_now: '任务已进入待执行队列',
-            delete: '失败记录已清除'
+            delete: '失败记录已清除',
           },
           guides: {
             active: '运行中任务可查看执行实例、开始时间和截止时间。只有具备完整业务取消语义的任务才允许终止。',
@@ -2995,7 +3414,7 @@ export default {
             scheduled: '定时任务可提前立即执行；支持业务取消的文档任务也可以安全终止。',
             retry: '请结合最后错误、重试次数和下次执行时间判断是否立即执行或终止。',
             archived: '请先修复失败原因再立即执行。清除记录不会完成原业务任务。',
-            completed: '这里只展示设置了结果保留时间的近期完成任务，不提供管理动作。'
+            completed: '这里只展示设置了结果保留时间的近期完成任务，不提供管理动作。',
           },
           states: {
             active: '运行中',
@@ -3003,7 +3422,7 @@ export default {
             scheduled: '定时执行',
             retry: '重试中',
             archived: '最终失败',
-            completed: '已完成'
+            completed: '已完成',
           },
           taskTypes: {
             documentProcess: '文档解析',
@@ -3024,12 +3443,12 @@ export default {
             kbClone: '知识库复制',
             kbDelete: '知识库删除',
             wikiIngest: 'Wiki 内容生成',
-            wikiFinalize: 'Wiki 收尾处理'
-          }
+            wikiFinalize: 'Wiki 收尾处理',
+          },
         },
         failedNotice: {
           title: '{count} 个任务待处理',
-          description: '点击下方表中红色「最终失败」数字查看原因，修复后可手动重试。'
+          description: '点击下方表中红色「最终失败」数字查看原因，修复后可手动重试。',
         },
         status: {
           working: '处理中',
@@ -3037,7 +3456,8 @@ export default {
           idle: '空闲',
           actionRequired: '需处理',
           retrying: '重试中',
-          paused: '已暂停'
+          paused: '已暂停',
+          attention: '需关注',
         },
         columns: {
           queue: '队列',
@@ -3048,14 +3468,14 @@ export default {
           archived: '最终失败',
           completed: '已完成',
           latency: '最早等待',
-          status: '状态'
+          status: '状态',
         },
         summary: {
           title: '运行概览',
           active: '运行中',
           pending: '排队中',
           retry: '重试中',
-          archived: '最终失败'
+          archived: '最终失败',
         },
         pools: {
           core: '核心解析',
@@ -3063,7 +3483,7 @@ export default {
           enrichment: '内容富化',
           maintenance: '维护与同步',
           shared: '共享弹性',
-          wiki: 'Wiki 池'
+          wiki: 'Wiki 池',
         },
         poolDescriptions: {
           core: '文档解析与手工重解析的保底容量',
@@ -3071,7 +3491,7 @@ export default {
           enrichment: '摘要、图片、图谱与问题生成',
           maintenance: '数据源同步、批处理与删除清理',
           shared: '由核心解析与内容富化按积压借用',
-          wiki: 'Wiki 内容生成与全局收尾'
+          wiki: 'Wiki 内容生成与全局收尾',
         },
         queueNames: {
           default: '文档解析',
@@ -3083,7 +3503,7 @@ export default {
           multimodal: '多模态处理',
           graph: '图谱抽取',
           question: '问题生成',
-          wiki: 'Wiki 处理'
+          wiki: 'Wiki 处理',
         },
         queueDescriptions: {
           default: '文档解析、手工重解析',
@@ -3095,55 +3515,63 @@ export default {
           multimodal: '图片 OCR、视觉描述',
           graph: '分块图谱抽取',
           question: '分块问题生成',
-          wiki: '内容生成、索引收尾'
+          wiki: '内容生成、索引收尾',
         },
         errors: {
-          generic: '获取队列状态失败'
-        }
+          generic: '获取队列状态失败',
+        },
+        paused: '已暂停',
+        weight: '池内权重 {value}',
       },
       runtimeTable: {
         setting: '配置项与用途',
-        value: '当前值'
+        value: '当前值',
       },
       sections: {
         other: {
           tab: '其他 {count}',
           title: '其他配置',
-          description: '当前部署中未归入标准分组的配置项。'
+          description: '当前部署中未归入标准分组的配置项。',
         },
         security: {
           tab: '网络安全 {count}',
           title: '网络安全',
-          description: '管理 SSRF 白名单，以及是否允许 Docker 沙箱（本机 docker.sock 等同宿主机 root）。'
+          description: '管理 SSRF 白名单，以及是否允许 Docker 沙箱（本机 docker.sock 等同宿主机 root）。',
         },
         runtime: {
           tab: '运行与并发 {count}',
           title: '运行与并发',
           description: '配置后台任务池与模型服务的并发容量。',
-          restartHint: 'Worker 配置需重启生效'
+          restartHint: 'Worker 配置需重启生效',
         },
         tenant: {
           tab: '空间默认值 {count}',
           title: '空间默认值',
-          description: '设置新空间的初始配额与兼容性行为，不会自动改写已有空间。'
+          description: '设置新空间的初始配额与兼容性行为，不会自动改写已有空间。',
         },
         access: {
           tab: '账户与访问 {count}',
           title: '账户与访问',
-          description: '管理系统管理员、公开注册与用户创建空间的规则。'
-        }
+          description: '管理系统管理员、公开注册与用户创建空间的规则。',
+        },
       },
       priorityHint: {
         disclosure: '配置来源与优先级',
         tier1: '在此页面保存过的项（带「已覆盖」徽章）— 始终以这里的值为准，环境变量会被忽略。',
         tier2: '未在此处保存过的项 — 如果环境变量里有就用环境变量，否则用程序内置默认值。',
-        tier3: '若想让某项重新由环境变量控制，点击该行的「重置」按钮即可清除当前 UI 设置。'
-      }
+        tier3: '若想让某项重新由环境变量控制，点击该行的「重置」按钮即可清除当前 UI 设置。',
+        title: '关于优先级',
+      },
+      autoSaveHint: '修改后自动保存',
+      summary: {
+        overridden: '已覆盖 {count}',
+        restart: '需重启 {count}',
+      },
     },
     messages: {
       fetchFailed: '获取系统信息失败',
-      networkError: '网络错误，请稍后重试'
-    }
+      networkError: '网络错误，请稍后重试',
+    },
   },
   tenant: {
     title: '空间信息',
@@ -3191,11 +3619,31 @@ export default {
       lanUrlLabel: '局域网 API 地址',
       lanUrlDescription: '在已开启「允许局域网访问」且应用已重启后显示；若 IP 不准确，请在本机网络设置中查看实际 IPv4 后替换主机部分。',
       lanUrlCopyTitle: '复制局域网 API 地址',
-      lanUrlUnavailable: '当前已监听所有网卡，但未能自动识别本机 IPv4。请在本机网络设置中查看局域网地址，并手动拼接为 http://你的IP:端口/api/v1。'
+      lanUrlUnavailable: '当前已监听所有网卡，但未能自动识别本机 IPv4。请在本机网络设置中查看局域网地址，并手动拼接为 http://你的IP:端口/api/v1。',
+      description: '查看和管理您的 API 密钥',
+      keyLabel: 'API Key',
+      keyDescription: '用于 API 调用的密钥，请妥善保管',
+      urlLabel: 'API 地址',
+      urlDescription: 'REST API 的基础路径，请求时在末尾拼接具体接口路径',
+      copyUrlTitle: '复制 API 地址',
+      urlCopySuccess: 'API 地址已复制到剪贴板',
+      copyTitle: '复制 API Key',
+      resetTitle: '重置 API Key',
+      resetConfirmTitle: '确认重置 API Key？',
+      resetConfirmBody: '重置后，旧的 API Key 会立即失效，所有使用旧 Key 的应用、SDK 与脚本必须更换为新 Key 才能继续访问。此操作不可撤销。',
+      resetConfirmOk: '确认重置',
+      resetConfirmCancel: '取消',
+      resetSuccess: 'API Key 已重置，新 Key 已显示在输入框中',
+      resetFailed: '重置 API Key 失败',
+      userSectionTitle: '用户信息',
+      noKey: '暂无 API Key',
+      copySuccess: 'API Key 已复制到剪贴板',
+      copyFailed: '复制失败，请手动复制',
+      lanUrlCopySuccess: '局域网 API 地址已复制',
     },
     messages: {
       fetchFailed: '获取空间信息失败',
-      networkError: '网络错误，请稍后重试'
+      networkError: '网络错误，请稍后重试',
     },
     deleteDangerZone: {
       title: '删除当前空间',
@@ -3207,12 +3655,12 @@ export default {
       confirm: '确认删除',
       nameMismatch: '空间名称不匹配',
       success: '空间已删除',
-      failed: '删除空间失败'
+      failed: '删除空间失败',
     },
     leaveDangerZone: {
       title: '退出当前空间',
       desc: '终止您在本空间的成员身份。退出后将无法访问本空间的知识库与智能体，之后可被再次邀请加入。',
-      button: '退出空间'
+      button: '退出空间',
     },
     storage: {
       quotaLabel: '存储配额',
@@ -3220,7 +3668,7 @@ export default {
       usedLabel: '已使用存储',
       usedDescription: '已经使用的存储空间',
       usageLabel: '存储使用率',
-      usageDescription: '存储空间的使用百分比'
+      usageDescription: '存储空间的使用百分比',
     },
     details: {
       idLabel: '空间 ID',
@@ -3246,7 +3694,7 @@ export default {
       editDescriptionPlaceholder: '请输入新的空间描述',
       editDescriptionSuccess: '空间描述已更新',
       editDescriptionFailed: '更新空间描述失败',
-      descriptionEmptyPlaceholder: '未填写'
+      descriptionEmptyPlaceholder: '未填写',
     },
     create: {
       action: '创建新空间',
@@ -3261,33 +3709,64 @@ export default {
       cancel: '取消',
       success: '空间创建成功',
       failed: '空间创建失败',
-      disabled: '当前系统只允许通过邀请加入空间，不能自行创建空间。'
+      disabled: '当前系统只允许通过邀请加入空间，不能自行创建空间。',
     },
     switcher: {
       menuLabel: '切换空间',
       currentBadge: '当前',
       homeTooltip: '我的空间',
-      empty: '你目前只属于这一个空间'
-    }
+      empty: '你目前只属于这一个空间',
+      homeBadge: '我的',
+    },
+    currentChip: {
+      home: '我的空间',
+    },
+    apiDocument: 'API文档',
+    name: '空间名称',
+    id: '空间 ID',
+    createdAt: '创建时间',
+    updatedAt: '更新时间',
+    status: '状态',
+    active: '活跃',
+    inactive: '未活跃',
+    systemInfo: '系统信息',
+    viewSystemInfo: '查看系统版本和用户账户配置信息',
+    version: '版本',
+    buildTime: '构建时间',
+    goVersion: 'Go版本',
+    userInfo: '用户信息',
+    userId: '用户ID',
+    username: '用户名',
+    email: '邮箱',
+    tenantInfo: '空间信息',
+    tenantId: '空间 ID',
+    tenantName: '空间名称',
+    description: '描述',
+    business: '业务',
+    noDescription: '无描述',
+    noBusiness: '无',
+    apiKey: 'API密钥',
+    keepApiKeySafe: '请妥善保管您的API密钥，不要在公共场所或代码仓库中泄露',
+    storageInfo: '存储信息',
+    storageQuota: '存储配额',
+    used: '已使用',
+    usage: '使用率',
+    apiDevDocs: 'API开发文档',
+    useApiKey: '使用您的API密钥开始开发，查看完整的API文档和代码示例。',
+    viewApiDoc: '查看API文档',
+    loadingAccountInfo: '加载账户信息中...',
+    loadFailed: '加载失败',
+    apiKeyCopied: 'API密钥已复制到剪贴板',
+    searchHint: '支持按名称搜索或直接输入空间 ID',
+    switchSuccessContentWithRole: '你已进入 {name} · 身份 {role}',
   },
   chat: {
-    memoryUsedCount: '本次使用了 {count} 条记忆',
-    memoryForget: '删除这条记忆',
-    memoryForgotten: '已删除这条记忆',
-    memoryForgetFailed: '删除失败',
-    memoryHint: '这些是助手在回答时看到的长期记忆，删除后不会再被使用。',
     suggestedQuestions: '你可以这样问我',
     followUpQuestions: '继续问',
     followUpQuestionsLoading: '加载推荐问题',
-    refreshSuggestedQuestions: '换一批',
+    refreshSuggestedQuestions: '换一批推荐问题',
     thinking: '思考中...',
     thinkingAlt: '正在思考',
-    conversationTime: {
-      today: '今天 {time}',
-      yesterday: '昨天 {time}',
-      thisYear: '{month}月{day}日 {time}',
-      otherYear: '{year}年{month}月{day}日 {time}',
-    },
     preparingAnswer: '正在准备回答…',
     connectingModelAndGeneratingAnswer: '正在连接模型并生成回答…',
     modelStillResponding: '模型响应较慢，仍在等待…',
@@ -3306,9 +3785,6 @@ export default {
     referencesDrawerDocsSection: '知识库文档',
     referencesDrawerToolsSection: '工具',
     referencesDrawerEmpty: '暂无参考来源',
-    questionMinimapTitle: '问答',
-    questionMinimapAriaLabel: '提问目录',
-    questionMinimapAttachmentPlaceholder: '（附件）',
     referenceChunkCount: '{count}个片段',
     fallbackHint: '未从知识库中检索到相关内容，以上为模型直接回答',
     requestInfoTitle: '请求信息',
@@ -3420,7 +3896,80 @@ export default {
     attachmentReady: '解析完成',
     attachmentUploadFailed: '附件上传失败',
     attachmentParseFailed: '附件解析失败',
-    attachmentStillProcessing: '附件 {name} 仍在解析，请稍候'
+    attachmentStillProcessing: '附件 {name} 仍在解析，请稍候',
+    memoryUsedCount: '本次使用了 {count} 条记忆',
+    memoryForget: '删除这条记忆',
+    memoryForgotten: '已删除这条记忆',
+    memoryForgetFailed: '删除失败',
+    memoryHint: '这些是助手在回答时看到的长期记忆，删除后不会再被使用。',
+    conversationTime: {
+      today: '今天 {time}',
+      yesterday: '昨天 {time}',
+      thisYear: '{month}月{day}日 {time}',
+      otherYear: '{year}年{month}月{day}日 {time}',
+    },
+    questionMinimapTitle: '问答',
+    questionMinimapAriaLabel: '提问目录',
+    questionMinimapAttachmentPlaceholder: '（附件）',
+    title: '对话',
+    newChat: '新对话',
+    suggestedQuestionsLoading: '正在加载推荐问题...',
+    pharmacyExamples: '示例问题：',
+    pharmacyExample1: '阿莫西林的常见不良反应有哪些？',
+    pharmacyExample2: '请解释药物半衰期的概念及其临床意义',
+    pharmacyExample3: '头孢类抗生素的过敏反应如何处理？',
+    pharmacyExample4: '肝功能不全患者用药剂量如何调整？',
+    inputPlaceholder: '请输入您的消息...',
+    send: '发送',
+    regenerate: '重新生成',
+    copy: '复制',
+    delete: '删除',
+    reference: '引用',
+    noMessages: '暂无消息',
+    waitingForAnswer: '等待回答...',
+    cannotAnswer: '抱歉，我无法回答这个问题。',
+    summarizingAnswer: '总结答案中...',
+    loading: '加载中...',
+    referencedContent: '引用了 {count} 个相关资料',
+    deepThinking: '深度思考完成',
+    knowledgeBaseQandA: '知识库问答',
+    askKnowledgeBase: '向知识库提问',
+    sourcesCount: '{count} 个来源',
+    pleaseEnterContent: '请输入内容！',
+    pleaseUploadKnowledgeBase: '请先上传知识库！',
+    replyingPleaseWait: '正在回复，请稍后再试！',
+    createSessionFailed: '创建会话失败',
+    createSessionError: '创建会话出错',
+    unableToGetKnowledgeBaseId: '无法获取知识库ID',
+    summaryInProgress: '正在总结答案……',
+    referencesDrawerChipWeb: '{count} 条网页',
+    referencesDrawerChipDocs: '{count} 篇文档',
+    referencesDrawerChipMixed: '{count} 条来源',
+    referencesDrawerOpenWeb: '查看 {count} 条网页',
+    referencesDrawerOpenDocs: '查看 {count} 篇文档',
+    referencesDrawerOpenMixed: '查看 {count} 条来源',
+    referencesDrawerDocument: '知识库文档',
+    referencesDrawerTool: '工具结果',
+    referenceIconAlt: '参考内容图标',
+    graphDataHeader: '找到 {nodes} 个节点，{edges} 条关系',
+    graphNodesLabel: '节点',
+    graphRelationsLabel: '关系',
+    sqlQueryExecuted: '执行的 SQL 查询:',
+    sqlResultsLabel: '返回结果:',
+    rowsLabel: '行',
+    columnsLabel: '列',
+    documentTitleLabel: '文档标题:',
+    chunkCountLabel: '片段数量:',
+    documentStatusLabel: '处理状态:',
+    documentInfoSummaryLabel: '文档信息',
+    documentInfoCount: '成功 {count} / 请求 {requested}',
+    documentInfoErrors: '错误详情',
+    statusDescription: '状态说明',
+    statusIndexed: '文档已索引并可搜索',
+    statusSearchable: '可使用搜索工具查找文档内容',
+    statusChunkDetailAvailable: '可使用 get_chunk_detail 查看片段详情',
+    selectKnowledgeBaseWarning: '请至少选择一个知识库',
+    attachmentParseTimeout: '附件解析时间过长，请稍后重试',
   },
   knowledgeEditor: {
     titleCreate: '新建知识库',
@@ -3439,21 +3988,65 @@ export default {
         descriptionLanguageAuto: '自动跟随文档语言',
         customInstructionsLabel: '图片解析要求',
         customInstructionsDescription: '补充需要重点识别的视觉信息，OCR 和 Markdown 格式协议保持不变',
-        customInstructionsPlaceholder: '例如：重点识别设备铭牌、型号、告警代码和表格中的单位…'
+        customInstructionsPlaceholder: '例如：重点识别设备铭牌、型号、告警代码和表格中的单位…',
+        storageTitle: '存储配置',
+        storageTypeLabel: '存储类型',
+        storageTypeDescription: '选择多模态文件的存储方式（MinIO 或腾讯云 COS 二选一）',
+        storageTypeOptions: {
+          minio: 'MinIO',
+          cos: '腾讯云 COS',
+        },
+        minioDisabledWarning: 'MinIO 未启用，已自动切换到腾讯云 COS。如需使用 MinIO，请先在系统配置中启用 MinIO。',
+        minio: {
+          bucketLabel: 'Bucket 名称',
+          bucketDescription: 'MinIO 存储桶名称（必填）',
+          bucketPlaceholder: '选择或输入 Bucket 名称',
+          bucketHint: '选择已存在的公有读权限 Bucket，或输入新名称将自动创建',
+          policyLabels: {
+            public: '公有读',
+            private: '私有',
+            custom: '自定义',
+          },
+          useSslLabel: '使用 SSL',
+          useSslDescription: '是否使用 SSL 连接',
+          pathPrefixLabel: '路径前缀',
+          pathPrefixDescription: '文件存储路径前缀（可选）',
+          pathPrefixPlaceholder: '请输入路径前缀',
+        },
+        cos: {
+          secretIdLabel: 'SecretId',
+          secretIdDescription: '腾讯云 API 密钥 ID（必填）',
+          secretIdPlaceholder: '请输入 SecretId（必填）',
+          secretKeyLabel: 'SecretKey',
+          secretKeyDescription: '腾讯云 API 密钥 Key（必填）',
+          secretKeyPlaceholder: '请输入 SecretKey（必填）',
+          regionLabel: '地域',
+          regionDescription: 'COS 存储桶所在地域（必填）',
+          regionPlaceholder: '如：ap-guangzhou（必填）',
+          bucketLabel: 'Bucket 名称',
+          bucketDescription: 'COS 存储桶名称（必填）',
+          bucketPlaceholder: '请输入 Bucket 名称（必填）',
+          appIdLabel: 'AppId',
+          appIdDescription: '腾讯云应用 ID（必填）',
+          appIdPlaceholder: '请输入 AppId（必填）',
+          pathPrefixLabel: '路径前缀',
+          pathPrefixDescription: '文件存储路径前缀（可选）',
+          pathPrefixPlaceholder: '请输入路径前缀',
+        },
       },
       tableMetadataInstructions: {
         label: '表格元数据生成要求',
         description: '为 CSV/Excel 摘要补充业务背景和字段语义，帮助后续检索理解表格内容',
-        placeholder: '例如：这是销售订单表，金额单位为元，status 字段使用公司内部状态码…'
+        placeholder: '例如：这是销售订单表，金额单位为元，status 字段使用公司内部状态码…',
       },
       questionGeneration: {
         label: 'AI 问题生成',
         description: '解析文档时调用大模型为每个分块生成相关问题，提高检索召回率。启用后会增加文档解析耗时。',
         countLabel: '生成问题数量',
         countDescription: '每个文档分块生成的问题数量（1-10）',
-    instructionsLabel: '问题生成要求',
+        instructionsLabel: '问题生成要求',
         instructionsDescription: '指定问题面向的人群、场景和表达方式，系统仍维护稳定输出格式',
-        instructionsPlaceholder: '例如：生成客服用户常问的自然语言问题，避免考试题式表达…'
+        instructionsPlaceholder: '例如：生成客服用户常问的自然语言问题，避免考试题式表达…',
       },
       autoTag: {
         label: '自动关联标签',
@@ -3464,8 +4057,8 @@ export default {
         maxTagsLabel: '单篇文档最多标签数',
         maxTagsDescription: '每篇文档最多自动关联 1-10 个已有标签。',
         skipIfTaggedLabel: '跳过已有标签的文档',
-        skipIfTaggedDescription: '开启后，上传时已手动设置标签的文档不再自动打标签，避免覆盖人工分类意图。'
-      }
+        skipIfTaggedDescription: '开启后，上传时已手动设置标签的文档不再自动打标签，避免覆盖人工分类意图。',
+      },
     },
     asr: {
       title: '音频语音识别',
@@ -3477,11 +4070,11 @@ export default {
       modelPlaceholder: '请选择 ASR 模型',
       languageLabel: '音频语言提示',
       languageDescription: '可选；指定主要语种可提高部分 ASR 模型的识别稳定性，留空时自动检测',
-      languagePlaceholder: '例如 zh、en，留空自动检测'
+      languagePlaceholder: '例如 zh、en，留空自动检测',
     },
     multimodal: {
       title: '图像处理配置',
-      description: '配置图像内容理解能力，启用后支持图片等非文本内容的解析和检索'
+      description: '配置图像内容理解能力，启用后支持图片等非文本内容的解析和检索',
     },
     chunking: {
       title: '分块设置',
@@ -3525,7 +4118,7 @@ export default {
         fallbackWarning: '策略链已穷尽 — 当前设置无法智能分块此内容',
         stats: {
           chunks: '块',
-          truncated: '已截断；总数 {total}'
+          truncated: '已截断；总数 {total}',
         },
         profile: {
           lines: '行',
@@ -3533,37 +4126,37 @@ export default {
           headings: 'Markdown 标题',
           pageBreaks: '分页符',
           chapterMarkers: '章节标记',
-          languages: '语言'
+          languages: '语言',
         },
         samples: {
           markdown: 'Markdown 文档',
           faq: 'FAQ 列表',
           chapter: 'PDF 章节',
-          plain: '纯文本'
-        }
+          plain: '纯文本',
+        },
       },
       languageOptions: {
         de: '德语',
         en: '英语',
-        zh: '中文'
+        zh: '中文',
       },
       strategies: {
         legacy: {
           label: '按长度切分',
-          tooltip: '忽略结构，仅按字符数和分隔符递归切分——原始行为。当上述策略对你的内容效果不佳时使用。'
+          tooltip: '忽略结构，仅按字符数和分隔符递归切分——原始行为。当上述策略对你的内容效果不佳时使用。',
         },
         heuristic: {
           label: '结构感知',
-          tooltip: '识别分页符、编号章节、多语言章节标记（DE/EN/ZH）、全大写标题等结构信号进行切分。适合没有 Markdown 标题的 PDF / 扫描件。'
+          tooltip: '识别分页符、编号章节、多语言章节标记（DE/EN/ZH）、全大写标题等结构信号进行切分。适合没有 Markdown 标题的 PDF / 扫描件。',
         },
         heading: {
           label: '按标题切分',
-          tooltip: '在 Markdown 标题（#、##、###）边界处切分，每块自动带上所在标题路径。适合结构清晰的 Markdown 文档。'
+          tooltip: '在 Markdown 标题（#、##、###）边界处切分，每块自动带上所在标题路径。适合结构清晰的 Markdown 文档。',
         },
         auto: {
           label: '自动',
-          tooltip: '文档分析器根据内容结构自动在「按标题切分」「结构感知」「按长度切分」之间选择。'
-        }
+          tooltip: '文档分析器根据内容结构自动在「按标题切分」「结构感知」「按长度切分」之间选择。',
+        },
       },
       separators: {
         doubleNewline: '双换行 (\\n\\n)',
@@ -3573,8 +4166,8 @@ export default {
         questionCn: '问号 (？)',
         semicolonCn: '中文分号 (；)',
         semicolonEn: '英文分号 (;)',
-        space: '空格 ( )'
-      }
+        space: '空格 ( )',
+      },
     },
     models: {
       title: '模型配置',
@@ -3587,14 +4180,17 @@ export default {
       embeddingPlaceholder: '请选择 Embedding 模型',
       embeddingLocked: '知识库中已有文件，无法修改 Embedding 模型',
       embeddingOptional: '（可选）',
-      embeddingWikiOptionalDesc: '可选。配置后用于 Wiki 目录归类的相似度匹配，让新页面更好地复用已有目录；不配置则按完整目录树归类。'
+      embeddingWikiOptionalDesc: '可选。配置后用于 Wiki 目录归类的相似度匹配，让新页面更好地复用已有目录；不配置则按完整目录树归类。',
+      rerankLabel: 'ReRank 重排序模型',
+      rerankDesc: '用于搜索结果重排序的模型（可选）',
+      rerankPlaceholder: '请选择 ReRank 模型（可选）',
     },
     faqExport: {
-      exportButton: '导出',
+      exportButton: '导出 CSV',
       exportCSV: '导出 CSV',
       exportJSON: '导出 JSON',
       exportSuccess: '导出成功',
-      exportFailed: '导出失败'
+      exportFailed: '导出失败',
     },
     faqImport: {
       title: '批量导入 FAQ',
@@ -3617,7 +4213,8 @@ export default {
       downloadExample: '下载示例文件',
       downloadExampleJSON: '下载 JSON 示例',
       downloadExampleCSV: '下载 CSV 示例',
-      downloadExampleExcel: '下载 Excel 示例'
+      downloadExampleExcel: '下载 Excel 示例',
+      deleteSelected: '批量删除',
     },
     faq: {
       title: '问答',
@@ -3665,7 +4262,6 @@ export default {
       similarityThresholdLabel: '相似度阈值',
       statusEnabled: '已启用',
       statusDisabled: '已禁用',
-      statusEnableSuccess: 'FAQ 条目已启用',
       statusDisableSuccess: 'FAQ 条目已禁用',
       statusUpdateFailed: '更新状态失败',
       recommended: '推荐',
@@ -3675,21 +4271,39 @@ export default {
       recommendedUpdateFailed: '更新推荐状态失败',
       batchUpdateTag: '批量设置标签',
       batchUpdateTagTip: '将为 {count} 个选中的条目设置标签',
+      modes: {
+        questionOnly: '仅标准问/相似问',
+        questionAnswer: '标准问 + 答案',
+        combined: '合并索引',
+        separate: '分别索引',
+      },
+      statusEnableSuccess: 'FAQ 条目已启用',
       batchEnable: '批量启用',
       batchDisable: '批量禁用',
       batchDelete: '批量删除',
       confirmBatchDelete: '确认删除选中的 {count} 个 FAQ 条目？删除后将无法恢复。',
       batchDeleteSuccess: '已删除 {count} 个 FAQ 条目',
-      modes: {
-        questionOnly: '仅标准问/相似问',
-        questionAnswer: '标准问 + 答案',
-        combined: '合并索引',
-        separate: '分别索引'
-      }
+      categoryLabel: 'FAQ 标签',
+      categoryButton: '切换标签',
+      addAnswer: '添加答案',
+      noAnswer: '暂无答案',
+      noSimilar: '暂无相似问',
+      noNegative: '暂无反例',
+      addFaq: '添加FAQ',
+      manageFaq: 'FAQ操作',
+      vectorThresholdLabel: '向量相似度阈值',
+      keywordThresholdLabel: '关键词匹配阈值',
+      keywordThresholdDesc: '范围 0-1，默认 0.5',
+      score: '相似度',
+      matchType: '匹配类型',
+      recommendedEnableSuccess: 'FAQ 条目已开启推荐',
+      batchOperations: '批量操作',
+      batchEnableRecommended: '批量开启推荐',
+      batchDisableRecommended: '批量关闭推荐',
     },
     document: {
       title: '文档',
-      subtitle: '支持点击或拖拽上传，多格式文档自动解析并智能分块，快速构建可检索的知识库'
+      subtitle: '支持点击或拖拽上传，多格式文档自动解析并智能分块，快速构建可检索的知识库',
     },
     messages: {
       loadModelsFailed: '加载模型列表失败',
@@ -3704,7 +4318,8 @@ export default {
       buildDataFailed: '数据构建失败',
       updateSuccess: '配置保存成功',
       indexModeRequired: '请选择 FAQ 的索引方式',
-      storageChangeConfirm: '知识库中已有文件，更改存储引擎后旧文件可能无法正常访问。是否确认更改？'
+      storageChangeConfirm: '知识库中已有文件，更改存储引擎后旧文件可能无法正常访问。是否确认更改？',
+      embeddingRequired: '请选择 Embedding 模型',
     },
     share: {
       description: '将知识库共享给空间，让空间成员可以访问和使用',
@@ -3712,7 +4327,7 @@ export default {
       addShare: '共享',
       unshareConfirm: '确定要取消对「{name}」的共享吗？',
       tip1: '共享后，空间成员将根据设定的权限访问此知识库',
-      tip2: '可编辑权限允许成员修改知识库内容，只读权限仅允许检索和问答'
+      tip2: '可编辑权限允许成员修改知识库内容，只读权限仅允许检索和问答',
     },
     buttons: {
       create: '创建知识库',
@@ -3823,7 +4438,6 @@ export default {
       filterConcept: '概念',
       filterSynthesis: '综合',
       filterComparison: '对比',
-      legendFamiliar: '你常用的资料',
       emptyTitle: '暂无 Wiki 页面',
       emptyDesc: '上传文档并启用 Wiki 后将自动生成知识页面',
       selectPageHint: '从左侧选择一个页面查看内容',
@@ -3893,7 +4507,25 @@ export default {
       issueFixSingle: '修复',
       fixStartError: '启动修复助手失败',
       issueFixPromptSingle: '请修复页面 [[{slug}]] 上的问题 (ID: {id})。',
-      issueFixPromptAutoStart: '请修复页面 [[{slug}]] 上的以下问题：'
+      issueFixPromptAutoStart: '请修复页面 [[{slug}]] 上的以下问题：',
+      legendFamiliar: '你常用的资料',
+      tabWiki: 'Wiki',
+      loadMore: '加载更多（还剩 {remaining} 条）',
+      filterAll: '全部类型',
+      newFolder: '新建目录',
+      dropToRoot: '拖到空白处移动到根目录',
+      viewReader: '阅读器',
+      viewGraph: '图谱',
+      stats: '{pages} 个页面 · {links} 个链接',
+      linksTo: '链接到',
+      recentActivity: '最近活动',
+      logTitle: '日志',
+      logFeedTag: '事件流',
+      logEmpty: '暂无日志记录',
+      logLoading: '加载中…',
+      logLoadMore: '加载更多',
+      healthCheck: '健康检查',
+      issueFixPromptAutoEnd: '',
     },
     indexing: {
       title: '索引策略',
@@ -3910,7 +4542,8 @@ export default {
       rebuildConfirmTitle: '重建索引',
       rebuildConfirmBody: '索引策略已变更，是否对已有的 {count} 篇文档重新处理？这可能需要一些时间。',
       rebuildSuccess: '已提交重建任务，共 {count} 篇文档',
-      rebuildSkip: '稍后可在数据源中手动触发重建'
+      rebuildSkip: '稍后可在数据源中手动触发重建',
+      wikiModelRequired: 'Wiki 知识库需要配置合成模型',
     },
     wiki: {
       title: 'Wiki 设置',
@@ -3930,7 +4563,11 @@ export default {
       granularityExhaustive: '详尽',
       granularityFocusedHint: '只抽取文档的主角（如简历 → 人物和项目）。最干净，但可能漏掉次要实体。',
       granularityStandardHint: '抽取主角 + 被详细描述的次要实体/概念。跳过一带而过的通用名词。适合大多数场景。',
-      granularityExhaustiveHint: '抽取所有可识别的命名实体与概念，包括一带而过的技术栈。适合将知识库当作术语表使用。'
+      granularityExhaustiveHint: '抽取所有可识别的命名实体与概念，包括一带而过的技术栈。适合将知识库当作术语表使用。',
+      description: '配置 Wiki 知识库的自动生成偏好',
+      languageLabel: 'Wiki 语言',
+      maxPagesLabel: '单次最大页面数',
+      maxPagesTip: '每次 Ingest 最多创建/更新的页面数（0 表示不限制）',
     },
     basic: {
       title: '基本信息',
@@ -3944,11 +4581,11 @@ export default {
       nameLabel: '知识库名称',
       namePlaceholder: '请输入知识库名称',
       descriptionLabel: '知识库描述',
-      descriptionPlaceholder: '请输入知识库描述（可选）'
+      descriptionPlaceholder: '请输入知识库描述（可选）',
     },
     errors: {
       vectorStoreBindingInvalid: '无法使用所选向量存储。请选择其他存储或使用系统默认值。',
-      vectorStoreUnavailable: '所选向量存储当前不可用。请在设置 → 向量存储中检查其连接配置。'
+      vectorStoreUnavailable: '所选向量存储当前不可用。请在设置 → 向量存储中检查其连接配置。',
     },
     sidebar: {
       basic: '基本信息',
@@ -3963,14 +4600,19 @@ export default {
       asr: '音频处理',
       datasource: '数据源',
       share: '共享管理',
-      activity: '活动记录'
+      activity: '活动记录',
+      wiki: 'Wiki 设置',
+      indexing: '索引策略',
     },
     navGroups: {
       basic: '基础',
       processing: '索引与解析',
       data: '存储与数据',
       integration: '发布集成',
-      management: '管理与审计'
+      management: '管理与审计',
+      models: '模型与存储',
+      advanced: '解析与处理',
+      extra: '数据源与共享',
     },
     activity: {
       title: '活动记录',
@@ -4007,7 +4649,7 @@ export default {
         editor: '可编辑',
         admin: '管理',
         append: '追加',
-        replace: '覆盖'
+        replace: '覆盖',
       },
       outcomes: {
         accepted: '已受理',
@@ -4015,7 +4657,7 @@ export default {
         failed: '失败',
         partial: '部分完成',
         canceled: '已取消',
-        denied: '已拒绝'
+        denied: '已拒绝',
       },
       actions: {
         'kb.created': '创建知识库',
@@ -4051,7 +4693,7 @@ export default {
         'wiki.content_changed': '更新 Wiki 内容',
         'faq.import_started': '开始导入 FAQ',
         'faq.import_completed': '完成导入 FAQ',
-        'faq.import_failed': '导入 FAQ 失败'
+        'faq.import_failed': '导入 FAQ 失败',
       },
       detailFields: {
         task_id: '任务 ID',
@@ -4067,7 +4709,7 @@ export default {
         processed: '已处理',
         failed: '失败数',
         skipped: '跳过数',
-        failure_stage: '失败阶段'
+        failure_stage: '失败阶段',
       },
       targets: {
         knowledge_base: '知识库',
@@ -4077,28 +4719,28 @@ export default {
         data_source: '数据源',
         knowledge_base_share: '共享',
         knowledge_move: '知识移动',
-        wiki: 'Wiki'
+        wiki: 'Wiki',
       },
       drawer: {
         sectionSummary: '摘要',
         sectionIdentifiers: '标识符',
         sectionTask: '任务信息',
-        targetChange: '变更详情'
+        targetChange: '变更详情',
       },
       expanded: {
         targetType: '对象类型',
         targetId: '对象 ID',
         actorId: '发起人 ID',
-        details: '详情'
+        details: '详情',
       },
       columns: {
         time: '时间',
         action: '操作',
         target: '对象',
         actor: '发起人',
-        outcome: '结果'
-      }
-    }
+        outcome: '结果',
+      },
+    },
   },
   embedPublish: {
     create: '新建嵌入渠道',
@@ -4225,7 +4867,43 @@ export default {
     deleteConfirm: '确定删除该嵌入渠道？已部署的网站代码将失效。',
     defaultLocale: '默认语言',
     defaultLocaleDesc: '访客打开聊天时使用的界面语言；留空则跟随浏览器或宿主页面通过 Widget 设置的 locale。',
-    defaultLocaleBrowser: '跟随浏览器 / 宿主'
+    defaultLocaleBrowser: '跟随浏览器 / 宿主',
+    title: '网页嵌入',
+    description: '将智能体嵌入到您的网页，访客可通过页面内聊天窗口或右下角浮窗发起对话。',
+    unnamed: '未命名渠道',
+    agent: '智能体',
+    rateLimit: '限流',
+    rateLimitUnit: '次/分钟',
+    rotateToken: '轮换 Token',
+    rotatePublishToken: '轮换发布 Token',
+    delete: '删除',
+    edit: '编辑',
+    editTitle: '编辑嵌入渠道',
+    originsLabel: '域名白名单（每行一个，至少填写一个）',
+    originsCount: '{n} 个域名',
+    debug: '调试预览',
+    createdDebugHint: '嵌入渠道已创建，可点击「调试预览」在新标签页体验',
+    tokenRotated: '渠道密钥已重置',
+    publishToken: '渠道密钥',
+    publishTokenHelp: '渠道密钥（em_…）是嵌入渠道的长期密钥，相当于 API Key。打开渠道详情即可查看并复制；重置后旧密钥立即失效。',
+    sessionTokenHelp: '访客打开聊天后，iframe 会用渠道密钥换取短期会话凭证（ems_…，约 30 分钟），后续请求使用会话凭证，避免在 URL 中长期暴露渠道密钥。',
+    rotateTokenHelp: '重置会作废旧渠道密钥，所有已部署的嵌入代码需同步更新，否则第三方站点将无法访问。',
+    revealToken: '显示',
+    hideToken: '隐藏',
+    copyToken: '复制渠道密钥',
+    channelsPanelIntro: '为 Agent 创建独立的网页嵌入渠道，配置外观与安全策略后部署到您的网站。',
+    allowMemory: '允许记忆',
+    allowMemoryDesc: '开启后，匿名访客可在同一会话内保留上下文记忆；访客清除浏览器数据或新建对话后记忆会丢失。默认关闭。',
+    secureModeDocHint: '完整集成说明见项目文档 docs/embed-secure-mode.md',
+    deployStepToken: '渠道密钥',
+    deployStepTokenDesc: '长期密钥（em_…），相当于 API Key。创建或重置时仅在本页显示，请妥善保存。',
+    secureServerCode: '服务端示例代码',
+    sectionBasic: '基本设置',
+    sectionToken: '渠道密钥',
+    sectionEmbed: '嵌入代码',
+    rotateConfirmTitle: '确认重置渠道密钥？',
+    rotateConfirmBody: '重置后旧渠道密钥立即失效，已部署的嵌入代码需同步更新。',
+    sessionCountLabel: '{n} 个会话',
   },
   knowledgeList: {
     create: '新建知识库',
@@ -4240,13 +4918,13 @@ export default {
       completedDetail: '共上传 {total} 个文件，正在刷新列表查看解析状态...',
       refreshing: '正在刷新列表并获取最新解析状态...',
       errorTip: '部分文件上传失败，请查看右上角通知详情。',
-      unknownKb: '知识库 {id}'
+      unknownKb: '知识库 {id}',
     },
     features: {
       knowledgeGraph: '知识图谱',
       multimodal: '多模态',
       questionGeneration: '问题生成',
-      wiki: 'Wiki'
+      wiki: 'Wiki',
     },
     detail: {
       title: '共享知识库',
@@ -4261,13 +4939,25 @@ export default {
       agentKbStrategyNone: '不使用知识库',
       sharedAt: '共享时间',
       myPermission: '我的权限',
-      goToKb: '进入知识库'
+      goToKb: '进入知识库',
+      overview: '概览',
+      overviewDesc: '查看知识库基本信息和来源',
+      permission: '权限',
+      permissionDesc: '查看您在此知识库的操作权限',
+      canEdit: '可以编辑知识库内容',
+      canView: '可以查看知识库内容',
+      canSearch: '可以搜索和使用知识库',
+      enabled: '已启用',
+      disabled: '未启用',
     },
     messages: {
       deleted: '已删除',
       deleteFailed: '删除失败',
       duplicateSuccess: '知识库副本已创建（不包含知识内容）',
-      duplicateFailed: '创建知识库副本失败'
+      duplicateFailed: '创建知识库副本失败',
+      file: '文件',
+      knowledgeBase: '知识库',
+      noResult: '无结果',
     },
     sections: {
       pinned: '置顶',
@@ -4276,23 +4966,23 @@ export default {
       tenantReadonly: '本空间 · 仅查看',
       sharedByMe: '我共享的',
       sharedEditable: '共享给我 · 可编辑',
-      sharedReadonly: '共享给我 · 仅查看'
+      sharedReadonly: '共享给我 · 仅查看',
     },
     pin: {
       pin: '置顶',
       unpin: '取消置顶',
       pinSuccess: '已置顶',
       unpinSuccess: '已取消置顶',
-      failed: '操作失败'
+      failed: '操作失败',
     },
     menu: {
       viewDetails: '查看详情',
-      duplicate: '创建副本'
+      duplicate: '创建副本',
     },
     delete: {
       confirmTitle: '删除确认',
       confirmMessage: '确认要删除知识库"{name}"？删除后不可恢复',
-      confirmButton: '确认删除'
+      confirmButton: '确认删除',
     },
     empty: {
       title: '暂无知识库',
@@ -4302,23 +4992,46 @@ export default {
       favoritesTitle: '暂无收藏',
       favoritesDescription: '在知识库卡片右上角点击星标即可收藏',
       recentsTitle: '暂无最近访问',
-      recentsDescription: '最近打开过的知识库会出现在这里'
-    }
+      recentsDescription: '最近打开过的知识库会出现在这里',
+    },
+    createShort: '新建',
+    createFAQ: '新建 FAQ 知识库',
+    setColor: '设置颜色',
+    myKnowledgeBases: '我的知识库',
+    sharedKnowledgeBases: '共享的知识库',
+    sharedLabel: '共享',
+    myLabel: '我的',
+    fromAgent: '来自智能体 {name}',
+    fromAgentShort: '智能体: {name}',
+    tabs: {
+      all: '全部',
+      myKnowledgeBases: '我的知识库',
+      sharedToMe: '共享给我',
+    },
+    emptyShared: '暂无协作知识库，可以加入共享空间获取他人共享的知识库',
+    processing: '正在处理导入任务',
+    processingDocuments: '正在处理 {count} 个文档',
+    stats: {
+      documents: '文档数量',
+      faqEntries: '问答条目',
+      chunks: '分块数量',
+    },
   },
   createChat: {
-    title: 'Hi，我是 WeKnora，让你的知识触手可及',
+    title: 'Hi，我是药小知',
     newSessionTitle: '新会话',
     messages: {
       createFailed: '创建会话失败',
-      createError: '创建会话失败，请稍后重试'
-    }
+      createError: '创建会话失败，请稍后重试',
+      selectKnowledgeBase: '请先选择知识库',
+    },
   },
   input: {
     addModel: '添加模型',
-    placeholder: '直接向模型提问',
-    placeholderWithContext: '输入问题，将基于上方选中的知识库/文件回答',
-    placeholderWebOnly: '输入问题，将结合网络搜索回答',
-    placeholderKbAndWeb: '输入问题，将基于知识库和网络搜索回答',
+    placeholder: '放心向我提问，我会基于你的知识库给你想要的答案',
+    placeholderWithContext: '放心向我提问，我会基于你的知识库给你想要的答案',
+    placeholderWebOnly: '放心向我提问，我会基于网络搜索给你想要的答案',
+    placeholderKbAndWeb: '放心向我提问，我会基于你的知识库和网络搜索给你想要的答案',
     placeholderAgent: '向 {name} 提问',
     agentMode: '智能推理',
     normalMode: '快速问答',
@@ -4357,13 +5070,30 @@ export default {
       sessionMissing: '会话 ID 不存在',
       messageMissing: '无法获取消息 ID，请刷新页面后重试',
       stopSuccess: '已停止生成',
-      stopFailed: '停止失败，请重试'
+      stopFailed: '停止失败，请重试',
+      selectKnowledge: '请先选择知识库!',
+      agentEnabled: 'Agent 模式已启用',
+      agentDisabled: 'Agent 模式已禁用',
+      agentNotReadyDetail: 'Agent 未就绪，需要配置以下内容：{reasons}',
     },
     webSearch: {
       toggleOn: '开启网络搜索',
       toggleOff: '关闭网络搜索',
-      notConfigured: '未配置网络搜索引擎'
-    }
+      notConfigured: '未配置网络搜索引擎',
+    },
+    agentNotReadyTooltip: 'Agent 未就绪，请先在设置中完成配置',
+    goToSettings: '前往设置 →',
+    customAgentNotReadyTooltip: '智能体未就绪，请先完成配置',
+    customAgentNotReadyDetail: '智能体未就绪，需要配置以下内容：{reasons}',
+    builtinAgentNotReadyDetail: '内置智能体「{agentName}」未就绪，需要配置以下内容：{reasons}',
+    builtinAgentSettingName: '智能推理',
+    builtinNormalSettingName: '快速问答',
+    model: '模型',
+    remote: '远程',
+    thinkingLabel: 'Thinking:',
+    webSearchForcedByAgent: '当前智能体已启用网络搜索，无法关闭',
+    cannotRemoveAgentKb: '智能体配置的知识库无法移除',
+    agentConfiguredKb: '由智能体配置，不可删除',
   },
   manualEditor: {
     description: '使用 Markdown 编写知识内容，支持实时预览',
@@ -4372,55 +5102,57 @@ export default {
     actions: {
       cancel: '取消',
       saveDraft: '暂存草稿',
-      publish: '发布入库'
+      publish: '发布入库',
     },
     loading: {
       content: '正在加载内容',
-      preparing: '正在准备编辑器'
+      preparing: '正在准备编辑器',
     },
     status: {
       draftTag: '当前状态：草稿',
       publishedTag: '当前状态：已发布',
-      lastUpdated: '最近更新：{time}'
+      lastUpdated: '最近更新：{time}',
     },
     form: {
       knowledgeBaseLabel: '目标知识库',
       knowledgeBasePlaceholder: '请选择知识库',
       titleLabel: '知识标题',
       titlePlaceholder: '请输入标题',
-      contentPlaceholder: '支持 Markdown 语法，可使用 # 标题、列表、代码块等'
+      contentPlaceholder: '支持 Markdown 语法，可使用 # 标题、列表、代码块等',
     },
     success: {
       draftSaved: '草稿已保存',
-      published: '知识已发布并开始索引'
+      published: '知识已发布并开始索引',
     },
     warning: {
       selectKnowledgeBase: '请选择目标知识库',
       enterTitle: '请输入知识标题',
       enterContent: '请输入知识内容',
-      contentTooShort: '内容过短，建议补充更多信息后再发布'
+      contentTooShort: '内容过短，建议补充更多信息后再发布',
     },
     error: {
       fetchDetailFailed: '获取知识详情失败',
-      saveFailed: '保存失败，请稍后重试'
+      saveFailed: '保存失败，请稍后重试',
     },
     labels: {
-      currentKnowledgeBase: '当前知识库'
+      currentKnowledgeBase: '当前知识库',
     },
     section: {
       basic: '基本信息',
-      content: '知识内容'
+      content: '知识内容',
     },
     title: {
       edit: '编辑 Markdown 知识',
-      create: '在线编辑 Markdown 知识'
+      create: '在线编辑 Markdown 知识',
     },
     preview: {
-      empty: '暂无内容'
+      empty: '暂无内容',
     },
     view: {
       editLabel: '返回编辑',
-      previewLabel: '预览内容'
+      previewLabel: '预览内容',
+      toggleToEdit: '切换到编辑视图',
+      toggleToPreview: '切换到预览视图',
     },
     toolbar: {
       bold: '加粗',
@@ -4438,12 +5170,12 @@ export default {
       link: '插入链接',
       image: '插入图片',
       table: '插入表格',
-      horizontalRule: '分割线'
+      horizontalRule: '分割线',
     },
     table: {
       column1: '列1',
       column2: '列2',
-      cell: '内容'
+      cell: '内容',
     },
     placeholders: {
       heading: '标题{level}',
@@ -4456,11 +5188,21 @@ export default {
       bold: '加粗文本',
       italic: '斜体文本',
       strike: '删除线',
-      inlineCode: 'code'
-    }
+      inlineCode: 'code',
+    },
   },
   file: {
-    upload: '上传文件'
+    upload: '上传文件',
+    uploadSuccess: '文件上传成功',
+    uploadFailed: '文件上传失败',
+    delete: '删除文件',
+    deleteSuccess: '文件删除成功',
+    deleteFailed: '文件删除失败',
+    download: '下载文件',
+    preview: '预览',
+    unsupportedFormat: '不支持的文件格式',
+    maxSizeExceeded: '文件大小超过限制',
+    selectFile: '选择文件',
   },
   mentionDetail: {
     readOnlyFromAgent: '仅在此对话中只读，不显示在知识库列表中',
@@ -4468,7 +5210,7 @@ export default {
     kbCount: '共 {count} 个文档',
     belongsToKb: '所属知识库：',
     belongsToOrg: '所属空间：',
-    noCompatibleKbForAgent: '当前智能体的工具与作用域内知识库的能力不匹配，暂无可引用的知识库。'
+    noCompatibleKbForAgent: '当前智能体的工具与作用域内知识库的能力不匹配，暂无可引用的知识库。',
   },
   common: {
     add: '添加',
@@ -4480,7 +5222,6 @@ export default {
     edit: '编辑',
     copy: '复制',
     copied: '已复制',
-    copySuccess: '复制成功',
     default: '默认',
     create: '创建',
     download: '下载',
@@ -4488,7 +5229,6 @@ export default {
     loading: '加载中...',
     noData: '暂无数据',
     noMoreData: '已加载全部内容',
-    loadMore: '加载更多',
     error: '错误',
     success: '成功',
     failed: '失败',
@@ -4509,32 +5249,45 @@ export default {
     on: '开启',
     off: '关闭',
     confirmDelete: '确认删除',
-    createSuccess: '创建成功',
     deleteSuccess: '删除成功',
     deleteFailed: '删除失败',
-    updateSuccess: '更新成功',
     saveSuccess: '保存成功',
     saveFailed: '保存失败',
-    operationFailed: '操作失败',
     file: '文件',
-    skill: '技能',
     knowledgeBase: '知识库',
     noResult: '无结果',
     remove: '移除',
-    avatar: '头像',
     defaultUser: '用户',
     copyFailed: '复制失败',
     retry: '重试',
     expand: '展开',
-    collapse: '收起'
+    collapse: '收起',
+    copySuccess: '复制成功',
+    loadMore: '加载更多',
+    createSuccess: '创建成功',
+    updateSuccess: '更新成功',
+    operationFailed: '操作失败',
+    skill: '技能',
+    avatar: '头像',
+    search: '搜索',
+    filter: '筛选',
+    export: '导出',
+    import: '导入',
+    upload: '上传',
+    warning: '警告',
+    ok: '确定',
+    reset: '重置',
+    chromeExtension: 'Chrome 插件',
+    newBadge: 'New',
+    resetToDefault: '恢复默认',
   },
   authStore: {
     errors: {
       parseUserFailed: '解析用户信息失败',
       parseTenantFailed: '解析空间信息失败',
       parseKnowledgeBasesFailed: '解析知识库列表失败',
-      parseCurrentKnowledgeBaseFailed: '解析当前知识库失败'
-    }
+      parseCurrentKnowledgeBaseFailed: '解析当前知识库失败',
+    },
   },
   auth: {
     login: '登录',
@@ -4560,8 +5313,8 @@ export default {
     firstTime: '首次使用 WeKnora？',
     registerSuccess: '注册成功，请登录',
     registerFailed: '注册失败',
-    subtitle: 'RAG 问答、ReAct 智能体与 Wiki 知识库，大模型驱动的企业级知识框架',
-    registerSubtitle: '创建账户并开始使用 WeKnora',
+    subtitle: '覆盖临床试验、监管政策、产业动态与全球法规等多维药学数据，融合 GraphRAG 与 Agentic RAG 推理引擎，实现可推理、可溯源的智能问答。',
+    registerSubtitle: '注册后系统将为您创建专属空间',
     emailPlaceholder: '输入邮箱地址',
     passwordPlaceholder: '输入密码',
     confirmPasswordPlaceholder: '再次输入密码',
@@ -4572,10 +5325,7 @@ export default {
     passwordMinLength: '密码至少8个字符',
     passwordMaxLength: '密码不能超过32个字符',
     passwordMustContainLetter: '密码必须包含字母',
-    passwordMustContainLowercaseLetter: '密码必须包含小写字母',
-    passwordMustContainUppercaseLetter: '密码必须包含大写字母',
     passwordMustContainNumber: '密码必须包含数字',
-    passwordMustContainSpecialChar: '密码必须包含特殊字符：{specialChars}',
     usernameRequired: '请输入用户名',
     usernameMinLength: '用户名至少2个字符',
     usernameMaxLength: '用户名不能超过20个字符',
@@ -4587,7 +5337,6 @@ export default {
     registerError: '注册错误，请稍后重试',
     workspaceOnboarding: {
       title: '选择你的工作空间',
-      description: '创建一个空间即可开始使用，或接受邀请加入已有空间。',
       create: '创建空间',
       invitations: '查看邀请',
       loadingPolicy: '正在确认可用的空间加入方式…',
@@ -4596,14 +5345,31 @@ export default {
       inviteOnlyTitle: '等待加入工作空间',
       inviteOnlyDescription: '当前系统不开放个人创建空间。你可以查看并接受管理员发来的空间邀请。',
       inviteOnlyNotice: '此账户只能通过邀请加入已有空间',
-      help: '你现在可以创建空间，也可以稍后回来接受邀请。',
-      inviteOnlyHelp: '还没有邀请？请把你的注册邮箱提供给空间管理员，由管理员向你发送邀请。'
-    }
+      inviteOnlyHelp: '还没有邀请？请把你的注册邮箱提供给空间管理员，由管理员向你发送邀请。',
+      description: '你的账户尚未加入任何空间。你可以创建一个新空间，或接受管理员发来的邀请。',
+      help: '如果这里没有可用邀请，请联系系统管理员将你加入现有空间。',
+    },
+    passwordMustContainLowercaseLetter: '密码必须包含小写字母',
+    passwordMustContainUppercaseLetter: '密码必须包含大写字母',
+    passwordMustContainSpecialChar: '密码必须包含特殊字符：{specialChars}',
+    rememberMe: '记住我',
+    forgotPassword: '忘记密码？',
+    loginSuccess: '登录成功！',
+    loginSuccessContentWithRole: '欢迎，你已进入 {name} · 身份 {role}',
+    loginFailed: '登录失败',
+    noAuthMethod: '暂无可用的登录方式，请联系管理员',
+    oidcStateMismatch: 'OIDC 状态校验失败，请重试',
+    casLogin: '使用 CAS 登录',
+    casLoginWithProvider: '使用 {provider} 登录',
+    redirectingToCAS: '正在跳转到 CAS...',
+    casLoginFailed: 'CAS 登录失败',
+    noAccount: '还没有账户？',
+    registerNow: '立即注册',
+    forgotPasswordNotAvailable: '密码找回功能暂不可用，请联系管理员',
   },
   inviteRegister: {
     bannerTitle: '您被邀请加入「{tenant}」',
     bannerHint: '填写下方信息完成注册，注册成功后将自动加入该团队。',
-    bannerHintLogin: '登录后将自动加入该团队。',
     loading: '正在校验邀请链接…',
     invalidTitle: '邀请链接无效或已撤销',
     invalidBody: '请联系邀请人重新发送链接，或前往登录使用现有账号。',
@@ -4611,7 +5377,7 @@ export default {
     title: '完成注册',
     subtitle: '您被邀请加入「{tenant}」',
     email: '邮箱',
-    emailPlaceholder: 'your{\'@\'}example.com',
+    emailPlaceholder: 'your@example.com',
     emailHint: '用您自己的邮箱注册即可。',
     emailInvalid: '请输入有效的邮箱地址',
     username: '姓名',
@@ -4622,15 +5388,207 @@ export default {
     submit: '完成注册',
     submitting: '提交中…',
     success: '注册成功，正在进入工作空间…',
-    joined: '已加入该团队',
     failed: '注册失败，请稍后重试',
     usernameRequired: '请输入姓名',
     passwordTooShort: '密码至少 6 位',
-    passwordMismatch: '两次输入的密码不一致'
+    passwordMismatch: '两次输入的密码不一致',
+    bannerHintLogin: '登录后将自动加入该团队。',
+    joined: '已加入该团队',
   },
   initialization: {
     skip: '跳过',
-    next: '下一步'
+    next: '下一步',
+    title: '初始化',
+    welcome: '欢迎使用WeKnora',
+    description: '请先配置系统以开始使用',
+    step1: '步骤1：配置LLM模型',
+    step2: '步骤2：配置嵌入模型',
+    step3: '步骤3：配置其他模型',
+    complete: '完成初始化',
+    previous: '上一步',
+    ollamaServiceStatus: 'Ollama服务状态',
+    refreshStatus: '刷新状态',
+    ollamaServiceAddress: 'Ollama服务地址',
+    notConfigured: '未配置',
+    notRunning: '未运行',
+    normal: '正常',
+    installedModels: '已安装模型',
+    none: '暂无',
+    knowledgeBaseInfo: '知识库信息',
+    knowledgeBaseName: '知识库名称',
+    knowledgeBaseNamePlaceholder: '输入知识库名称',
+    knowledgeBaseDescription: '知识库描述',
+    knowledgeBaseDescriptionPlaceholder: '输入知识库描述',
+    llmModelConfig: 'LLM大语言模型配置',
+    modelSource: '模型来源',
+    local: 'Ollama（本地）',
+    remote: 'Remote API（远程）',
+    modelName: '模型名称',
+    modelNamePlaceholder: '例如：qwen3:0.6b',
+    baseUrl: 'Base URL',
+    baseUrlPlaceholder: '例如：https://api.openai.com/v1，去掉URL末尾的/chat/completions部分',
+    apiKey: 'API Key（可选）',
+    apiKeyPlaceholder: '输入API Key（可选）',
+    downloadModel: '下载模型',
+    installed: '已安装',
+    notInstalled: '未安装',
+    notChecked: '未检查',
+    checkConnection: '检查连接',
+    connectionNormal: '连接正常',
+    connectionFailed: '连接失败',
+    checkingConnection: '正在检查连接',
+    embeddingModelConfig: '嵌入模型配置',
+    embeddingWarning: '知识库已有文件，无法更改嵌入模型配置',
+    dimension: '维度',
+    dimensionPlaceholder: '输入向量维度',
+    detectDimension: '检测维度',
+    rerankModelConfig: '重排序模型配置',
+    enableRerank: '启用重排序模型',
+    multimodalConfig: '多模态配置',
+    enableMultimodal: '启用图像信息提取',
+    visualLanguageModelConfig: '视觉语言模型配置',
+    interfaceType: '接口类型',
+    openaiCompatible: 'OpenAI兼容接口',
+    storageServiceConfig: '存储服务配置',
+    storageType: '存储类型',
+    bucketName: 'Bucket名称',
+    bucketNamePlaceholder: '输入Bucket名称',
+    pathPrefix: '路径前缀',
+    pathPrefixPlaceholder: '例如：images',
+    secretId: 'Secret ID',
+    secretIdPlaceholder: '输入COS Secret ID',
+    secretKey: 'Secret Key',
+    secretKeyPlaceholder: '输入COS Secret Key',
+    region: 'Region',
+    regionPlaceholder: '例如：ap-beijing',
+    appId: 'App ID',
+    appIdPlaceholder: '输入App ID',
+    functionTest: '功能测试',
+    testDescription: '上传图片测试VLM模型的图像描述和文字识别功能',
+    selectImage: '选择图片',
+    startTest: '开始测试',
+    testResult: '测试结果',
+    imageDescription: '图像描述：',
+    textRecognition: '文字识别：',
+    processingTime: '处理时间：',
+    testFailed: '测试失败',
+    multimodalProcessingFailed: '多模态处理失败',
+    documentSplittingConfig: '文档分割配置',
+    splittingStrategy: '分割策略',
+    balancedMode: '平衡模式',
+    balancedModeDesc: '分块大小：1000 / 重叠：200',
+    precisionMode: '精确模式',
+    precisionModeDesc: '分块大小：512 / 重叠：100',
+    contextMode: '上下文模式',
+    contextModeDesc: '分块大小：2048 / 重叠：400',
+    custom: '自定义',
+    customDesc: '手动配置参数',
+    chunkSize: '分块大小',
+    chunkOverlap: '分块重叠',
+    separatorSettings: '分隔符设置',
+    selectOrCustomSeparators: '选择或自定义分隔符',
+    characters: '个字符',
+    separatorParagraph: '段落分隔符 (\\n\\n)',
+    separatorNewline: '换行符 (\\n)',
+    separatorPeriod: '句号 (。)',
+    separatorExclamation: '感叹号 (！)',
+    separatorQuestion: '问号 (？)',
+    separatorSemicolon: '分号 (;)',
+    separatorChineseSemicolon: '中文分号 (；)',
+    separatorComma: '逗号 (,)',
+    separatorChineseComma: '中文逗号 (，)',
+    entityRelationExtraction: '实体和关系提取',
+    enableEntityRelationExtraction: '启用实体和关系提取',
+    relationTypeConfig: '关系类型配置',
+    relationType: '关系类型',
+    generateRandomTags: '生成随机标签',
+    completeModelConfig: '请完成模型配置',
+    systemWillExtract: '系统将根据所选关系类型从文本中提取相应的实体和关系',
+    extractionExample: '提取示例',
+    sampleText: '示例文本',
+    sampleTextPlaceholder: '输入用于分析的文本，例如："红楼梦"，又名"石头记"，是中国四大名著之一，清代曹雪芹所著...',
+    generateRandomText: '生成随机文本',
+    entityList: '实体列表',
+    nodeName: '节点名称',
+    nodeNamePlaceholder: '节点名称',
+    addAttribute: '添加属性',
+    attributeValue: '属性值',
+    attributeValuePlaceholder: '属性值',
+    addEntity: '添加实体',
+    completeEntityInfo: '请完成实体信息',
+    relationConnection: '关系连接',
+    selectEntity: '选择实体',
+    addRelation: '添加关系',
+    completeRelationInfo: '请完成关系信息',
+    startExtraction: '开始提取',
+    extracting: '提取中...',
+    defaultExample: '默认示例',
+    clearExample: '清除示例',
+    updateKnowledgeBaseSettings: '更新知识库设置',
+    updateConfigInfo: '更新配置信息',
+    completeConfig: '完成配置',
+    waitForDownloads: '请等待所有Ollama模型下载完成后再更新配置',
+    completeModelConfigInfo: '请完成模型配置信息',
+    knowledgeBaseIdMissing: '知识库ID缺失',
+    knowledgeBaseSettingsUpdateSuccess: '知识库设置更新成功',
+    configUpdateSuccess: '配置更新成功',
+    systemInitComplete: '系统初始化完成',
+    operationFailed: '操作失败',
+    updateKnowledgeBaseInfoFailed: '更新知识库基本信息失败',
+    knowledgeBaseIdMissingCannotSave: '知识库ID缺失，无法保存配置',
+    operationFailedCheckNetwork: '操作失败，请检查网络连接',
+    imageUploadSuccess: '图片上传成功，可以开始测试',
+    multimodalConfigIncomplete: '多模态配置不完整，请先完成多模态配置后再上传图片',
+    pleaseSelectImage: '请选择图片',
+    multimodalTestSuccess: '多模态测试成功',
+    multimodalTestFailed: '多模态测试失败',
+    pleaseEnterSampleText: '请输入示例文本',
+    pleaseEnterRelationType: '请输入关系类型',
+    pleaseEnterLLMModelConfig: '请输入LLM大语言模型配置',
+    noValidNodesExtracted: '未提取到有效节点',
+    noValidRelationsExtracted: '未提取到有效关系',
+    extractionFailedCheckNetwork: '提取失败，请检查网络或文本格式',
+    generateFailedRetry: '生成失败，请重试',
+    pleaseCheckForm: '请检查表单填写是否正确',
+    detectionSuccessful: '检测成功，维度自动填充为',
+    detectionFailed: '检测失败',
+    detectionFailedCheckConfig: '检测失败，请检查配置',
+    modelDownloadSuccess: '模型下载成功',
+    modelDownloadFailed: '模型下载失败',
+    downloadStartFailed: '下载启动失败',
+    queryProgressFailed: '进度查询失败',
+    checkOllamaStatusFailed: 'Ollama状态检查失败',
+    getKnowledgeBaseInfoFailed: '获取知识库信息失败',
+    textRelationExtractionFailed: '文本关系提取失败',
+    pleaseEnterKnowledgeBaseName: '请输入知识库名称',
+    knowledgeBaseNameLength: '知识库名称长度必须为1-50个字符',
+    knowledgeBaseDescriptionLength: '知识库描述不能超过200个字符',
+    pleaseEnterLLMModelName: '请输入LLM模型名称',
+    pleaseEnterBaseURL: '请输入BaseURL',
+    pleaseEnterEmbeddingModelName: '请输入嵌入模型名称',
+    pleaseEnterEmbeddingDimension: '请输入嵌入维度',
+    dimensionMustBeInteger: '维度必须是有效整数，通常为768、1024、1536、3584等',
+    pleaseEnterTextContent: '请输入文本内容',
+    textContentMinLength: '文本内容必须包含至少10个字符',
+    pleaseEnterValidTag: '请输入有效标签',
+    tagAlreadyExists: '此标签已存在',
+    checkFailed: '检查失败',
+    startingDownload: '正在启动下载...',
+    downloadStarted: '下载已开始',
+    model: '模型',
+    startModelDownloadFailed: '启动模型下载失败',
+    downloadCompleted: '下载完成',
+    downloadFailed: '下载失败',
+    knowledgeBaseSettingsModeMissingId: '知识库设置模式缺少知识库ID',
+    completeEmbeddingConfig: '请先完成嵌入配置',
+    detectionSuccess: '检测成功，',
+    dimensionAutoFilled: '维度已自动填充：',
+    checkFormCorrectness: '请检查表单填写是否正确',
+    systemInitializationCompleted: '系统初始化完成',
+    generationFailedRetry: '生成失败，请重试',
+    chunkSizeDesc: '每个文本块的大小。较大的块保留更多上下文，但可能降低搜索准确性。',
+    chunkOverlapDesc: '相邻块之间重叠的字符数。有助于保持块边界处的上下文。',
+    selectRelationType: '选择关系类型',
   },
   graphSettings: {
     title: '知识图谱配置',
@@ -4680,7 +5638,12 @@ export default {
     exampleLoaded: '示例已加载',
     exampleCleared: '示例已清除',
     disabledWarning: '知识图谱数据库未启用，实体关系提取功能将无法使用',
-    howToEnable: '如何启用知识图谱？'
+    howToEnable: '如何启用知识图谱？',
+    saveSuccess: '图谱配置已保存',
+    saveFailed: '保存配置失败: {message}',
+    errors: {
+      unknown: '未知错误',
+    },
   },
   retrievalSettings: {
     title: '搜索设置',
@@ -4695,235 +5658,13 @@ export default {
     rerankModelRequired: '请选择 Rerank 模型，搜索功能需要此模型对结果进行重排序',
     toasts: {
       saveSuccess: '检索配置已保存',
-      saveFailed: '保存配置失败: {message}'
-    }
-  },
-  memorySettings: {
-    title: '我的记忆',
-    description: '这里是助手跨会话记住的关于你的内容。你可以随时查看、修改和删除，删除后不会再被使用。',
-    workspaceDisabled: '当前空间尚未开启长期记忆，管理员开启后这里的开关才会生效。',
-    enableLabel: '为我启用长期记忆',
-    enableDescription: '关闭后助手不再读取或新增你的记忆，已有记忆会保留，重新开启即可继续使用。',
-    agentDisabledHint: '单个智能体也可以单独关闭长期记忆。被关闭的智能体在对话中既不会读取你的记忆，也不会新增记忆；换用其他智能体不受影响。',
-    usage: {
-      title: '记忆何时会被使用',
-      iconHint: '查看哪些记忆会在对话里被使用',
-      intro: '仅「生效中」会进入对话。',
-      rows: {
-        alwaysOn: {
-          label: '每轮都会带上',
-          text: '个人信息、偏好，以及明确说「记住」的内容'
-        },
-        situational: {
-          label: '相关时才用',
-          text: '事实、在办事项'
-        },
-        interest: {
-          label: '理解常问方向',
-          text: '长期关注，不一定每轮都引用'
-        },
-        tracking: {
-          label: '先观察再记住',
-          text: '常问方向会先计数，达到次数后才成为长期关注'
-        },
-        documents: {
-          label: '常用资料',
-          text: '反复用来回答你的文档，检索时会稍稍优先'
-        },
-        pending: {
-          label: '确认后才生效',
-          text: '待确认的推断'
-        },
-        inactive: {
-          label: '不再使用',
-          text: '已被更新、已归档'
-        }
-      }
+      saveFailed: '保存配置失败: {message}',
     },
-    listTitle: '记忆列表',
-    listCount: '共 {count} 条',
-    statusActive: '生效中',
-    statusSuperseded: '已被更新',
-    statusArchived: '已归档',
-    statusPending: '待确认',
-    statusTracking: '观察中',
-    statusDocuments: '常用资料',
-    confirmGuess: '是的',
-    rejectGuess: '不是',
-    pendingHint: '这些是系统从你的提问里推断出来的，确认之前不会被使用。',
-    trackingHint: '这些是你反复问到、但还没达到「长期关注」次数的主题。记下来之前不会进入对话。',
-    documentsHint: '这些文档在回答里反复出现，检索会稍微偏向它们。停止跟踪后不再加权，再被引用两次会重新出现。',
-    supersededHint: '这些内容已被更新的记忆替代，不会再进入对话，只作为变更记录保留。',
-    archivedHint: '已归档的记忆不会再进入对话。超出每人上限后，较少用到的条目会被自动收起。',
-    pendingEmptyTitle: '没有待确认的推断',
-    pendingEmptyDescription: '当系统从你的提问里推断出关于你的信息时，会先放在这里等你确认。',
-    trackingEmptyTitle: '没有正在观察的主题',
-    trackingEmptyDescription: '自动提炼开启后，系统会先统计你常问的方向，达到次数后再记为长期关注。',
-    documentsEmptyTitle: '还没有常用资料',
-    documentsEmptyDescription: '同一份文档被回答引用两次以上，就会出现在这里。',
-    supersededEmptyTitle: '还没有被更新的记忆',
-    supersededEmptyDescription: '同一主题被新说法覆盖时，旧内容会留在这里。在本页直接编辑是原地改写，不会产生这条记录。',
-    archivedEmptyTitle: '还没有归档的记忆',
-    archivedEmptyDescription: '生效中超过上限（默认 200 条）时，较少用到的会自动收起；带过期时间的事项到期后也会进来。',
-    documentsHits: '已引用 {hits} 次',
-    untitledDocument: '未命名文档',
-    openDocument: '打开文档',
-    openDocumentUnavailable: '无法打开：缺少知识库信息',
-    stopTrackingDocument: '停止跟踪',
-    stopTrackingDocumentConfirm: '停止用这份文档做个性化检索？之后再被引用两次会重新出现。',
-    stopTrackingDocumentSuccess: '已停止跟踪这份资料',
-    stopTrackingDocumentFailed: '停止跟踪失败',
-    trackingProgress: '已问 {hits} 次，满 {threshold} 次后记为长期关注',
-    trackingReady: '已达到次数，可以记为长期关注',
-    trackingAliases: '也问过：{aliases}',
-    promoteTopic: '记为关注',
-    dismissTopic: '不再跟踪',
-    dismissTopicConfirm: '停止跟踪这个主题？之后再问到也不会自动记为长期关注。',
-    promoteSuccess: '已记为长期关注',
-    promoteFailed: '记为关注失败',
-    dismissSuccess: '已停止跟踪这个主题',
-    dismissFailed: '停止跟踪失败',
-    confirmSuccess: '已确认',
-    confirmFailed: '确认失败',
-    rejectSuccess: '已否决，不会再次推断',
-    rejectFailed: '否决失败',
-    export: '导出',
-    consolidate: '整理',
-    consolidateConfirm: '合并意思接近的条目，旧内容会留在「已被更新」。确定整理？',
-    consolidateSuccess: '整理完成：合并 {merged} 组，到期归档 {expired} 条，过期事项降权 {demoted} 条',
-    consolidateNothing: '没有发现需要整理的内容',
-    consolidateTooFewItems: '记忆还太少，暂时没有整理的必要',
-    consolidateNoCandidates: '没有发现意思相近的记忆，无需合并',
-    consolidateModelDeclined: '模型看过了，这些记忆说的不是同一件事，未做合并',
-    consolidateTooSoon: '刚整理过，请稍后再试',
-    consolidateModelUnavailable: '模型不可用，为避免误合并，本次没有改动任何记忆',
-    consolidateFailed: '整理失败',
-    clear: '清空',
-    clearConfirm: '将永久删除你的全部记忆、正在观察的主题和常用资料，此操作不可撤销。确定继续吗？',
-    deleteConfirm: '永久删除这条记忆？',
-    add: '添加',
-    addPlaceholder: '用一句话写下你希望助手记住的事',
-    addTitle: '添加记忆',
-    addKindLabel: '类型',
-    addContentLabel: '内容',
-    emptyTitle: '还没有记忆',
-    emptyDescription: '在对话里说「记住：……」，或者在上面直接添加一条。',
-    kinds: {
-      profile: '个人信息',
-      preference: '偏好',
-      fact: '事实',
-      task: '在办事项',
-      interest: '长期关注'
-    },
-    kindHints: {
-      profile: '之后每轮对话都会带上',
-      preference: '之后每轮对话都会带上',
-      fact: '只在问题相关时才会用到',
-      task: '只在问题相关时才会用到',
-      interest: '用来理解你常问的方向，不一定每轮都引用'
-    },
-    origins: {
-      explicit: '你要求记住',
-      extracted: '自动提炼',
-      manual: '手动添加'
-    },
-    toasts: {
-      enabled: '已为你开启长期记忆',
-      disabled: '已关闭长期记忆',
-      added: '已添加',
-      updated: '已更新',
-      deleted: '已删除',
-      cleared: '已删除 {count} 条记忆',
-      saveFailed: '操作失败：{message}'
-    }
-  },
-  envVarSettings: {
-    title: '沙箱密钥',
-    description: '给技能和沙箱用的个人密钥，不是 WeKnora 的系统或部署配置。',
-    helpAria: '沙箱密钥说明',
-    introPersonalTitle: '只属于你',
-    introPersonalBody: '只注入到你自己的对话和执行里，空间里的其他人看不到，也不会改成他们的值。',
-    introRuntimeTitle: '用的时候才带上',
-    introRuntimeBody: '技能运行或在沙箱里执行命令时才会注入；对话里也可以当场提供。保存后不再显示明文。',
-    loading: '加载中…',
-    loadFailed: '沙箱密钥加载失败。',
-    retry: '重试',
-    noConfigTitle: '还没有沙箱',
-    noConfigDescription: '这个空间还没有配置沙箱后端，暂时没有可设置的密钥。',
-    sandboxTitle: '某个沙箱里始终带上的值',
-    sandboxHint: '只带给你在那个沙箱里跑的命令。多数情况用不到；需要时再加，对话里也可以当场提供。',
-    sandboxEmpty: '还没有添加过。',
-    sandboxPick: '用在哪个沙箱',
-    skillTitle: '技能要用的密钥',
-    skillHint: '技能声明需要的值。可以预先保存在这里，也可以在对话里当场提供。空间管理员还可以在技能卡上填空间共用值。',
-    skillEmptyTitle: '还没有技能需要密钥',
-    skillEmptyDesc: '安装会声明凭据的技能后，要填的项会出现在这里。',
-    skillOnSandbox: '用于沙箱「{name}」',
-    skillNeedsCount: '{count} 项未在此保存',
-    skillReady: '此页已保存',
-    requiredTag: '必填',
-    statusUnset: '未设置',
-    statusWorkspace: '正在使用空间共用值',
-    statusUser: '你已设置',
-    setValue: '设置',
-    replaceValue: '更换',
-    addRow: '添加',
-    namePlaceholder: 'VARIABLE_NAME',
-    nameRule: '只能用大写字母、数字和下划线，且以字母或下划线开头。',
-    nameInvalid: '这个名字不能用。沙箱保留的名字（例如 PATH，或以 WEKNORA_ 开头的名字）不接受。',
-    nameDuplicate: '这里已经有同名变量了。',
-    valuePlaceholder: '填入值',
-    storedPlaceholder: '已存值，填入新值即替换',
-    valueRequired: '保存前请先填入值。',
-    valueTooLong: '单个值不能超过 {max} 字节。',
-    tooManyValues: '这里最多可以保存 {max} 个变量。',
-    save: '保存',
-    saveSuccess: '已保存。值已存好，之后不会再显示。',
-    saveFailed: '保存失败。',
-    delete: '删除',
-    deleteConfirm: '删除 {name}？之后在这个沙箱上运行的东西都不会再带上它。',
-    deleteSuccess: '变量已删除。',
-    clear: '清除我的值',
-    clearConfirm: '清除你为 {name} 设置的值？之后会重新使用空间共用值（如果有）。',
-    clearSuccess: '已清除你的值。',
-    updatedAt: '你于 {time} 设置'
-  },
-  memoryWorkspaceSettings: {
-    title: '长期记忆',
-    description: '让助手跨会话记住成员说过的个人信息、偏好、事实与在办事项。',
-    introTitle: '默认关闭，需要你显式开启',
-    introDescription: '长期记忆会保留成员在对话中说过的内容，因此默认不开启。开启后每位成员的记忆彼此隔离，成员可以在「我的记忆」里随时查看、修改、删除或整体关闭。生效中的个人信息与偏好会进入之后的每一轮对话；事实和在办事项只在相关问题时召回。',
-    enableLabel: '在本空间启用长期记忆',
-    enableDescription: '关闭后本空间的所有会话都不会读取或写入记忆。',
-    writeModeLabel: '记忆写入方式',
-    writeModeDescription: '决定什么内容会被记住。',
-    writeModeExplicit: '仅显式记录',
-    writeModeAuto: '自动提炼',
-    writeModeExplicitHint: '只记录成员明确说「记住：……」的内容，以及在记忆页手动添加的条目，不额外调用模型。',
-    writeModeAutoHint: '在此基础上，会话结束后在后台调用一次模型，从成员自己说过的话里提炼值得长期保留的内容。',
-    extractModelLabel: '提炼模型',
-    extractModelDescription: '留空则使用该次会话所用的模型。',
-    extractDelayLabel: '挖掘延迟',
-    extractDelayDescription: '一轮对话结束后等待多久再挖掘。等一等可以让一次模型调用覆盖用户连着发的几条消息。',
-    extractMinIntervalLabel: '两次挖掘的最小间隔',
-    extractMinIntervalDescription: '同一个人两次挖掘之间至少间隔多久，用来控制成本。间隔内产生的消息不会被丢弃，会顺延到下一次挖掘一并处理。',
-    vectorRecallLabel: '按语义召回记忆',
-    vectorRecallDescription: '除了字面匹配，再按含义匹配。用户换个说法之后，原来那条记忆仍然能被找到——而多数记忆迟早会被换说法。每轮问答多一次向量调用，超时会自动退回字面匹配。',
-    embeddingModelLabel: '记忆 Embedding 模型',
-    embeddingModelDescription: '语义召回只使用这一个模型，与各知识库绑定的 Embedding 无关。不选则只按字面匹配。换模型后，新写入立刻用新模型；旧记忆在补上新向量之前，语义召回找不到它们，只靠字面匹配。',
-    conditioningLabel: '让记忆参与检索',
-    conditioningDescription: '开启后，记忆会参与查询改写和文档排序，而不只是附加到回答提示里。这是记忆在知识库产品里真正起作用的地方。',
-    interestThresholdLabel: '成为长期关注的次数',
-    interestThresholdDescription: '同一个主题被问到这么多次后，才会作为长期关注记下来。设为 1 会把每个一次性问题都记下来，通常太吵。',
-    instructionsLabel: '自定义挖掘规则',
-    instructionsDescription: '追加到挖掘提示词里的空间规则，用来表达产品猜不到的策略，例如「永远不要记录客户姓名」。',
-    instructionsPlaceholder: '一行一条规则，例如：永远不要记录客户姓名',
-    maxItemsLabel: '每人记忆上限',
-    maxItemsDescription: '超出后按重要度与使用时间归档最低的若干条，归档的记忆仍可在「我的记忆」里查看。',
-    toasts: {
-      saveSuccess: '长期记忆配置已保存',
-      saveFailed: '保存失败：{message}'
-    }
+    embeddingTopKDescription: '向量搜索返回的最大结果数量',
+    vectorThresholdDescription: '向量搜索的最低相似度分数（0-1，越高越精确）',
+    keywordThresholdDescription: '关键词搜索的最低匹配分数（0-1）',
+    rerankTopKDescription: '重排序后保留的最大结果数量',
+    rerankThresholdDescription: '重排序的最低分数阈值（-10 到 10）',
   },
   chatHistorySettings: {
     title: '消息管理',
@@ -4939,8 +5680,9 @@ export default {
     statsNotConfiguredDesc: '启用并选择 Embedding 模型后，对话消息将自动向量化索引',
     toasts: {
       saveSuccess: '消息管理配置已保存',
-      saveFailed: '保存配置失败: {message}'
-    }
+      saveFailed: '保存配置失败: {message}',
+      loadFailed: '加载配置失败: {message}',
+    },
   },
   vectorStoreSettings: {
     title: '向量数据库引擎',
@@ -4968,14 +5710,42 @@ export default {
       testSuccess: '连接测试成功',
       testFailed: '连接测试失败',
       duplicateName: '同名向量数据库已存在',
-      errorGeneric: '发生错误，请重试。'
+      errorGeneric: '发生错误，请重试。',
     },
     validation: {
       nameRequired: '名称为必填项',
       engineTypeRequired: '引擎类型为必填项',
       fieldRequired: '{field}为必填项',
-      indexNamePattern: '必须以字母开头，仅允许字母、数字、下划线和连字符（最多128个字符）'
-    }
+      indexNamePattern: '必须以字母开头，仅允许字母、数字、下划线和连字符（最多128个字符）',
+    },
+    fields: {
+      addr: 'URL',
+      host: '主机',
+      port: '端口',
+      username: '用户名',
+      password: '密码',
+      api_key: 'API 密钥',
+      use_tls: '使用 TLS',
+      scheme: '协议',
+      grpc_address: 'gRPC 地址',
+      database: '数据库名',
+      use_default_connection: '使用默认连接',
+      index_name: '索引名称',
+      number_of_shards: '分片数',
+      number_of_replicas: '副本数',
+      collection_prefix: '集合前缀',
+      collection_name: '集合名称',
+      shard_number: '分片数',
+      replication_factor: '副本因子',
+      shards_num: '分片数',
+      replica_number: '内存副本数',
+      desired_shard_count: '分片数',
+      insecure_skip_verify: '跳过 TLS 证书校验',
+      hnsw_m: 'HNSW M（图度数）',
+      hnsw_ef_construction: 'HNSW ef_construction',
+      hnsw_ef_search: 'HNSW ef_search',
+      knn_engine: 'k-NN 引擎',
+    },
   },
   webSearchSettings: {
     title: '网络搜索配置',
@@ -5012,8 +5782,39 @@ export default {
       providerUpdated: '搜索引擎配置已更新',
       providerDeleted: '搜索引擎配置已删除',
       testSuccess: '连接测试成功',
-      testFailed: '连接测试失败'
-    }
+      testFailed: '连接测试失败',
+      loadProvidersFailed: '加载搜索引擎列表失败: {message}',
+      saveSuccess: '网络搜索配置已保存',
+      saveFailed: '保存配置失败: {message}',
+    },
+    noProviders: '暂无搜索引擎配置，点击「添加搜索引擎」开始配置。',
+    default: '默认',
+    free: '免费',
+    apiKeyUnchanged: '留空保持当前密钥不变',
+    noDescription: '暂无描述',
+    basicInfo: '基础信息',
+    credentials: '凭证信息',
+    searchBehaviorTitle: '搜索行为配置',
+    defaultProviderLabel: '默认搜索引擎',
+    defaultProviderDescription: '为未指定搜索引擎的智能体选择默认使用的搜索引擎',
+    providerLabel: '搜索引擎提供商',
+    providerDescription: '选择用于网络搜索的搜索引擎服务',
+    providerPlaceholder: '选择搜索引擎...',
+    apiKeyDescription: '输入所选搜索引擎的 API 密钥',
+    maxResultsLabel: '最大结果数',
+    maxResultsDescription: '每次搜索返回的最大结果数量（1-50）',
+    includeDateLabel: '包含发布日期',
+    includeDateDescription: '在搜索结果中包含内容的发布日期信息',
+    compressionLabel: '压缩方法',
+    compressionDescription: '对搜索结果内容的压缩处理方法',
+    compressionNone: '无压缩',
+    compressionSummary: 'LLM 摘要',
+    blacklistLabel: 'URL 黑名单',
+    blacklistDescription: '排除特定域名或 URL 的搜索结果，每行一个。支持通配符（*）和正则表达式（以/开头和结尾）',
+    blacklistPlaceholder: '例如：\n*://*.example.com/*\n/example\\.(net|org)/',
+    errors: {
+      unknown: '未知错误',
+    },
   },
   settings: {
     modelManagement: '模型管理',
@@ -5023,6 +5824,256 @@ export default {
     vectorStoreEngine: '向量数据库引擎',
     parserEngine: '解析引擎',
     storageEngine: '存储引擎',
+    mcpService: 'MCP服务',
+    versionInfo: '版本信息',
+    taskQueue: '任务队列',
+    tenantInfo: '空间信息',
+    workspaceSettings: '空间设置',
+    system: '系统设置',
+    storage: {
+      title: '存储引擎',
+      description: '配置文档与图片的存储方式。此处设置各引擎参数，知识库中仅选择使用哪个引擎。',
+      basicSection: '基本配置',
+      modeSection: '部署模式',
+      credentialsSection: '凭证',
+      bucketSection: 'Bucket',
+      useSslDesc: '通过 HTTPS 访问 MinIO',
+      loading: '加载中...',
+      retry: '重试',
+      defaultEngine: '默认引擎',
+      defaultEngineDesc: '新建知识库时默认选用的存储引擎',
+      engineLocal: 'Local（本地）',
+      engineCos: '腾讯云 COS',
+      engineTos: '火山引擎 TOS',
+      engineOss: '阿里云 OSS',
+      localTitle: 'Local（本地存储）',
+      localDesc: '使用服务器本地文件系统存储文件，仅适合单机部署。',
+      available: '可用',
+      needsConfig: '需要配置',
+      configurable: '可配置',
+      pathPrefix: '路径前缀（可选）',
+      pathPrefixPlaceholder: '如 weknora/images',
+      prefixPlaceholder: '如 weknora',
+      bucketName: 'Bucket 名称',
+      bucketPlaceholder: '存储桶名称',
+      minioDesc: 'S3 兼容的自托管对象存储，适合内网和私有云部署。',
+      minioDocker: 'Docker 部署',
+      minioRemote: '远程 MinIO',
+      minioDockerDetected: '已检测到 Docker 部署的 MinIO 环境变量，连接信息由环境变量提供，无需手动填写。',
+      minioDockerNotDetected: '未检测到 MinIO 环境变量（MINIO_ENDPOINT 等），请确认 Docker Compose 配置正确。',
+      minioRemoteHint: '连接到远程 MinIO 服务，需要手动填写连接信息。',
+      cosTitle: '腾讯云 COS',
+      cosDesc: '腾讯云对象存储服务，适合公有云部署，支持 CDN 加速。',
+      cosSecretIdPlaceholder: '腾讯云 API 密钥 SecretId',
+      cosSecretKeyPlaceholder: '腾讯云 API 密钥 SecretKey',
+      cosAppIdPlaceholder: '腾讯云账号 AppID',
+      tosTitle: '火山引擎 TOS',
+      tosDesc: '火山引擎对象存储服务（TOS），适合公有云部署。',
+      tosAccessKeyPlaceholder: '火山引擎 Access Key',
+      tosSecretKeyPlaceholder: '火山引擎 Secret Key',
+      s3Title: 'AWS S3',
+      s3Desc: 'AWS S3 及兼容的对象存储服务，适合公有云部署。',
+      s3AccessKeyPlaceholder: 'AWS Access Key',
+      s3SecretKeyPlaceholder: 'AWS Secret Key',
+      s3DefaultCredentialsHint: 'Access Key 与 Secret Key 同时留空时，将使用 AWS 默认凭证链（IAM Role、IRSA / Web Identity、环境变量或共享配置）。',
+      s3EndpointPlaceholder: '可选，留空使用 AWS 区域默认端点',
+      ks3Title: '金山云 KS3',
+      ks3Desc: '金山云对象存储服务（KS3），适合公有云部署。',
+      ks3AccessKeyPlaceholder: '金山云 Access Key',
+      ks3SecretKeyPlaceholder: '金山云 Secret Key',
+      ks3EndpointPlaceholder: 'e.g. ks3-cn-beijing.ksyuncs.com',
+      ks3RegionPlaceholder: 'e.g. BEIJING',
+      engineKs3: '金山云 KS3',
+      obsTitle: '华为云 OBS',
+      obsDesc: '华为云对象存储服务（OBS），适合公有云部署。',
+      obsAccessKeyPlaceholder: '华为云 Access Key',
+      obsSecretKeyPlaceholder: '华为云 Secret Key',
+      obsEndpointPlaceholder: 'e.g. obs.cn-north-4.myhuaweicloud.com',
+      obsRegionPlaceholder: 'e.g. cn-north-4',
+      engineObs: '华为云 OBS',
+      ossTitle: '阿里云 OSS',
+      ossDesc: '阿里云对象存储服务（OSS），适合公有云部署。',
+      ossAccessKeyPlaceholder: '阿里云 Access Key',
+      ossSecretKeyPlaceholder: '阿里云 Secret Key',
+      console: '控制台',
+      docs: '文档',
+      testConnection: '测试连接',
+      loadFailed: '加载失败',
+      saveSuccess: '保存成功',
+      saveFailed: '保存失败',
+      unknownError: '未知错误',
+      requestFailed: '请求失败',
+      engineS3: 'AWS S3',
+      bucketSelectPlaceholder: '选择或输入 Bucket',
+      detected: '已检测',
+      notDetected: '未检测到',
+      saveConfig: '保存配置',
+      cos: '腾讯云 COS',
+      tos: '火山引擎 TOS',
+      oss: '阿里云 OSS',
+      ks3: '金山云 KS3',
+      obs: '华为云 OBS',
+    },
+    storageBackend: {
+      description: '管理文件与图片使用的存储实例；同一种类型可以配置多个实例。',
+      empty: '尚未配置存储实例',
+      defaultTag: '默认',
+      add: '添加存储实例',
+      editTitle: '编辑存储实例',
+      createTitle: '添加存储实例',
+      editSubtitle: '修改此存储实例的连接配置。',
+      createSubtitle: '为文件与图片新增一个存储实例。',
+      basicSection: '基本信息',
+      nameLabel: '名称',
+      namePlaceholder: '例如：生产 COS、归档 COS',
+      providerLabel: '存储类型',
+      modeLabel: '部署模式',
+      modeRemote: '远程实例',
+      modeEnv: '环境变量',
+      connectionSection: '连接配置',
+      optionalPlaceholder: '可选',
+      advancedSection: '高级选项',
+      pathPrefixLabel: '路径前缀',
+      useSslDesc: '使用 HTTPS 访问 MinIO',
+      forcePathStyleDesc: '使用 Path Style',
+      useTempBucketDesc: '使用临时桶',
+      tempBucketLabel: '临时桶',
+      tempBucketPlaceholder: '可选，用于临时文件',
+      tempRegionLabel: '临时桶 Region',
+      tempRegionPlaceholder: '留空时使用主 Region',
+      testConnection: '测试连接',
+      localStorage: '本地存储',
+      setDefault: '设为默认',
+      edit: '编辑',
+      delete: '删除',
+      testSuccess: '连接成功',
+      testFailed: '连接失败',
+      nameRequired: '请输入名称',
+      saveSuccess: '保存成功',
+      saveFailed: '保存失败',
+      defaultUpdated: '默认存储已更新',
+      deleteTitle: '删除存储实例',
+      deleteConfirm: '确定删除“{name}”吗？',
+      deleted: '已删除',
+      deleteFailed: '删除失败',
+    },
+    parser: {
+      title: '解析引擎',
+      description: '文档解析引擎状态及配置。此处设置优先于服务端环境变量，留空则使用环境变量默认值。',
+      supportedFileTypes: '支持文件类型',
+      statusSection: '状态信息',
+      configSection: '配置',
+      featuresLabel: '识别选项',
+      loading: '加载中...',
+      retry: '重试',
+      noEngineDetected: '未检测到解析引擎，请确认 DocReader 服务正常运行。',
+      disconnected: '未连接',
+      connected: '已连接',
+      available: '可用',
+      unavailable: '不可用',
+      builtinDesc: 'DocReader 内置解析引擎（docx/pdf/xlsx 等复杂格式）',
+      currentAddr: '当前',
+      envVarHint: '修改请设置环境变量 DOCREADER_ADDR、DOCREADER_TRANSPORT（grpc/http），重启服务生效。',
+      selfHostedEndpoint: '自建端点',
+      formulaRecognition: '公式识别',
+      tableRecognition: '表格识别',
+      parseMethodLabel: 'PDF 解析方式',
+      parseMethodAuto: '自动识别（推荐）',
+      parseMethodOCR: '强制 OCR',
+      parseMethodText: '仅提取文本',
+      parseMethodHint: '自动模式会为扫描件启用 OCR，电子版 PDF 直接提取文本。',
+      sealRecognition: '印章识别',
+      chartRecognition: '图表识别',
+      language: '语言',
+      testConnection: '测试连接',
+      docs: '文档',
+      loadFailed: '加载解析引擎列表失败',
+      ensureDocreaderConnected: '请先确保 DocReader 服务已通过环境变量配置并已连接',
+      checkDoneStatusUpdated: '已使用当前填写参数检测，上方状态已更新',
+      checkSuccess: '测试连接成功',
+      checkFailed: '检测失败',
+      saveSuccess: '保存成功',
+      saveFailed: '保存失败',
+      mineruEndpointPlaceholder: '如 https://your-mineru.example.com',
+      defaultPipeline: '默认 pipeline',
+      languagePlaceholder: '如 ch、en、ja（默认 ch）',
+      mineruCloudApiKeyPlaceholder: 'MinerU 云服务 API Key',
+      vlmLabel: 'vlm（视觉语言模型）',
+      mineruHtmlLabel: 'MinerU-HTML（HTML 解析）',
+      serverUrl: '服务器地址',
+      vlmServerUrlPlaceholder: '如 http://your-vllm-server:8000',
+      vlmServerUrlHint: '当 Backend 选择 vlm-http-client 或 hybrid-http-client 时需要填写',
+      paddleocrVlEndpointPlaceholder: '如 http://your-paddleocr-vl:8080',
+      paddleocrVlEndpointHint: '填写 PaddleOCR-VL 完整服务（pipeline）地址，无需 /layout-parsing 后缀',
+      paddleocrVlCloudTokenPlaceholder: 'PaddleOCR-VL 飞桨星河社区 Token',
+      saveConfig: '保存配置',
+    },
+    weknoraCloud: {
+      title: 'WeKnora Cloud',
+      description: '配置 WeKnora Cloud 的 APPID 和 APPSECRET 凭证。凭证用于模型服务和文档解析引擎。',
+      viewDocs: '查看文档',
+      unconfigured: '尚未配置凭证，请填写 APPID 和 APPSECRET',
+      configured: '凭证已配置，状态正常',
+      expired: 'WeKnora Cloud 凭证已失效',
+      expiredDefault: '服务重启后加密密钥已变更，已保存的凭证无法解密。请重新填写凭证。',
+      reconfigure: '重新配置',
+      appIdLabel: 'APPID',
+      appIdDesc: 'WeKnora Cloud 的应用 ID',
+      appIdPlaceholder: '请输入 APPID',
+      appSecretLabel: 'APPSECRET',
+      appSecretDesc: 'WeKnora Cloud 的应用密钥',
+      appSecretPlaceholder: '请输入 APPSECRET',
+      saveHint: '保存后将验证服务可达性并加密存储凭证',
+      saveBtn: '保存凭证',
+      usageTitle: '使用说明',
+      usageSteps: '1. 填写并保存 APPID / APPSECRET\n2. 在下方「云模型接入」中按行添加 chat、embedding、rerank、vlm\n3. 文档解析：知识库设置 → 解析引擎，选择 WeKnora Cloud 引擎',
+      fillRequired: '请填写 APPID 和 APPSECRET',
+      saveSuccess: '凭证保存成功',
+      saveFailed: '凭证保存失败',
+      credentialConfigured: 'WeKnoraCloud 凭证已配置',
+      credentialExpired: '凭证已失效，请重新配置。',
+      credentialUnconfigured: '尚未配置 WeKnoraCloud 凭证，请先填写 APPID 和 APPSECRET。',
+      checkingStatus: '正在检查凭证状态...',
+      goToSettings: '前往设置中配置',
+      modelHintConfigured: 'WeKnoraCloud 凭证已配置。支持的模型可参考',
+      modelHintDocsLink: '接口文档',
+      addModelsSuccess: '已成功添加 {count} 个模型',
+      addModelsPartial: '已添加 {success} 个，{failed} 个失败',
+      addModelsFailed: '添加模型失败',
+      addModelsEmbeddingFailed: 'Embedding 模型连接测试失败，无法获取向量维度',
+      addModelsDisplayName: {
+        chat: 'WeKnoraCloud 对话',
+        embedding: 'WeKnoraCloud Embedding',
+        rerank: 'WeKnoraCloud ReRank',
+        vllm: 'WeKnoraCloud 视觉',
+      },
+      modelsSection: {
+        title: '云模型接入',
+        descReady: '将 WeKnora Cloud 提供的四类标准模型注册到当前空间，用于对话、向量检索、重排序与多模态理解。',
+        descPending: '请先保存上方凭证，再在此添加云模型。',
+        statusAdded: '已添加',
+        statusPending: '待配置凭证',
+        addOne: '添加',
+        addAllBtn: '添加全部缺失（{count}）',
+        addAllConfirm: '确认添加',
+        confirmAddOne: '添加 {type} 模型「{name}」？',
+        confirmAddAll: '一次性添加 {count} 个缺失的云模型？',
+        allReady: '四类云模型均已就绪',
+      },
+      addModelsAllExist: '四类模型均已存在',
+    },
+    roleDenied: {
+      title: '权限不足',
+      desc: '你当前的角色无权访问此设置项。请联系本空间的管理员获取所需角色。',
+    },
+    navGroups: {
+      account: '账户',
+      workspace: '空间',
+      modelsRuntime: '模型',
+      dataExtensions: '数据与扩展',
+      systemAdministration: '系统管理',
+      platform: '平台',
+    },
     sandbox: {
       title: '沙箱配置',
       description: '配置智能体运行技能脚本的隔离环境。每个智能体选择一份配置。',
@@ -5144,8 +6195,7 @@ export default {
       forceDelete: '强制删除',
       disableScripts: '禁用沙箱执行',
       enableScripts: '启用沙箱执行',
-      disableScriptsConfirm:
-        '禁用后，本空间内所有智能体将无法在沙箱中执行技能脚本；仍可阅读技能内容。已在运行中的远端沙箱不会自动销毁，需结束或删除相关会话后才会释放。是否继续？',
+      disableScriptsConfirm: '禁用后，本空间内所有智能体将无法在沙箱中执行技能脚本；仍可阅读技能内容。已在运行中的远端沙箱不会自动销毁，需结束或删除相关会话后才会释放。是否继续？',
       scriptsDisabled: '已禁用本空间沙箱执行',
       scriptsEnabled: '已恢复本空间沙箱执行',
       policySaveFailed: '更新沙箱执行策略失败',
@@ -5408,7 +6458,7 @@ export default {
         clear: '清除',
         clearConfirm: '清除 {name} 的空间共用值？声明会保留，没有自己值的成员之后会缺少这个值。',
         clearSuccess: '已清除空间共用值。',
-        valueTooLong: '单个值不能超过 {max} 字节。'
+        valueTooLong: '单个值不能超过 {max} 字节。',
       },
     },
     skills: {
@@ -5459,263 +6509,59 @@ export default {
       installOutdated: '与目录版本不同',
       loadFailed: '加载失败',
     },
-    mcpService: 'MCP服务',
-    versionInfo: '版本信息',
-    taskQueue: '任务队列',
-    tenantInfo: '空间信息',
-    workspaceSettings: '空间设置',
-    system: '系统设置',
-    storage: {
-      title: '存储引擎',
-      description: '配置文档与图片的存储方式。此处设置各引擎参数，知识库中仅选择使用哪个引擎。',
-      basicSection: '基本配置',
-      modeSection: '部署模式',
-      credentialsSection: '凭证',
-      bucketSection: 'Bucket',
-      useSslDesc: '通过 HTTPS 访问 MinIO',
-      loading: '加载中...',
-      retry: '重试',
-      defaultEngine: '默认引擎',
-      defaultEngineDesc: '新建知识库时默认选用的存储引擎',
-      engineLocal: 'Local（本地）',
-      engineCos: '腾讯云 COS',
-      engineTos: '火山引擎 TOS',
-      engineOss: '阿里云 OSS',
-      localTitle: 'Local（本地存储）',
-      localDesc: '使用服务器本地文件系统存储文件，仅适合单机部署。',
-      available: '可用',
-      needsConfig: '需要配置',
-      configurable: '可配置',
-      pathPrefix: '路径前缀（可选）',
-      pathPrefixPlaceholder: '如 weknora/images',
-      prefixPlaceholder: '如 weknora',
-      bucketName: 'Bucket 名称',
-      bucketPlaceholder: '存储桶名称',
-      minioDesc: 'S3 兼容的自托管对象存储，适合内网和私有云部署。',
-      minioDocker: 'Docker 部署',
-      minioRemote: '远程 MinIO',
-      minioDockerDetected: '已检测到 Docker 部署的 MinIO 环境变量，连接信息由环境变量提供，无需手动填写。',
-      minioDockerNotDetected: '未检测到 MinIO 环境变量（MINIO_ENDPOINT 等），请确认 Docker Compose 配置正确。',
-      minioRemoteHint: '连接到远程 MinIO 服务，需要手动填写连接信息。',
-      cosTitle: '腾讯云 COS',
-      cosDesc: '腾讯云对象存储服务，适合公有云部署，支持 CDN 加速。',
-      cosSecretIdPlaceholder: '腾讯云 API 密钥 SecretId',
-      cosSecretKeyPlaceholder: '腾讯云 API 密钥 SecretKey',
-      cosAppIdPlaceholder: '腾讯云账号 AppID',
-      tosTitle: '火山引擎 TOS',
-      tosDesc: '火山引擎对象存储服务（TOS），适合公有云部署。',
-      tosAccessKeyPlaceholder: '火山引擎 Access Key',
-      tosSecretKeyPlaceholder: '火山引擎 Secret Key',
-      s3Title: 'AWS S3',
-      s3Desc: 'AWS S3 及兼容的对象存储服务，适合公有云部署。',
-      s3AccessKeyPlaceholder: 'AWS Access Key',
-      s3SecretKeyPlaceholder: 'AWS Secret Key',
-      s3DefaultCredentialsHint: 'Access Key 与 Secret Key 同时留空时，将使用 AWS 默认凭证链（IAM Role、IRSA / Web Identity、环境变量或共享配置）。',
-      s3EndpointPlaceholder: '可选，留空使用 AWS 区域默认端点',
-      ks3Title: '金山云 KS3',
-      ks3Desc: '金山云对象存储服务（KS3），适合公有云部署。',
-      ks3AccessKeyPlaceholder: '金山云 Access Key',
-      ks3SecretKeyPlaceholder: '金山云 Secret Key',
-      ks3EndpointPlaceholder: 'e.g. ks3-cn-beijing.ksyuncs.com',
-      ks3RegionPlaceholder: 'e.g. BEIJING',
-      engineKs3: '金山云 KS3',
-      obsTitle: '华为云 OBS',
-      obsDesc: '华为云对象存储服务（OBS），适合公有云部署。',
-      obsAccessKeyPlaceholder: '华为云 Access Key',
-      obsSecretKeyPlaceholder: '华为云 Secret Key',
-      obsEndpointPlaceholder: 'e.g. obs.cn-north-4.myhuaweicloud.com',
-      obsRegionPlaceholder: 'e.g. cn-north-4',
-      engineObs: '华为云 OBS',
-      ossTitle: '阿里云 OSS',
-      ossDesc: '阿里云对象存储服务（OSS），适合公有云部署。',
-      ossAccessKeyPlaceholder: '阿里云 Access Key',
-      ossSecretKeyPlaceholder: '阿里云 Secret Key',
-      console: '控制台',
-      docs: '文档',
-      testConnection: '测试连接',
-      loadFailed: '加载失败',
-      saveSuccess: '保存成功',
-      saveFailed: '保存失败',
-      unknownError: '未知错误',
-      requestFailed: '请求失败'
-    },
-    storageBackend: {
-      description: '管理文件与图片使用的存储实例；同一种类型可以配置多个实例。',
-      empty: '尚未配置存储实例',
-      defaultTag: '默认',
-      add: '添加存储实例',
-      editTitle: '编辑存储实例',
-      createTitle: '添加存储实例',
-      editSubtitle: '修改此存储实例的连接配置。',
-      createSubtitle: '为文件与图片新增一个存储实例。',
-      basicSection: '基本信息',
-      nameLabel: '名称',
-      namePlaceholder: '例如：生产 COS、归档 COS',
-      providerLabel: '存储类型',
-      modeLabel: '部署模式',
-      modeRemote: '远程实例',
-      modeEnv: '环境变量',
-      connectionSection: '连接配置',
-      optionalPlaceholder: '可选',
-      advancedSection: '高级选项',
-      pathPrefixLabel: '路径前缀',
-      useSslDesc: '使用 HTTPS 访问 MinIO',
-      forcePathStyleDesc: '使用 Path Style',
-      useTempBucketDesc: '使用临时桶',
-      tempBucketLabel: '临时桶',
-      tempBucketPlaceholder: '可选，用于临时文件',
-      tempRegionLabel: '临时桶 Region',
-      tempRegionPlaceholder: '留空时使用主 Region',
-      testConnection: '测试连接',
-      localStorage: '本地存储',
-      setDefault: '设为默认',
-      edit: '编辑',
-      delete: '删除',
-      testSuccess: '连接成功',
-      testFailed: '连接失败',
-      nameRequired: '请输入名称',
-      saveSuccess: '保存成功',
-      saveFailed: '保存失败',
-      defaultUpdated: '默认存储已更新',
-      deleteTitle: '删除存储实例',
-      deleteConfirm: '确定删除“{name}”吗？',
-      deleted: '已删除',
-      deleteFailed: '删除失败'
-    },
-    parser: {
-      title: '解析引擎',
-      description: '文档解析引擎状态及配置。此处设置优先于服务端环境变量，留空则使用环境变量默认值。',
-      supportedFileTypes: '支持文件类型',
-      statusSection: '状态信息',
-      configSection: '配置',
-      featuresLabel: '识别选项',
-      loading: '加载中...',
-      retry: '重试',
-      noEngineDetected: '未检测到解析引擎，请确认 DocReader 服务正常运行。',
-      disconnected: '未连接',
-      connected: '已连接',
-      available: '可用',
-      unavailable: '不可用',
-      builtinDesc: 'DocReader 内置解析引擎（docx/pdf/xlsx 等复杂格式）',
-      currentAddr: '当前',
-      envVarHint: '修改请设置环境变量 DOCREADER_ADDR、DOCREADER_TRANSPORT（grpc/http），重启服务生效。',
-      selfHostedEndpoint: '自建端点',
-      formulaRecognition: '公式识别',
-      tableRecognition: '表格识别',
-      parseMethodLabel: 'PDF 解析方式',
-      parseMethodAuto: '自动识别（推荐）',
-      parseMethodOCR: '强制 OCR',
-      parseMethodText: '仅提取文本',
-      parseMethodHint: '自动模式会为扫描件启用 OCR，电子版 PDF 直接提取文本。',
-      sealRecognition: '印章识别',
-      chartRecognition: '图表识别',
-      language: '语言',
-      testConnection: '测试连接',
-      docs: '文档',
-      loadFailed: '加载解析引擎列表失败',
-      ensureDocreaderConnected: '请先确保 DocReader 服务已通过环境变量配置并已连接',
-      checkDoneStatusUpdated: '已使用当前填写参数检测，上方状态已更新',
-      checkSuccess: '测试连接成功',
-      checkFailed: '检测失败',
-      saveSuccess: '保存成功',
-      saveFailed: '保存失败',
-      mineruEndpointPlaceholder: '如 https://your-mineru.example.com',
-      defaultPipeline: '默认 pipeline',
-      languagePlaceholder: '如 ch、en、ja（默认 ch）',
-      mineruCloudApiKeyPlaceholder: 'MinerU 云服务 API Key',
-      vlmLabel: 'vlm（视觉语言模型）',
-      mineruHtmlLabel: 'MinerU-HTML（HTML 解析）',
-      serverUrl: '服务器地址',
-      vlmServerUrlPlaceholder: '如 http://your-vllm-server:8000',
-      vlmServerUrlHint: '当 Backend 选择 vlm-http-client 或 hybrid-http-client 时需要填写',
-      paddleocrVlEndpointPlaceholder: '如 http://your-paddleocr-vl:8080',
-      paddleocrVlEndpointHint: '填写 PaddleOCR-VL 完整服务（pipeline）地址，无需 /layout-parsing 后缀',
-      paddleocrVlCloudTokenPlaceholder: 'PaddleOCR-VL 飞桨星河社区 Token'
-    },
-    weknoraCloud: {
-      title: 'WeKnora Cloud',
-      description: '配置 WeKnora Cloud 的 APPID 和 APPSECRET 凭证。凭证用于模型服务和文档解析引擎。',
-      viewDocs: '查看文档',
-      unconfigured: '尚未配置凭证，请填写 APPID 和 APPSECRET',
-      configured: '凭证已配置，状态正常',
-      expired: 'WeKnora Cloud 凭证已失效',
-      expiredDefault: '服务重启后加密密钥已变更，已保存的凭证无法解密。请重新填写凭证。',
-      reconfigure: '重新配置',
-      appIdLabel: 'APPID',
-      appIdDesc: 'WeKnora Cloud 的应用 ID',
-      appIdPlaceholder: '请输入 APPID',
-      appSecretLabel: 'APPSECRET',
-      appSecretDesc: 'WeKnora Cloud 的应用密钥',
-      appSecretPlaceholder: '请输入 APPSECRET',
-      saveHint: '保存后将验证服务可达性并加密存储凭证',
-      saveBtn: '保存凭证',
-      usageTitle: '使用说明',
-      usageSteps: '1. 填写并保存 APPID / APPSECRET\n2. 在下方「云模型接入」中按行添加 chat、embedding、rerank、vlm\n3. 文档解析：知识库设置 → 解析引擎，选择 WeKnora Cloud 引擎',
-      fillRequired: '请填写 APPID 和 APPSECRET',
-      saveSuccess: '凭证保存成功',
-      saveFailed: '凭证保存失败',
-      credentialConfigured: 'WeKnoraCloud 凭证已配置',
-      credentialExpired: '凭证已失效，请重新配置。',
-      credentialUnconfigured: '尚未配置 WeKnoraCloud 凭证，请先填写 APPID 和 APPSECRET。',
-      checkingStatus: '正在检查凭证状态...',
-      goToSettings: '前往设置中配置',
-      modelHintConfigured: 'WeKnoraCloud 凭证已配置。支持的模型可参考',
-      modelHintDocsLink: '接口文档',
-      addModelsSuccess: '已成功添加 {count} 个模型',
-      addModelsPartial: '已添加 {success} 个，{failed} 个失败',
-      addModelsFailed: '添加模型失败',
-      addModelsEmbeddingFailed: 'Embedding 模型连接测试失败，无法获取向量维度',
-      addModelsDisplayName: {
-        chat: 'WeKnoraCloud 对话',
-        embedding: 'WeKnoraCloud Embedding',
-        rerank: 'WeKnoraCloud ReRank',
-        vllm: 'WeKnoraCloud 视觉'
-      },
-      modelsSection: {
-        title: '云模型接入',
-        descReady: '将 WeKnora Cloud 提供的四类标准模型注册到当前空间，用于对话、向量检索、重排序与多模态理解。',
-        descPending: '请先保存上方凭证，再在此添加云模型。',
-        statusAdded: '已添加',
-        statusPending: '待配置凭证',
-        addOne: '添加',
-        addAllBtn: '添加全部缺失（{count}）',
-        addAllConfirm: '确认添加',
-        confirmAddOne: '添加 {type} 模型「{name}」？',
-        confirmAddAll: '一次性添加 {count} 个缺失的云模型？',
-        allReady: '四类云模型均已就绪'
-      }
-    },
-    roleDenied: {
-      title: '权限不足',
-      desc: '你当前的角色无权访问此设置项。请联系本空间的管理员获取所需角色。'
-    },
     capabilityUnavailable: '当前部署不支持此功能，已返回可用页面。',
-    navGroups: {
-      account: '账户',
-      workspace: '空间',
-      modelsRuntime: '模型',
-      dataExtensions: '数据与扩展',
-      systemAdministration: '系统管理',
-      platform: '平台'
-    }
+    title: '设置',
+    modelConfig: '模型配置',
+    agentConfig: 'Agent配置',
+    conversationConfig: '对话设置',
+    conversationStrategy: '对话策略',
+    enableMemory: '开启记忆功能',
+    enableMemoryDesc: '开启后，系统将记录您的对话历史，并在后续对话中自动回忆相关内容，提供更个性化的回答。',
+    memoryRequiresNeo4j: '记忆功能依赖 Neo4j 图数据库，请先配置并启用 Neo4j（设置环境变量 NEO4J_ENABLE=true）后再开启此功能。',
+    memoryHowToEnable: '查看 Neo4j 配置指南',
+    apiInfo: 'API信息',
+    systemConfig: '系统配置',
+    knowledgeBaseSettings: '知识库设置',
+    configureKbModels: '为此知识库配置模型和文档分割参数',
+    manageSystemModels: '管理和更新系统模型及服务配置',
+    basicInfo: '基本信息',
+    documentSplitting: '文档分割',
+    apiEndpoint: 'API端点',
+    enterApiEndpoint: '输入API端点，例如：http://localhost',
+    enterApiKey: '输入API密钥',
+    enterKnowledgeBaseId: '输入知识库ID',
+    saveConfig: '保存配置',
+    reset: '重置',
+    configSaved: '配置保存成功',
+    enterApiEndpointRequired: '请输入API端点',
+    enterApiKeyRequired: '请输入API密钥',
+    enterKnowledgeBaseIdRequired: '请输入知识库ID',
+    name: '名称',
+    enterName: '输入名称',
+    description: '描述',
+    chunkSize: '分块大小',
+    chunkOverlap: '分块重叠',
+    save: '保存',
+    saving: '保存中...',
+    saveSuccess: '保存成功',
+    saveFailed: '保存失败',
+    model: '模型',
+    llmModel: 'LLM模型',
+    embeddingModel: '嵌入模型',
+    rerankModel: '重排序模型',
+    vlmModel: '多模态模型',
+    modelName: '模型名称',
+    modelUrl: '模型地址',
+    apiKey: 'API密钥',
+    cancel: '取消',
+    saveFailedSettings: '设置保存失败',
+    enterNameRequired: '请输入名称',
   },
   agent: {
     taskLabel: '任务:',
     think: '思考',
     copy: '复制',
     addToKnowledgeBase: '添加到知识库',
-    artifactDrawer: {
-      buttonTitle: '查看本次生成的文件',
-      title: '生成的文件',
-      empty: '本次未生成可下载的文件',
-      preview: '预览',
-      previewBack: '返回列表',
-      collecting: '正在保存生成的文件…',
-      download: '下载',
-      downloadFailed: '下载失败，请稍后重试',
-      inlinePreviewHint: '点击预览',
-      inlineMissing: '文件不可用',
-    },
     updatePlan: '更新计划',
     webSearchFound: '找到 <strong>{count}</strong> 个网络搜索结果',
     toolFallback: '工具',
@@ -5724,9 +6570,6 @@ export default {
     toolCalls: '调用 <strong>{tools}</strong> 次工具',
     durationSuffix: '耗时 <strong>{duration}</strong>',
     stepSummarySeparator: ' · ',
-    contextCompacted: '压缩上下文',
-    contextCompactedSummary: '{before} → {after} tokens',
-    contextCompactedDegraded: '摘要不可用，已保留原始记录',
     title: '智能体',
     subtitle: '配置和管理您的智能体，自定义对话行为和能力',
     createAgent: '创建智能体',
@@ -5756,7 +6599,11 @@ export default {
       capabilityDisabled: '关闭',
       capabilitySupported: '支持',
       capabilityUnsupported: '不支持',
-      capabilityUnconfigured: '未配置'
+      capabilityUnconfigured: '未配置',
+      builtinSection: '内置智能体',
+      customSection: '我的智能体',
+      addNew: '添加新智能体',
+      notReadyMissing: '缺少 {items}',
     },
     editor: {
       createTitle: '创建智能体',
@@ -5826,13 +6673,9 @@ export default {
       rerankModelPlaceholder: '请选择 ReRank 模型',
       rerankModelOptionalHint: '当前作用域内暂无 RAG 类型知识库，可不填；后续若加入 RAG 知识库，将自动使用空间默认重排模型，仍建议显式配置。',
       maxIterations: '最大迭代次数',
-      maxIterationsLimit: '限制',
-      maxIterationsUnlimited: '不限制',
       allowedTools: '允许的工具',
       multiTurn: '多轮对话',
       historyTurns: '保留轮数',
-      retainRetrievalHistory: '保留检索结果',
-      memoryEnabled: '长期记忆',
       retrievalStrategy: '检索策略',
       embeddingTopK: '向量召回数量',
       keywordThreshold: '关键词阈值',
@@ -5851,8 +6694,6 @@ export default {
       rewritePromptUser: '改写用户提示词',
       rewritePromptUserPlaceholder: '留空使用系统默认提示词',
       maxCompletionTokens: '最大生成Token数',
-      maxCompletionTokensDefault: '默认',
-      maxCompletionTokensCustom: '自定义',
       fallbackStrategy: '兜底策略',
       fallbackResponse: '固定回复内容',
       fallbackResponsePlaceholder: '抱歉，我无法回答这个问题。',
@@ -5867,10 +6708,18 @@ export default {
       skillsNone: '禁用',
       selectSkills: '选择技能',
       selectSkillsDesc: '勾选要给这个智能体用的技能。没装到当前沙箱的不能勾选，请先点右侧「安装」。',
+      noSkillsAvailable: '空间目录里还没有技能。',
+      skillsInfoTitle: '技能与沙箱如何联动？',
+      skillsInfoContent: '技能是预装的专业知识模块，脚本在所选沙箱中隔离执行。可用列表来自该沙箱已安装的技能；同一会话的沙箱一旦创建，后续附件、产物与销毁都会锁定在创建时那份配置上，改沙箱只影响之后新建的会话。',
+      maxIterationsLimit: '限制',
+      maxIterationsUnlimited: '不限制',
+      retainRetrievalHistory: '保留检索结果',
+      memoryEnabled: '长期记忆',
+      maxCompletionTokensDefault: '默认',
+      maxCompletionTokensCustom: '自定义',
       skillsAllListHint: '「全部」只包含已装到此沙箱的技能。没装的不会自动带上，点「安装」装好后才会算进去。',
       skillsGroupAvailable: '可用',
       skillsGroupUnavailable: '不可用',
-      noSkillsAvailable: '空间目录里还没有技能。',
       skillsNeedSandbox: '请先选择运行沙箱。',
       goSandboxSettings: '管理沙箱',
       goSkillSettings: '管理技能',
@@ -5885,8 +6734,36 @@ export default {
       sandboxBackendHint: '未选择时不会执行技能脚本。',
       sandboxBackendMissing: '配置已删除',
       sandboxNoConfigs: '当前空间还没有沙箱，技能脚本不会执行。',
-      skillsInfoTitle: '技能与沙箱如何联动？',
-      skillsInfoContent: '技能是预装的专业知识模块，脚本在所选沙箱中隔离执行。可用列表来自该沙箱已安装的技能；同一会话的沙箱一旦创建，后续附件、产物与销毁都会锁定在创建时那份配置上，改沙箱只影响之后新建的会话。'
+      capabilities: '能力与工具',
+      capabilitiesDesc: '配置智能体的能力和工具',
+      configuration: '配置项',
+      disabled: '停用',
+      disabledDesc: '停用后该智能体将不会在对话窗口的智能体下拉列表中显示',
+      rerankModelRequired: '使用知识库时请选择 ReRank 模型',
+      contextsMissing: '开启知识库时，上下文模板必须包含 {\'{{\'}contexts{\'}}\'} 占位符',
+      queryMissingInContext: '上下文模板必须包含 {\'{{\'}query{\'}}\'} 占位符',
+      knowledgeBasesMissing: '建议在系统提示词中包含 {\'{{\'}knowledge_bases{\'}}\'} 占位符，以便模型了解可用的知识库',
+      conversationMissing: '改写用户提示词必须包含 {\'{{\'}conversation{\'}}\'} 占位符',
+      avatar: '图标',
+      avatarPlaceholder: '输入 Emoji 或点击选择',
+      baseType: '基础类型',
+      defaultPromptHint: '留空将使用以下系统默认提示词：',
+      defaultContextTemplateHint: '留空将使用以下系统默认上下文模板：',
+      availablePlaceholders: '可用占位符',
+      placeholderHint: '输入 {\'{{\'} 触发自动补全',
+      welcomeMessage: '欢迎消息',
+      welcomeMessagePlaceholder: '选择该智能体时显示的欢迎消息',
+      suggestedPrompts: '推荐问题',
+      allKnowledgeBasesDesc: '智能体可访问所有知识库',
+      selectedKnowledgeBasesDesc: '仅访问选定的知识库',
+      noKnowledgeBaseDesc: '纯模型对话，不检索知识库',
+      retrievalSectionTitle: '检索策略',
+      advancedSettings: '高级设置',
+      availableContextPlaceholders: '可用占位符',
+      placeholderQuery: '用户的问题',
+      placeholderContexts: '检索到的内容列表',
+      placeholderCurrentTime: '当前时间（格式：2006-01-02 15:04:05）',
+      placeholderCurrentWeek: '当前星期（如：星期一）',
     },
     messages: {
       created: '智能体创建成功',
@@ -5897,12 +6774,13 @@ export default {
       copied: '智能体复制成功',
       copyFailed: '复制失败',
       disabled: '已停用',
-      enabled: '已启用'
+      enabled: '已启用',
+      builtinReadonly: '内置智能体不可编辑',
     },
     delete: {
       confirmTitle: '删除智能体',
       confirmMessage: '确定要删除智能体「{name}」吗？此操作不可恢复。',
-      confirmButton: '确认删除'
+      confirmButton: '确认删除',
     },
     shareScope: {
       title: '共享范围说明',
@@ -5921,11 +6799,11 @@ export default {
       disabled: '关闭',
       mcpAll: '全部服务',
       mcpSelected: '指定 {count} 个服务',
-      mcpNone: '不使用'
+      mcpNone: '不使用',
     },
     detail: {
       title: '智能体详情',
-      useInChat: '在对话中使用'
+      useInChat: '在对话中使用',
     },
     empty: {
       title: '暂无自定义智能体',
@@ -5935,7 +6813,7 @@ export default {
       favoritesTitle: '暂无收藏',
       favoritesDescription: '在智能体卡片右上角点击星标即可收藏',
       recentsTitle: '暂无最近访问',
-      recentsDescription: '最近使用过的智能体会出现在这里'
+      recentsDescription: '最近使用过的智能体会出现在这里',
     },
     sections: {
       builtin: '内置',
@@ -5944,31 +6822,90 @@ export default {
       tenantReadonly: '本空间 · 仅查看',
       sharedByMe: '我共享的',
       sharedEditable: '共享给我 · 可编辑',
-      sharedReadonly: '共享给我 · 仅查看'
+      sharedReadonly: '共享给我 · 仅查看',
     },
     tabs: {
-      sharedToMe: '共享给我'
+      sharedToMe: '共享给我',
+      all: '全部',
+      mine: '我的智能体',
     },
     features: {
       webSearch: '支持网络搜索',
       knowledgeBase: '关联知识库',
       mcp: '支持MCP服务',
-      multiTurn: '多轮对话'
+      multiTurn: '多轮对话',
     },
     mode: {
       normal: '快速问答',
-      agent: '智能推理'
+      agent: '智能推理',
     },
     type: {
       normal: '快速问答',
-      agent: '智能推理'
+      agent: '智能推理',
+      custom: '自定义',
     },
     capabilities: {
       kbCount: '指定 {count} 个知识库',
       kbAll: '可访问全部知识库',
       mcpEnabled: '启用 MCP 服务',
-      multiTurn: '多轮对话'
-    }
+      multiTurn: '多轮对话',
+      normal: '快速响应，直接回答问题',
+      agent: '多步思考，深度分析复杂问题',
+      modelSpecified: '指定模型',
+      kbDisabled: '禁用知识库',
+      rerankSpecified: '指定 ReRank 模型',
+      webSearchOn: '启用网络搜索',
+      webSearchOff: '禁用网络搜索',
+      webSearchUnconfigured: '未配置搜索引擎',
+      imageUploadOn: '支持图片上传',
+      imageUploadOff: '不支持图片上传',
+      hasPrompt: '自定义提示词',
+      default: '默认配置',
+    },
+    artifactDrawer: {
+      buttonTitle: '查看本次生成的文件',
+      title: '生成的文件',
+      empty: '本次未生成可下载的文件',
+      preview: '预览',
+      previewBack: '返回列表',
+      collecting: '正在保存生成的文件…',
+      download: '下载',
+      downloadFailed: '下载失败，请稍后重试',
+      inlinePreviewHint: '点击预览',
+      inlineMissing: '文件不可用',
+    },
+    contextCompacted: '压缩上下文',
+    contextCompactedSummary: '{before} → {after} tokens',
+    contextCompactedDegraded: '摘要不可用，已保留原始记录',
+    argumentsLabel: '参数',
+    stepsCompletedWithDuration: '已完成 <strong>{steps}</strong> 个步骤，耗时 <strong>{duration}</strong>',
+    createAgentShort: '新建',
+    builtinInfo: {
+      quickAnswer: {
+        name: '快速问答',
+        description: '基于知识库的 RAG 问答，快速准确地回答问题',
+      },
+      smartReasoning: {
+        name: '智能推理',
+        description: 'ReAct 推理框架，支持多步思考和工具调用',
+      },
+      deepResearcher: {
+        name: '深度研究员',
+        description: '专注于深度研究和综合分析，能够制定研究计划、多维度检索信息、深入思考并给出全面的分析报告',
+      },
+      dataAnalyst: {
+        name: '数据分析师',
+        description: '专注于数据库查询和数据分析，能够理解业务需求、构建SQL查询、分析数据并提供洞察',
+      },
+      knowledgeGraphExpert: {
+        name: '知识图谱专家',
+        description: '专注于知识图谱查询和关系分析，能够探索实体关系、发现隐藏联系并构建知识网络',
+      },
+      documentAssistant: {
+        name: '文档助手',
+        description: '专注于文档检索和内容整理，能够快速定位文档、提取关键信息并生成摘要',
+      },
+    },
   },
   knowledgeStages: {
     title: '处理流水线',
@@ -5996,7 +6933,32 @@ export default {
     totalDuration: '总耗时：{d}',
     total: '总耗时 {d}',
     errorCode: {
-      UNKNOWN_SUGGESTION: '请查看应用日志获取详细信息。'
+      UNKNOWN_SUGGESTION: '请查看应用日志获取详细信息。',
+      DOCREADER_TIMEOUT: '文档解析超时',
+      DOCREADER_TIMEOUT_SUGGESTION: '文件可能过大或解析服务繁忙，请稍后重试或拆分文档。',
+      DOCREADER_UNAVAILABLE: '文档解析服务不可用',
+      DOCREADER_UNAVAILABLE_SUGGESTION: '解析服务离线，请联系管理员。',
+      DOCREADER_PARSE_FAILED: '文档解析失败',
+      DOCREADER_PARSE_FAILED_SUGGESTION: '无法解析该文件，请确认文件未损坏。',
+      CHUNKING_FAILED: '分块失败',
+      CHUNKING_FAILED_SUGGESTION: '请尝试调整知识库的分块配置。',
+      EMBEDDING_RATE_LIMIT: '向量服务被限流',
+      EMBEDDING_RATE_LIMIT_SUGGESTION: '向量服务触发限流，请稍后重试。',
+      EMBEDDING_PROVIDER_FAIL: '向量服务错误',
+      EMBEDDING_PROVIDER_FAIL_SUGGESTION: '向量服务返回错误，请检查供应商配置。',
+      VECTORSTORE_WRITE_FAILED: '向量库写入失败',
+      VECTORSTORE_WRITE_FAILED_SUGGESTION: '向量库拒绝写入，请检查向量库可用性。',
+      MULTIMODAL_VLM_FAILED: '图像理解失败',
+      MULTIMODAL_VLM_FAILED_SUGGESTION: '部分图像无法处理，文档可能仍可使用。',
+      MULTIMODAL_ALL_FAILED: '全部图像多模态处理失败',
+      MULTIMODAL_ALL_FAILED_SUGGESTION: '请检查多模态模型配置。',
+      TASK_TIMEOUT: '任务超过最大运行时间',
+      TASK_TIMEOUT_SUGGESTION: '任务运行时间超出限制，请重试或联系支持人员。',
+      SERVER_RESTART: '服务重启导致任务中断',
+      SERVER_RESTART_SUGGESTION: 'Redis 模式会由任务队列继续重试；Lite 模式中可恢复的 Wiki 任务会自动续跑。若仍失败，请点击重试。',
+      UPSTREAM_FAILED: '上游阶段失败已中止',
+      UPSTREAM_FAILED_SUGGESTION: '前置阶段失败，导致本步骤无法执行。',
+      UNKNOWN: '未知错误',
     },
     status: {
       pending: '等待中',
@@ -6005,14 +6967,14 @@ export default {
       done: '已完成',
       failed: '失败',
       skipped: '已跳过',
-      cancelled: '已取消'
+      cancelled: '已取消',
     },
     stage: {
       docreader: '文档解析',
       chunking: '分块',
       embedding: '向量化',
       multimodal: '多模态识别',
-      postprocess: '后处理'
+      postprocess: '后处理',
     },
     detail: {
       started: '开始',
@@ -6040,25 +7002,44 @@ export default {
       placeholderHint: '此阶段未记录详细 span，仅展示推断状态。',
       showJson: '展开 JSON',
       hideJson: '收起 JSON',
-      includingChildren: '含子任务'
+      includingChildren: '含子任务',
     },
     tab: {
       overview: '概览',
-      raw: '原始 JSON'
+      raw: '原始 JSON',
     },
     head: {
-      stagesDone: '主流程阶段',
+      stagesDone: '已完成阶段',
       stagesProgress: '当前阶段',
       postprocessTasks: '后台任务：运行中 {running} / 失败 {failed} / 已完成 {completed}',
       completedWithActiveTrace: '处理已完成，但仍有 {n} 个 Trace 任务处于活动状态',
       attempt: '尝试',
-      updated: '更新于'
+      updated: '更新于',
+      duration: '总耗时',
+      stages: '阶段',
+      stage: '阶段',
+      status: '状态',
     },
     processConfig: {
       title: '本次解析配置',
       kbDefault: '使用知识库默认配置',
-      graph: '知识图谱'
-    }
+      graph: '知识图谱',
+      chunking: '分块',
+      chunkSize: '大小 {n}',
+      parentChildOn: '父子分块开',
+      parentChildOff: '父子分块关',
+      parser: '解析引擎',
+      multimodal: '多模态',
+      asr: '音频识别',
+      question: '问题生成',
+      questionOn: '开（{n} 个/块）',
+      on: '开',
+      off: '关',
+    },
+    attemptLatest: '第 {n} 次尝试（最新）',
+    autoRefreshOff: '已停止自动刷新',
+    fetchFailed: '最近 {n} 次刷新都失败了，数据可能已过期，点击刷新按钮重试',
+    traceBtn: 'Trace',
   },
   uploadConfirm: {
     title: '上传文档确认',
@@ -6091,8 +7072,8 @@ export default {
     statusNeedsSetup: '待配置',
     multimodalSetupHint: '含图片内容，请启用多模态并选择模型',
     asrSetupHint: '含音频内容，请启用语音识别并选择模型',
-    vlmModelRequired: '请配置多模态模型',
-    asrModelRequired: '请配置语音识别模型',
+    vlmModelRequired: '本批次包含图片，请启用多模态并选择 VLM 模型',
+    asrModelRequired: '本批次包含音频，请启用 ASR 并选择语音识别模型',
     vlmModelSelectRequired: '已启用多模态，请选择 VLM 模型',
     asrModelSelectRequired: '已启用语音识别，请选择 ASR 模型',
     continueAdd: '继续添加',
@@ -6112,8 +7093,48 @@ export default {
     manualCharCount: '{count} 个字符',
     pdfForceScanned: {
       label: '按扫描件解析 PDF',
-      description: '适用于网页打印、扫描件、图片型 PDF。开启后会逐页 OCR，解析更完整但耗时和模型调用更多。'
-    }
+      description: '适用于网页打印、扫描件、图片型 PDF。开启后会逐页 OCR，解析更完整但耗时和模型调用更多。',
+    },
+    fileList: '待上传文件',
+    tabOverview: '配置总览',
+    overviewTitle: '本批次解析配置',
+    overviewDesc: '点击任一项可修改配置',
+    backToOverview: '返回配置总览',
+    summaryChunkOverlapShort: '重叠 {overlap}',
+    summaryParserMode: '模式',
+    summaryParserBuiltin: '内置引擎（默认）',
+    summaryChunkSize: '分块大小',
+    summaryChunkOverlap: '重叠',
+    summaryStrategy: '策略',
+    summaryStrategyDefault: '默认',
+    summaryParentChild: '父子分块',
+    summaryParentChildOn: '已开启（父 {parent} / 子 {child}）',
+    summaryParentChildOff: '未开启',
+    summaryStatus: '状态',
+    summaryModel: '模型',
+    summaryQuestionCount: '每块问题数',
+    summaryGraphTags: '关系类型',
+    uploading: '正在上传 {current}/{total}',
+    tabParser: '解析引擎',
+    tabChunking: '分块',
+    tabMultimodal: '多模态',
+    tabAsr: '音频',
+    tabQuestion: '问题生成',
+    tabGraph: '图谱',
+    noFiles: '请至少保留一个待上传文件',
+    addUrl: '添加',
+    multimodalRequiredForImages: '未开启（本批次含图片）',
+    asrRequiredForAudio: '未开启（本批次含音频）',
+    addMoreFiles: '继续添加文件',
+    addMoreFolder: '继续添加文件夹',
+    titleUrl: 'URL 导入确认',
+    overviewDescUrl: '确认解析配置后将抓取并解析该 URL',
+    overviewDescManual: '确认解析配置后将发布并索引该文档',
+    confirmUrl: '确认导入并解析',
+    overviewDescReparse: '确认解析配置后将清除现有内容并重新解析该文档',
+    urlSource: '导入来源',
+    manualSource: '待发布文档',
+    editUrl: '修改 URL',
   },
   knowledgeBase: {
     title: '知识库',
@@ -6217,15 +7238,13 @@ export default {
     channelWechat: '微信',
     channelWecom: '企业微信',
     channelFeishu: '飞书',
-    channelFeishuDrive: "飞书云盘",
-    channelLarkDrive: "Lark 云盘",
+    channelFeishuDrive: '飞书云盘',
+    channelLarkDrive: 'Lark 云盘',
     channelDingtalk: '钉钉',
     channelSlack: 'Slack',
     channelIm: 'IM 渠道',
     channelNotion: 'Notion',
     channelYuque: '语雀',
-    channelGitLab: 'GitLab',
-    channelIma: '腾讯 IMA',
     channelUpload: '上传',
     channelManual: '手动',
     channelUrl: '网页',
@@ -6243,7 +7262,7 @@ export default {
     chunkCount: '共 {count} 个片段',
     viewChunks: '查看分块',
     viewMerged: '全文',
-    generatedQuestions: '辅助召回问题',
+    generatedQuestions: '生成的问题',
     viewParentContext: '查看父块上下文',
     parentContextLoadFailed: '加载父上下文失败',
     confirmDeleteQuestion: '确定要删除这个问题吗？删除后将同时移除对应的向量索引。',
@@ -6430,7 +7449,7 @@ export default {
       supportedFileTypes: '可上传格式',
       chunking: '分块',
       parentShort: '父',
-      childShort: '子'
+      childShort: '子',
     },
     accessInfo: {
       myRole: '我的身份',
@@ -6441,8 +7460,123 @@ export default {
       permissionViewer: '仅查看与检索',
       fromOrg: '来自空间',
       sharedAt: '共享于',
-      lastUpdated: '最后更新'
-    }
+      lastUpdated: '最后更新',
+    },
+    channelGitLab: 'GitLab',
+    channelIma: '腾讯 IMA',
+    list: '知识库列表',
+    detail: '知识库详情',
+    create: '创建知识库',
+    edit: '编辑知识库',
+    delete: '删除知识库',
+    files: '文件',
+    publishToWeb: '发布到网站',
+    documentCategoryTitle: '文档标签',
+    faqCategoryTitle: 'FAQ 标签',
+    tagEditDialogTitle: '编辑标签 — {name}',
+    tagFilterAll: '全部文档',
+    tagOverflowTip: '点击编辑标签',
+    tagSearchTooltip: '搜索标签',
+    category: '标签',
+    tagDeleteTitle: '删除标签',
+    tagDeleteDesc: '确定删除标签"{name}"？该标签下的所有 FAQ 条目将被一并删除',
+    upload: '上传文件',
+    uploadingMultiple: '正在上传 {total} 个文件...',
+    uploadingValidFiles: '正在上传 {valid}/{total} 个有效文件...',
+    noValidFiles: '没有有效的文件',
+    noValidFilesInFolder: '文件夹中的 {total} 个文件均不支持',
+    noValidFilesSelected: '选中的文件均不支持',
+    hiddenFilesFiltered: '已过滤 {count} 个隐藏文件',
+    imagesFilteredNoVLM: '已过滤 {count} 个图片文件(未启用VLM)',
+    audiosFilteredNoASR: '已过滤 {count} 个音频文件(未启用ASR)',
+    invalidFilesFiltered: '已过滤 {count} 个不支持的文件',
+    unsupportedFileType: '不支持的文件格式',
+    failedFilesList: '失败文件列表：',
+    andMoreFiles: '...及其他 {count} 个文件',
+    duplicateFilesSkipped: '已忽略 {count} 个重复文件',
+    uploadFile: '上传文件',
+    uploadFileDesc: '支持 PDF、Word、TXT、图片、音频等',
+    importURLDesc: '通过URL链接导入',
+    manualCreate: '手动创建',
+    manualCreateDesc: '直接编写文档内容',
+    documentTitle: '文档标题',
+    viewOriginal: '查看原文件',
+    originalFileNotSupported: '该文件类型不支持原文件展示，请下载查看',
+    loadOriginalFailed: '加载原文件内容失败',
+    questions: '问题',
+    childChunk: '子块',
+    docActionUnsupported: '当前知识库类型不支持该操作',
+    quickActions: '快捷操作',
+    createKnowledgeBase: '创建知识库',
+    knowledgeBaseName: '知识库名称',
+    enterName: '输入知识库名称',
+    embeddingModel: '嵌入模型',
+    selectEmbeddingModel: '选择嵌入模型',
+    summaryModel: '摘要模型',
+    selectSummaryModel: '选择摘要模型',
+    rerankModel: '重排序模型',
+    selectRerankModel: '选择重排序模型（可选）',
+    createSuccess: '知识库创建成功',
+    createFailed: '知识库创建失败',
+    updateSuccess: '知识库更新成功',
+    updateFailed: '知识库更新失败',
+    deleteConfirm: '确定要删除此知识库吗？',
+    fileName: '文件名称',
+    fileSize: '文件大小',
+    status: '状态',
+    actions: '操作',
+    processing: '处理中',
+    completed: '已完成',
+    failed: '失败',
+    noFiles: '暂无文件',
+    dragFilesHere: '拖拽文件至此或',
+    clickToUpload: '点击上传',
+    supportedFormats: '支持格式',
+    maxFileSize: '最大文件大小',
+    viewDetails: '查看详情',
+    downloadFile: '下载文件',
+    deleteFile: '删除文件',
+    confirmDeleteFile: '确定要删除此文件吗？',
+    totalFiles: '文件总数',
+    totalSize: '总大小',
+    moveSelectTarget: '选择目标知识库',
+    moveMode: '移动模式',
+    moveProgress: '正在移动...',
+    deleteConfirmation: '删除确认',
+    cancel: '取消',
+    columnType: '类型',
+    batchDeleteConfirmation: '批量删除确认',
+    statusPending: '等待中',
+    selectKnowledgeBaseFirst: '请先选择知识库',
+    sessionCreationFailed: '创建会话失败',
+    sessionCreationError: '会话创建错误',
+    settingsParsingFailed: '设置解析失败',
+    fileUploadEventReceived: '收到文件上传事件，上传的知识库ID：{uploadedKbId}，当前知识库ID：{currentKbId}',
+    matchingKnowledgeBase: '知识库匹配，开始更新文件列表',
+    routeParamChange: '路由参数变化，重新获取知识库内容',
+    fileUploadEventListening: '监听文件上传事件',
+    apiCallKnowledgeFiles: '直接调用API获取知识库文件列表',
+    responseInterceptorData: '由于响应拦截器已返回data，result是响应数据的一部分',
+    hookProcessing: '按照useKnowledgeBase hook方法处理',
+    errorHandling: '错误处理',
+    priorityCurrentPageKbId: '优先使用当前页面的知识库ID',
+    fallbackLocalStorageKbId: '如果当前页面没有知识库ID，尝试从localStorage的设置中获取知识库ID',
+    createNewKnowledgeBase: '创建知识库',
+    uninitializedWarning: '部分知识库未初始化，需要先在设置中配置模型信息才能添加知识文档',
+    initializedStatus: '已初始化',
+    notInitializedStatus: '未初始化',
+    needSettingsFirst: '需要先在设置中配置模型信息才能添加知识',
+    documents: '文档',
+    configureModelsFirst: '请先在设置中配置模型信息',
+    confirmDeleteKnowledgeBase: '确认删除此知识库？',
+    createKnowledgeBaseDialog: '创建知识库',
+    enterNameKb: '输入名称',
+    enterDescriptionKb: '输入描述',
+    createKb: '创建',
+    deleted: '已删除',
+    deleteFailedKb: '删除失败',
+    sourceWeb: '网页',
+    updatedTimeFilter: '更新时间',
   },
   resourceOrigin: {
     mine: '我创建',
@@ -6454,14 +7588,16 @@ export default {
     spaceTooltip: '来自共享空间「{space}」',
     spaceTooltipWithTenant: '来自共享空间「{space}」· 源空间 {tenant}',
     shared: '外部共享',
-    sharedTooltip: '通过共享空间从其他空间访问'
+    sharedTooltip: '通过共享空间从其他空间访问',
   },
   listSpaceSidebar: {
     all: '全部',
     workspace: '本空间',
     spaces: '共享给我',
     favorites: '收藏',
-    recents: '最近'
+    recents: '最近',
+    title: '筛选',
+    mine: '我的',
   },
   batchManage: {
     selectAll: '全选',
@@ -6471,7 +7607,10 @@ export default {
     deleteConfirmBody: '确定要删除选中的 {count} 条对话吗？删除后无法恢复。',
     deleteAllConfirmBody: '确定要删除所有对话吗？此操作无法恢复。',
     deleteSuccess: '删除成功',
-    deleteFailed: '删除失败，请稍后再试'
+    deleteFailed: '删除失败，请稍后再试',
+    title: '管理对话记录',
+    noSelection: '请至少选择一条对话',
+    loadFailed: '加载会话列表失败',
   },
   contextualGuide: {
     stepOf: '{current} / {total}',
@@ -6484,197 +7623,198 @@ export default {
       steps: {
         done: {
           title: '开始探索吧',
-          desc: '试试提一个与已上传文档相关的问题，体验带引用的精准回答。'
+          desc: '试试提一个与已上传文档相关的问题，体验带引用的精准回答。',
         },
         send: {
           title: '发送开始对话',
-          desc: '发送后将创建新会话，AI 会结合知识库内容作答，并标注引用片段。'
+          desc: '发送后将创建新会话，AI 会结合知识库内容作答，并标注引用片段。',
         },
         input: {
           title: '输入你的问题',
-          desc: '直接描述你想了解的内容；也可点击上方推荐问题快速开始。'
+          desc: '直接描述你想了解的内容；也可点击上方推荐问题快速开始。',
         },
         kb: {
           title: '选择知识范围',
-          desc: '点击 {\'@\'} 可指定一个或多个知识库/文件，仅基于选中内容回答；不选则按当前智能体配置检索。'
-        }
-      }
+          desc: '点击 @ 可指定一个或多个知识库/文件，仅基于选中内容回答；不选则按当前智能体配置检索。',
+        },
+      },
     },
     kbDetail: {
       steps: {
         done: {
           title: '解析完成后即可使用',
-          desc: '文档解析入库后，可在对话中 {\'@\'} 本知识库提问，回答会附带引用来源。'
+          desc: '文档解析入库后，可在对话中 @ 本知识库提问，回答会附带引用来源。',
         },
         upload: {
           title: '添加文档',
-          desc: '点击此处上传文件、文件夹，或导入网页与在线编辑内容。'
+          desc: '点击此处上传文件、文件夹，或导入网页与在线编辑内容。',
         },
         intro: {
           title: '知识库还是空的',
-          desc: '添加第一份资料后，才能基于它进行检索与对话。支持拖拽上传多种文档格式。'
-        }
-      }
+          desc: '添加第一份资料后，才能基于它进行检索与对话。支持拖拽上传多种文档格式。',
+        },
+      },
     },
     agentCreate: {
       steps: {
         submit: {
           title: '保存智能体',
-          desc: '确认配置后点击高亮的「确定」完成创建，即可在对话中选择该智能体。'
+          desc: '确认配置后点击高亮的「确定」完成创建，即可在对话中选择该智能体。',
         },
         navTools: {
           title: '工具与 MCP（可选）',
-          desc: '智能推理模式下可勾选内置工具、MCP 服务等，扩展搜索、计算等能力。'
+          desc: '智能推理模式下可勾选内置工具、MCP 服务等，扩展搜索、计算等能力。',
         },
         multimodal: {
           title: '启用附件上传',
-          desc: '可分别配置图片、音频上传及附件解析策略；启用图片上传时需在下方选择 VLM 模型。'
+          desc: '可分别配置图片、音频上传及附件解析策略；启用图片上传时需在下方选择 VLM 模型。',
         },
         navMultimodal: {
           title: '附件上传（可选）',
-          desc: '开启后，对话中可上传图片、文档、音频等附件；图片理解需先在系统设置中配置 VLLM 模型。'
+          desc: '开启后，对话中可上传图片、文档、音频等附件；图片理解需先在系统设置中配置 VLLM 模型。',
         },
         navWebsearch: {
           title: '联网搜索（可选）',
-          desc: '配置是否允许智能体调用外部搜索引擎补充实时信息。'
+          desc: '配置是否允许智能体调用外部搜索引擎补充实时信息。',
         },
         knowledge: {
           title: '知识库范围',
-          desc: '「全部」适合通用助手；「指定」可限定专业领域；「不关联」则仅依赖模型自身能力或联网搜索。'
+          desc: '「全部」适合通用助手；「指定」可限定专业领域；「不关联」则仅依赖模型自身能力或联网搜索。',
         },
         navKnowledge: {
           title: '关联知识库',
-          desc: '决定智能体可检索哪些知识。默认「全部知识库」，也可改为指定库或暂不关联。'
+          desc: '决定智能体可检索哪些知识。默认「全部知识库」，也可改为指定库或暂不关联。',
         },
         model: {
           title: '选择模型',
-          desc: '从下拉列表选择已配置的对话模型；没有合适模型时请先到系统设置添加。'
+          desc: '从下拉列表选择已配置的对话模型；没有合适模型时请先到系统设置添加。',
         },
         navModel: {
           title: '绑定对话模型',
-          desc: '每个智能体必须指定一个 KnowledgeQA 模型作为推理引擎。'
+          desc: '每个智能体必须指定一个 KnowledgeQA 模型作为推理引擎。',
         },
         name: {
           title: '命名与描述',
-          desc: '取一个易识别的名称。智能推理模式下系统可能已预填默认名称，可按需修改。'
+          desc: '取一个易识别的名称。智能推理模式下系统可能已预填默认名称，可按需修改。',
         },
         agentType: {
           title: '选择智能体类型',
-          desc: '预设类型会自动填充系统提示词、推荐工具与知识库范围（如 Wiki 构建、数据分析等）。可按场景切换，名称与描述会随之更新。'
+          desc: '预设类型会自动填充系统提示词、推荐工具与知识库范围（如 Wiki 构建、数据分析等）。可按场景切换，名称与描述会随之更新。',
         },
         mode: {
           title: '选择运行模式',
-          desc: '「普通模式」适合固定流程的快速问答；「智能推理」可调用工具、多步思考，适合复杂任务。'
-        }
-      }
+          desc: '「普通模式」适合固定流程的快速问答；「智能推理」可调用工具、多步思考，适合复杂任务。',
+        },
+      },
     },
     agentList: {
       steps: {
         create: {
           title: '创建你的智能体',
-          desc: '智能体把模型、知识库、工具与提示词组合成可复用的对话助手。点击下方高亮的「创建智能体」开始配置。'
-        }
-      }
+          desc: '智能体把模型、知识库、工具与提示词组合成可复用的对话助手。点击下方高亮的「创建智能体」开始配置。',
+        },
+      },
     },
     kbCreate: {
       steps: {
         submit: {
           title: '创建知识库',
-          desc: '确认类型、名称与模型已选好后，点击高亮的「创建」按钮。创建成功后将引导你上传第一份文档。'
+          desc: '确认类型、名称与模型已选好后，点击高亮的「创建」按钮。创建成功后将引导你上传第一份文档。',
         },
         faq: {
           title: 'FAQ 索引方式',
-          desc: '配置问答对的索引模式。创建后可在本页继续添加 FAQ 条目。'
+          desc: '配置问答对的索引模式。创建后可在本页继续添加 FAQ 条目。',
         },
         multimodalVllm: {
           title: '选择 VLM 模型',
-          desc: '开启多模态后需指定 VLM（视觉语言模型）。若列表为空，请先在系统设置中添加 VLLM 类型模型。'
+          desc: '开启多模态后需指定 VLM（视觉语言模型）。若列表为空，请先在系统设置中添加 VLLM 类型模型。',
         },
         multimodalToggle: {
           title: '开启多模态解析',
-          desc: '启用后，上传的图片类文档将使用视觉语言模型提取内容，便于检索与问答。'
+          desc: '启用后，上传的图片类文档将使用视觉语言模型提取内容，便于检索与问答。',
         },
         navMultimodal: {
           title: '多模态 / 图片理解（可选）',
-          desc: '若文档含大量图表、扫描件或需理解图片内容，可在此开启多模态并选择 VLM 模型。'
+          desc: '若文档含大量图表、扫描件或需理解图片内容，可在此开启多模态并选择 VLM 模型。',
         },
         storage: {
           title: '存储引擎（可选）',
-          desc: '原始文件存放位置（本地或对象存储）。默认跟随空间设置即可。'
+          desc: '原始文件存放位置（本地或对象存储）。默认跟随空间设置即可。',
         },
         chunking: {
           title: '分块策略（可选）',
-          desc: '决定文档如何切分为检索片段。默认分块大小已针对 RAG 优化，一般无需修改。'
+          desc: '决定文档如何切分为检索片段。默认分块大小已针对 RAG 优化，一般无需修改。',
         },
         parser: {
           title: '解析引擎（可选）',
-          desc: '控制 PDF、Office 等文件的解析方式。默认配置适用于大多数场景，有 OCR 需求时可在此调整。'
+          desc: '控制 PDF、Office 等文件的解析方式。默认配置适用于大多数场景，有 OCR 需求时可在此调整。',
         },
         embedding: {
           title: 'Embedding 模型',
-          desc: '将文本转为向量以支持语义检索。与上方索引策略中的「向量/关键词检索」配合使用。'
+          desc: '将文本转为向量以支持语义检索。与上方索引策略中的「向量/关键词检索」配合使用。',
         },
         llm: {
           title: '对话 / 摘要模型',
-          desc: '用于文档摘要、问答生成等。若列表为空，请通过下拉菜单前往系统设置添加模型。'
+          desc: '用于文档摘要、问答生成等。若列表为空，请通过下拉菜单前往系统设置添加模型。',
         },
         navModels: {
           title: '配置模型（必填）',
-          desc: '知识库必须绑定对话模型；开启检索时还需 Embedding 模型。点击左侧「模型配置」进入。'
+          desc: '知识库必须绑定对话模型；开启检索时还需 Embedding 模型。点击左侧「模型配置」进入。',
         },
         indexing: {
           title: '选择索引能力',
-          desc: '默认已开启向量与关键词检索，可按需开启 Wiki 结构化索引或知识图谱。至少保留一种检索方式。'
+          desc: '默认已开启向量与关键词检索，可按需开启 Wiki 结构化索引或知识图谱。至少保留一种检索方式。',
         },
         name: {
           title: '填写名称',
-          desc: '取一个便于识别的名称，例如「产品手册」或「客服 FAQ」。描述可选填。'
+          desc: '取一个便于识别的名称，例如「产品手册」或「客服 FAQ」。描述可选填。',
         },
         type: {
           title: '选择知识库类型',
-          desc: '文档库适合上传 PDF、Word 等文件；FAQ 库适合问答对。创建后类型不可更改，请按需选择。'
-        }
-      }
+          desc: '文档库适合上传 PDF、Word 等文件；FAQ 库适合问答对。创建后类型不可更改，请按需选择。',
+        },
+      },
     },
     tenantModels: {
       needChatModelFirst: '请先添加对话模型（KnowledgeQA），再创建智能体。',
       stepsAgent: {
         done: {
           title: '然后创建智能体',
-          desc: '保存并关闭设置后，点击「创建智能体」，向导会带你配置模式、知识库与附件上传等选项。'
+          desc: '保存并关闭设置后，点击「创建智能体」，向导会带你配置模式、知识库与附件上传等选项。',
         },
         addModel: {
           title: '添加对话模型',
-          desc: '点击「添加模型」，选择 KnowledgeQA 类型并填写接入信息。'
+          desc: '点击「添加模型」，选择 KnowledgeQA 类型并填写接入信息。',
         },
         intro: {
           title: '需要先配置对话模型',
-          desc: '创建智能体至少需要一种 KnowledgeQA（对话）模型。请先在系统设置中添加；Embedding 模型仅创建知识库时需要。'
-        }
+          desc: '创建智能体至少需要一种 KnowledgeQA（对话）模型。请先在系统设置中添加；Embedding 模型仅创建知识库时需要。',
+        },
       },
       steps: {
         done: {
           title: '添加完成后继续',
-          desc: '模型保存后关闭设置页，即可点击「新建知识库」；创建向导会引导你完成类型、索引与模型绑定。'
+          desc: '模型保存后关闭设置页，即可点击「新建知识库」；创建向导会引导你完成类型、索引与模型绑定。',
         },
         addModel: {
           title: '添加模型',
-          desc: '点击「添加模型」，分别配置 KnowledgeQA（对话）与 Embedding 类型。Lite 用户可使用 Ollama 拉取本地模型。'
+          desc: '点击「添加模型」，分别配置 KnowledgeQA（对话）与 Embedding 类型。Lite 用户可使用 Ollama 拉取本地模型。',
         },
         intro: {
           title: '需要先配置模型',
-          desc: '创建文档知识库至少需要：一个对话模型（用于摘要与问答）和一个 Embedding 模型（用于向量检索）。请先在系统设置中添加。'
-        }
-      }
+          desc: '创建文档知识库至少需要：一个对话模型（用于摘要与问答）和一个 Embedding 模型（用于向量检索）。请先在系统设置中添加。',
+        },
+      },
+      needModelsFirst: '请先添加对话模型与 Embedding 模型，再创建知识库。',
     },
     kbList: {
       steps: {
         create: {
           title: '创建第一个知识库',
-          desc: '知识库用来存放文档与 FAQ。点击下方高亮的「新建知识库」按钮，我们会带你完成表单填写。'
-        }
-      }
-    }
+          desc: '知识库用来存放文档与 FAQ。点击下方高亮的「新建知识库」按钮，我们会带你完成表单填写。',
+        },
+      },
+    },
   },
   newUserGuide: {
     stepOf: '{current} / {total}',
@@ -6686,33 +7826,33 @@ export default {
     steps: {
       done: {
         title: '一切就绪',
-        desc: '你已经了解了核心功能，现在就开始构建你的知识助手吧！随时可点击菜单顶部昵称旁的帮助按钮重新查看引导。'
+        desc: '你已经了解了核心功能，现在就开始构建你的知识助手吧！随时可点击菜单顶部昵称旁的帮助按钮重新查看引导。',
       },
       models: {
         title: '配置你的模型',
-        desc: '这是关键一步：在模型管理中添加对话、向量等模型，知识库与对话功能才能正常工作。点击「添加模型」即可开始配置。'
+        desc: '这是关键一步：在模型管理中添加对话、向量等模型，知识库与对话功能才能正常工作。点击「添加模型」即可开始配置。',
       },
       settings: {
         title: '账户与设置入口',
-        desc: '点开这里可以管理账户、成员与系统设置。需要再次查看本引导时，可点击菜单顶部昵称旁的帮助按钮重新打开。'
+        desc: '点开这里可以管理账户、成员与系统设置。需要再次查看本引导时，可点击菜单顶部昵称旁的帮助按钮重新打开。',
       },
       agents: {
         title: '打造专属智能体',
-        desc: '把知识库、提示词与工具组合成可复用的智能体，沉淀你的专业能力。'
+        desc: '把知识库、提示词与工具组合成可复用的智能体，沉淀你的专业能力。',
       },
       chat: {
         title: '发起智能对话',
-        desc: '基于知识库内容向 AI 提问，获得带引用来源的精准回答。点击这里开始新对话。'
+        desc: '基于知识库内容向 AI 提问，获得带引用来源的精准回答。点击这里开始新对话。',
       },
       knowledge: {
         title: '创建你的知识库',
-        desc: '知识库是一切的起点：上传文档、网页或 FAQ，WeKnora 会自动解析并建立索引。点击这里进入知识库。'
+        desc: '知识库是一切的起点：上传文档、网页或 FAQ，WeKnora 会自动解析并建立索引。点击这里进入知识库。',
       },
       welcome: {
         title: '欢迎使用 WeKnora',
-        desc: '只需几步，带你快速了解知识库、对话与智能体的核心用法。点击「下一步」开始。'
-      }
-    }
+        desc: '只需几步，带你快速了解知识库、对话与智能体的核心用法。点击「下一步」开始。',
+      },
+    },
   },
   chatHeader: {
     moreActions: '更多对话操作',
@@ -6739,8 +7879,8 @@ export default {
       user: '用户',
       assistant: '助手',
       attachments: '附件',
-      references: '引用'
-    }
+      references: '引用',
+    },
   },
   menu: {
     knowledgeBase: '知识库',
@@ -6767,6 +7907,313 @@ export default {
     logoutSuccess: '已退出登录',
     myChats: '我的对话',
     apiChats: 'API 会话',
-    noSessions: '暂无对话'
-  }
-}
+    noSessions: '暂无对话',
+    integrations: '发布集成',
+    chat: '对话',
+    createChat: '创建对话',
+    tenant: '账户信息',
+    uploadKnowledge: '上传知识',
+    deleteRecord: '删除记录',
+    pinned: '已置顶',
+    confirmLogout: '确定要退出登录吗？',
+    systemInfo: '系统信息',
+    embedChats: '网页嵌入',
+    embedChannelNamed: '网页嵌入 · {name}',
+    groupBy: '分组方式',
+    groupNone: '无',
+    groupDate: '日期',
+    channelsSection: '渠道对话',
+    chatsSection: '网页对话',
+    otherSources: '其他来源',
+    loadMoreSessions: '加载更多',
+  },
+  memorySettings: {
+    title: '我的记忆',
+    description: '这里是助手跨会话记住的关于你的内容。你可以随时查看、修改和删除，删除后不会再被使用。',
+    workspaceDisabled: '当前空间尚未开启长期记忆，管理员开启后这里的开关才会生效。',
+    enableLabel: '为我启用长期记忆',
+    enableDescription: '关闭后助手不再读取或新增你的记忆，已有记忆会保留，重新开启即可继续使用。',
+    agentDisabledHint: '单个智能体也可以单独关闭长期记忆。被关闭的智能体在对话中既不会读取你的记忆，也不会新增记忆；换用其他智能体不受影响。',
+    usage: {
+      title: '记忆何时会被使用',
+      iconHint: '查看哪些记忆会在对话里被使用',
+      intro: '仅「生效中」会进入对话。',
+      rows: {
+        alwaysOn: {
+          label: '每轮都会带上',
+          text: '个人信息、偏好，以及明确说「记住」的内容',
+        },
+        situational: {
+          label: '相关时才用',
+          text: '事实、在办事项',
+        },
+        interest: {
+          label: '理解常问方向',
+          text: '长期关注，不一定每轮都引用',
+        },
+        tracking: {
+          label: '先观察再记住',
+          text: '常问方向会先计数，达到次数后才成为长期关注',
+        },
+        documents: {
+          label: '常用资料',
+          text: '反复用来回答你的文档，检索时会稍稍优先',
+        },
+        pending: {
+          label: '确认后才生效',
+          text: '待确认的推断',
+        },
+        inactive: {
+          label: '不再使用',
+          text: '已被更新、已归档',
+        },
+      },
+    },
+    listTitle: '记忆列表',
+    listCount: '共 {count} 条',
+    statusActive: '生效中',
+    statusSuperseded: '已被更新',
+    statusArchived: '已归档',
+    statusPending: '待确认',
+    statusTracking: '观察中',
+    statusDocuments: '常用资料',
+    confirmGuess: '是的',
+    rejectGuess: '不是',
+    pendingHint: '这些是系统从你的提问里推断出来的，确认之前不会被使用。',
+    trackingHint: '这些是你反复问到、但还没达到「长期关注」次数的主题。记下来之前不会进入对话。',
+    documentsHint: '这些文档在回答里反复出现，检索会稍微偏向它们。停止跟踪后不再加权，再被引用两次会重新出现。',
+    supersededHint: '这些内容已被更新的记忆替代，不会再进入对话，只作为变更记录保留。',
+    archivedHint: '已归档的记忆不会再进入对话。超出每人上限后，较少用到的条目会被自动收起。',
+    pendingEmptyTitle: '没有待确认的推断',
+    pendingEmptyDescription: '当系统从你的提问里推断出关于你的信息时，会先放在这里等你确认。',
+    trackingEmptyTitle: '没有正在观察的主题',
+    trackingEmptyDescription: '自动提炼开启后，系统会先统计你常问的方向，达到次数后再记为长期关注。',
+    documentsEmptyTitle: '还没有常用资料',
+    documentsEmptyDescription: '同一份文档被回答引用两次以上，就会出现在这里。',
+    supersededEmptyTitle: '还没有被更新的记忆',
+    supersededEmptyDescription: '同一主题被新说法覆盖时，旧内容会留在这里。在本页直接编辑是原地改写，不会产生这条记录。',
+    archivedEmptyTitle: '还没有归档的记忆',
+    archivedEmptyDescription: '生效中超过上限（默认 200 条）时，较少用到的会自动收起；带过期时间的事项到期后也会进来。',
+    documentsHits: '已引用 {hits} 次',
+    untitledDocument: '未命名文档',
+    openDocument: '打开文档',
+    openDocumentUnavailable: '无法打开：缺少知识库信息',
+    stopTrackingDocument: '停止跟踪',
+    stopTrackingDocumentConfirm: '停止用这份文档做个性化检索？之后再被引用两次会重新出现。',
+    stopTrackingDocumentSuccess: '已停止跟踪这份资料',
+    stopTrackingDocumentFailed: '停止跟踪失败',
+    trackingProgress: '已问 {hits} 次，满 {threshold} 次后记为长期关注',
+    trackingReady: '已达到次数，可以记为长期关注',
+    trackingAliases: '也问过：{aliases}',
+    promoteTopic: '记为关注',
+    dismissTopic: '不再跟踪',
+    dismissTopicConfirm: '停止跟踪这个主题？之后再问到也不会自动记为长期关注。',
+    promoteSuccess: '已记为长期关注',
+    promoteFailed: '记为关注失败',
+    dismissSuccess: '已停止跟踪这个主题',
+    dismissFailed: '停止跟踪失败',
+    confirmSuccess: '已确认',
+    confirmFailed: '确认失败',
+    rejectSuccess: '已否决，不会再次推断',
+    rejectFailed: '否决失败',
+    export: '导出',
+    consolidate: '整理',
+    consolidateConfirm: '合并意思接近的条目，旧内容会留在「已被更新」。确定整理？',
+    consolidateSuccess: '整理完成：合并 {merged} 组，到期归档 {expired} 条，过期事项降权 {demoted} 条',
+    consolidateNothing: '没有发现需要整理的内容',
+    consolidateTooFewItems: '记忆还太少，暂时没有整理的必要',
+    consolidateNoCandidates: '没有发现意思相近的记忆，无需合并',
+    consolidateModelDeclined: '模型看过了，这些记忆说的不是同一件事，未做合并',
+    consolidateTooSoon: '刚整理过，请稍后再试',
+    consolidateModelUnavailable: '模型不可用，为避免误合并，本次没有改动任何记忆',
+    consolidateFailed: '整理失败',
+    clear: '清空',
+    clearConfirm: '将永久删除你的全部记忆、正在观察的主题和常用资料，此操作不可撤销。确定继续吗？',
+    deleteConfirm: '永久删除这条记忆？',
+    add: '添加',
+    addPlaceholder: '用一句话写下你希望助手记住的事',
+    addTitle: '添加记忆',
+    addKindLabel: '类型',
+    addContentLabel: '内容',
+    emptyTitle: '还没有记忆',
+    emptyDescription: '在对话里说「记住：……」，或者在上面直接添加一条。',
+    kinds: {
+      profile: '个人信息',
+      preference: '偏好',
+      fact: '事实',
+      task: '在办事项',
+      interest: '长期关注',
+    },
+    kindHints: {
+      profile: '之后每轮对话都会带上',
+      preference: '之后每轮对话都会带上',
+      fact: '只在问题相关时才会用到',
+      task: '只在问题相关时才会用到',
+      interest: '用来理解你常问的方向，不一定每轮都引用',
+    },
+    origins: {
+      explicit: '你要求记住',
+      extracted: '自动提炼',
+      manual: '手动添加',
+    },
+    toasts: {
+      enabled: '已为你开启长期记忆',
+      disabled: '已关闭长期记忆',
+      added: '已添加',
+      updated: '已更新',
+      deleted: '已删除',
+      cleared: '已删除 {count} 条记忆',
+      saveFailed: '操作失败：{message}',
+    },
+  },
+  envVarSettings: {
+    title: '沙箱密钥',
+    description: '给技能和沙箱用的个人密钥，不是 WeKnora 的系统或部署配置。',
+    helpAria: '沙箱密钥说明',
+    introPersonalTitle: '只属于你',
+    introPersonalBody: '只注入到你自己的对话和执行里，空间里的其他人看不到，也不会改成他们的值。',
+    introRuntimeTitle: '用的时候才带上',
+    introRuntimeBody: '技能运行或在沙箱里执行命令时才会注入；对话里也可以当场提供。保存后不再显示明文。',
+    loading: '加载中…',
+    loadFailed: '沙箱密钥加载失败。',
+    retry: '重试',
+    noConfigTitle: '还没有沙箱',
+    noConfigDescription: '这个空间还没有配置沙箱后端，暂时没有可设置的密钥。',
+    sandboxTitle: '某个沙箱里始终带上的值',
+    sandboxHint: '只带给你在那个沙箱里跑的命令。多数情况用不到；需要时再加，对话里也可以当场提供。',
+    sandboxEmpty: '还没有添加过。',
+    sandboxPick: '用在哪个沙箱',
+    skillTitle: '技能要用的密钥',
+    skillHint: '技能声明需要的值。可以预先保存在这里，也可以在对话里当场提供。空间管理员还可以在技能卡上填空间共用值。',
+    skillEmptyTitle: '还没有技能需要密钥',
+    skillEmptyDesc: '安装会声明凭据的技能后，要填的项会出现在这里。',
+    skillOnSandbox: '用于沙箱「{name}」',
+    skillNeedsCount: '{count} 项未在此保存',
+    skillReady: '此页已保存',
+    requiredTag: '必填',
+    statusUnset: '未设置',
+    statusWorkspace: '正在使用空间共用值',
+    statusUser: '你已设置',
+    setValue: '设置',
+    replaceValue: '更换',
+    addRow: '添加',
+    namePlaceholder: 'VARIABLE_NAME',
+    nameRule: '只能用大写字母、数字和下划线，且以字母或下划线开头。',
+    nameInvalid: '这个名字不能用。沙箱保留的名字（例如 PATH，或以 WEKNORA_ 开头的名字）不接受。',
+    nameDuplicate: '这里已经有同名变量了。',
+    valuePlaceholder: '填入值',
+    storedPlaceholder: '已存值，填入新值即替换',
+    valueRequired: '保存前请先填入值。',
+    valueTooLong: '单个值不能超过 {max} 字节。',
+    tooManyValues: '这里最多可以保存 {max} 个变量。',
+    save: '保存',
+    saveSuccess: '已保存。值已存好，之后不会再显示。',
+    saveFailed: '保存失败。',
+    delete: '删除',
+    deleteConfirm: '删除 {name}？之后在这个沙箱上运行的东西都不会再带上它。',
+    deleteSuccess: '变量已删除。',
+    clear: '清除我的值',
+    clearConfirm: '清除你为 {name} 设置的值？之后会重新使用空间共用值（如果有）。',
+    clearSuccess: '已清除你的值。',
+    updatedAt: '你于 {time} 设置',
+  },
+  memoryWorkspaceSettings: {
+    title: '长期记忆',
+    description: '让助手跨会话记住成员说过的个人信息、偏好、事实与在办事项。',
+    introTitle: '默认关闭，需要你显式开启',
+    introDescription: '长期记忆会保留成员在对话中说过的内容，因此默认不开启。开启后每位成员的记忆彼此隔离，成员可以在「我的记忆」里随时查看、修改、删除或整体关闭。生效中的个人信息与偏好会进入之后的每一轮对话；事实和在办事项只在相关问题时召回。',
+    enableLabel: '在本空间启用长期记忆',
+    enableDescription: '关闭后本空间的所有会话都不会读取或写入记忆。',
+    writeModeLabel: '记忆写入方式',
+    writeModeDescription: '决定什么内容会被记住。',
+    writeModeExplicit: '仅显式记录',
+    writeModeAuto: '自动提炼',
+    writeModeExplicitHint: '只记录成员明确说「记住：……」的内容，以及在记忆页手动添加的条目，不额外调用模型。',
+    writeModeAutoHint: '在此基础上，会话结束后在后台调用一次模型，从成员自己说过的话里提炼值得长期保留的内容。',
+    extractModelLabel: '提炼模型',
+    extractModelDescription: '留空则使用该次会话所用的模型。',
+    extractDelayLabel: '挖掘延迟',
+    extractDelayDescription: '一轮对话结束后等待多久再挖掘。等一等可以让一次模型调用覆盖用户连着发的几条消息。',
+    extractMinIntervalLabel: '两次挖掘的最小间隔',
+    extractMinIntervalDescription: '同一个人两次挖掘之间至少间隔多久，用来控制成本。间隔内产生的消息不会被丢弃，会顺延到下一次挖掘一并处理。',
+    vectorRecallLabel: '按语义召回记忆',
+    vectorRecallDescription: '除了字面匹配，再按含义匹配。用户换个说法之后，原来那条记忆仍然能被找到——而多数记忆迟早会被换说法。每轮问答多一次向量调用，超时会自动退回字面匹配。',
+    embeddingModelLabel: '记忆 Embedding 模型',
+    embeddingModelDescription: '语义召回只使用这一个模型，与各知识库绑定的 Embedding 无关。不选则只按字面匹配。换模型后，新写入立刻用新模型；旧记忆在补上新向量之前，语义召回找不到它们，只靠字面匹配。',
+    conditioningLabel: '让记忆参与检索',
+    conditioningDescription: '开启后，记忆会参与查询改写和文档排序，而不只是附加到回答提示里。这是记忆在知识库产品里真正起作用的地方。',
+    interestThresholdLabel: '成为长期关注的次数',
+    interestThresholdDescription: '同一个主题被问到这么多次后，才会作为长期关注记下来。设为 1 会把每个一次性问题都记下来，通常太吵。',
+    instructionsLabel: '自定义挖掘规则',
+    instructionsDescription: '追加到挖掘提示词里的空间规则，用来表达产品猜不到的策略，例如「永远不要记录客户姓名」。',
+    instructionsPlaceholder: '一行一条规则，例如：永远不要记录客户姓名',
+    maxItemsLabel: '每人记忆上限',
+    maxItemsDescription: '超出后按重要度与使用时间归档最低的若干条，归档的记忆仍可在「我的记忆」里查看。',
+    toasts: {
+      saveSuccess: '长期记忆配置已保存',
+      saveFailed: '保存失败：{message}',
+    },
+  },
+  listFilter: {
+    creator: '创建者',
+    allCreators: '全部',
+    createdByMe: '我创建的',
+    createdByOthers: '他人创建的',
+  },
+  knowledgeSearch: {
+    title: '搜索',
+    subtitle: '在知识库和历史对话中进行语义检索，快速查找相关内容',
+    tabKnowledge: '知识搜索',
+    tabMessages: '消息搜索',
+    placeholder: '输入搜索内容...',
+    messagePlaceholder: '搜索历史对话消息...',
+    searchBtn: '搜索',
+    selectKb: '选择知识库',
+    allKb: '全部知识库',
+    noResults: '未找到相关结果',
+    resultCount: '共找到 {count} 条结果',
+    score: '相关度',
+    matchType: '匹配类型',
+    matchTypeVector: '向量匹配',
+    matchTypeKeyword: '关键词匹配',
+    untitledSession: '未命名对话',
+    matchCount: '条匹配',
+    emptyHint: '输入关键词，在知识库中搜索相关内容片段',
+    messageEmptyHint: '输入关键词，搜索历史对话消息',
+    searching: '搜索中...',
+    source: '来源',
+    chunk: '个片段',
+    expand: '展开',
+    collapse: '收起',
+    fileCount: '个文件',
+    viewDetail: '查看详情',
+    startChat: '进入对话',
+    chatWithFile: '对话',
+    newChatTitle: '搜索: {query}',
+  },
+  imOverview: {
+    menuTitle: '已接入的 IM',
+    pageTitle: '已接入的 IM',
+    subtitle: '当前空间下所有智能体已接入的 IM 渠道，可快速启停或跳转到对应智能体',
+    totalCount: '共 {count} 个',
+    empty: '当前空间还没有配置 IM 机器人',
+    loadFailed: '加载 IM 机器人列表失败',
+    builtinAgent: '内置智能体',
+    liveIndicator: '有已启用的 IM 渠道正在运行',
+    detailsTitle: 'IM 机器人详情',
+    gotoAgentEditor: '前往 Agent 编辑',
+    outputMode: '输出模式',
+    sessionMode: '会话模式',
+    updatedAt: '更新时间',
+    channelId: '渠道 ID',
+    columns: {
+      platform: '平台',
+      name: '名称',
+      agent: '所属智能体',
+      mode: '模式',
+      enabled: '启用',
+      botIdentity: 'Bot 标识',
+      createdAt: '创建时间',
+    },
+  },
+};

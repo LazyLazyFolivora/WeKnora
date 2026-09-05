@@ -310,6 +310,7 @@ func (h *Handler) setupStreamHandler(
 		ctx, sessionID, assistantMessageID, requestID, tenantID, receivedAt,
 		assistantMessage, h.streamManager, eventBus, h.artifactCollector,
 	)
+	streamHandler.SetAgentGraphService(h.agentGraphService)
 	streamHandler.Subscribe()
 	return streamHandler
 }

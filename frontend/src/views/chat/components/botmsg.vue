@@ -28,6 +28,12 @@
                 <RagPipelineProgress v-if="!session.isAgentMode && session.used_memories?.length"
                     :session="session" :embedded-mode="embeddedMode" memory-only />
                 <docInfo v-if="session.knowledge_references?.length" :session="session"></docInfo>
+                <!-- 知识图谱放在回答之前 -->
+                <KnowledgeGraph v-show="hasGraphData"
+                    :session-id="sessionId"
+                    :message-id="session.id"
+                    :agent-event-stream="session.agentEventStream"
+                    :is-completed="session.is_completed" />
                 <AgentStreamDisplay :session="session" :session-id="sessionId" :user-query="userQuery"
                     v-if="session.isAgentMode" :follow-up-loading="followUpLoading"
                     @render-complete-change="emit('render-complete-change', $event)" />
@@ -108,6 +114,7 @@ import docInfo from './docInfo.vue';
 import deepThink from './deepThink.vue';
 import AgentStreamDisplay from './AgentStreamDisplay.vue';
 import RagPipelineProgress from './RagPipelineProgress.vue';
+import KnowledgeGraph from '@/components/KnowledgeGraph/KnowledgeGraph.vue';
 import ChatRequestInfoButton from '@/components/ChatRequestInfoButton.vue';
 import ChatCitationFloat from '@/components/ChatCitationFloat.vue';
 import picturePreview from '@/components/picture-preview.vue';
@@ -161,6 +168,12 @@ const mentionTagIcon = (item) => {
 
 const emit = defineEmits(['scroll-bottom', 'render-complete-change'])
 const { t } = useI18n()
+
+// 知识图谱数据是否存在（用于 v-show 保持组件不被卸载）
+const hasGraphData = computed(() => {
+  const stream = props.session?.agentEventStream
+  return !!stream?.some((e) => e.type === 'agent_graph')
+})
 const uiStore = useUIStore();
 let parentMd = ref()
 const { float: citationFloat, rebind: rebindCitations, cancelClose: cancelCitationClose, scheduleClose: scheduleCitationClose } = useChatCitationPopover(parentMd, {
@@ -523,7 +536,8 @@ onBeforeUnmount(() => {
     color: var(--td-text-color-primary);
     font-size: 16px;
     // padding: 10px 12px;
-    margin-right: auto;
+    flex: 1 1 0%;
+    min-width: 0;
     max-width: 100%;
     box-sizing: border-box;
 }

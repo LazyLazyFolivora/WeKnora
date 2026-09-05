@@ -261,6 +261,8 @@ const (
 	// — the console does not have to read the durable prompt row to caption
 	// the run.
 	ResponseTypeInstallPrompt ResponseType = "install_prompt"
+	// AgentGraph: incremental knowledge-graph event from a streaming MCP agent.
+	ResponseTypeAgentGraph ResponseType = "agent_graph"
 )
 
 // StreamResponse stream response

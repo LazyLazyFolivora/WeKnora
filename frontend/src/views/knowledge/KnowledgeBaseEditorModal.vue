@@ -478,6 +478,7 @@ import { copyWithToast } from '@/utils/clipboard'
 import { useEditorResourcesStore } from '@/stores/editorResources'
 import { useUIStore } from '@/stores/ui'
 import { useAuthStore } from '@/stores/auth'
+import { useFeatureFlags } from '@/config/featureFlags'
 import KBModelConfig from './settings/KBModelConfig.vue'
 import KBParserSettings from './settings/KBParserSettings.vue'
 import KBStorageSettings from './settings/KBStorageSettings.vue'
@@ -493,6 +494,7 @@ import { useI18n } from 'vue-i18n'
 
 const uiStore = useUIStore()
 const authStore = useAuthStore()
+const { showKnowledgeBaseAllSettings } = useFeatureFlags()
 const chatResources = useChatResourcesStore()
 const editorResources = useEditorResourcesStore()
 const { t } = useI18n()
@@ -635,30 +637,17 @@ const navItems = computed(() => {
 })
 
 // 左侧导航分组（与 AgentEditorModal 对齐）
+// 管理员租户（tenant_id=10000）显示全部设置分组；普通用户仅显示基本信息
 const navGroups = computed(() => {
   const itemMap = new Map(navItems.value.map((item) => [item.key, item]))
   const pickItems = (keys: string[]) =>
     keys.map((key) => itemMap.get(key)).filter(Boolean) as typeof navItems.value
-  return [
+
+  const groups: Array<{ key: string; label: string; items: typeof navItems.value }> = [
     {
       key: 'basic',
       label: t('knowledgeEditor.navGroups.basic'),
-      items: pickItems(['basic', 'models', 'vectorStore', 'faq']),
-    },
-    {
-      key: 'processing',
-      label: t('knowledgeEditor.navGroups.processing'),
-      items: pickItems(['parser', 'chunking', 'multimodal', 'asr', 'graph', 'advanced']),
-    },
-    {
-      key: 'data',
-      label: t('knowledgeEditor.navGroups.data'),
-      items: pickItems(['storage', 'datasource']),
-    },
-    {
-      key: 'integration',
-      label: t('knowledgeEditor.navGroups.integration'),
-      items: pickItems(['share']),
+      items: pickItems(['basic']),
     },
     {
       key: 'management',

@@ -75,6 +75,12 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresInit: false, requiresTenant: false }
     },
     {
+      path: "/loginpro",
+      name: "loginPro",
+      component: () => import("../views/auth/LoginPro.vue"),
+      meta: { requiresAuth: false, requiresInit: false }
+    },
+    {
       path: "/join",
       name: "joinOrganization",
       // 重定向到组织列表页，并将 code 参数转换为 invite_code
@@ -351,7 +357,7 @@ router.beforeEach(async (to, from, next) => {
   // 如果访问的是登录页面或初始化页面，直接放行
   if (to.meta.requiresAuth === false || to.meta.requiresInit === false) {
     // 如果已登录用户访问登录页面，重定向到知识库列表页面
-    if (to.path === '/login' && authStore.isLoggedIn) {
+    if ((to.path === '/login' || to.path === '/loginpro') && authStore.isLoggedIn) {
       next(authStore.hasValidTenant ? '/platform/knowledge-bases' : '/onboarding/workspace')
       return
     }
@@ -425,7 +431,7 @@ router.beforeEach(async (to, from, next) => {
 
 router.afterEach((to) => {
   if (!isLiteEdition(useAuthStore())) return
-  if (to.path === '/login') return
+  if (to.path === '/login' || to.path === '/loginpro') return
   if (!to.path.startsWith('/platform')) return
   sessionStorage.setItem(LITE_LAST_PATH_KEY, to.fullPath)
 })
