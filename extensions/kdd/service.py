@@ -206,9 +206,22 @@ class Service:
         if row["source_status"] != "active":
             expected["source_status"] = row["source_status"]
         meta = doc.get("metadata") or {}
-        if any(meta.get(k) != expected[k] for k in IDENTITY_FIELDS):
+        immutable_fields = (*IDENTITY_FIELDS, "source_scope", "raw_locator", "publication_id",
+                            "content_sha256", "indexed_text_sha256", "contract_version")
+        if any(meta.get(k) != expected[k] for k in immutable_fields):
             raise HTTPException(409, "upstream fixed source metadata mismatch")
         custom = doc.get("custom_metadata") or {}
+        if any(k in custom and custom[k] != expected[k] for k in immutable_fields):
+            raise HTTPException(409, "upstream source projection conflicts with the fixed version")
+        if row["source_status"] == "active":
+            if meta.get("source_status") not in (None, "active") or custom.get("source_status") not in (None, "active"):
+                raise HTTPException(409, "upstream source was explicitly disabled")
+            # The native parser saves a Knowledge snapshot after indexing and
+            # can overwrite a projection PUT while parsing. Fabric replays a
+            # publication whose binding is pending; finalize only after that
+            # last native save, preserving the atomically uploaded identity.
+            if doc["parse_status"] != "completed":
+                return
         # Reserve the contract fields in custom_metadata, which native clients
         # already receive. Original metadata was stored atomically at upload.
         update = {**custom, **expected}
@@ -216,7 +229,7 @@ class Service:
             raise HTTPException(409, "upstream custom metadata size limit exceeded")
         if custom != update:
             self.request("PUT", "/api/v1/knowledge/" + row["knowledge_id"],
-                         json={"title": value["title"], "custom_metadata": update})
+                         json={"title": value["title"][:255], "custom_metadata": update})
 
     def row(self, pid, receipt_only=False):
         row = self.journal.get(pid)
@@ -262,7 +275,8 @@ class Service:
             reasons.append("index_text_mismatch")
         if doc["embedding_model_id"] != value["embedding_provenance"]["model_id"]:
             reasons.append("embedding_model_binding_changed")
-        if row["source_status"] != "active" or custom.get("source_status") != "active" or doc["enable_status"] != "enabled":
+        if (row["source_status"] != "active" or custom.get("source_status") not in (None, "active")
+                or meta.get("source_status") not in (None, "active") or doc["enable_status"] != "enabled"):
             reasons.append("source_disabled")
         return doc, chunks, reasons
 
@@ -295,7 +309,8 @@ class Service:
                 "parse_status": parse, "vector_status": vector_status, "index_status": index_status,
                 "binding_status": "bound" if doc and not {"source_binding_mismatch", "index_text_mismatch"}.intersection(reasons) else "pending",
                 "source_status": "disabled" if disabled else "active", "source_change_type": row["source_status"] if row["source_status"] != "active" or not disabled else "disabled_upstream",
-                "disable_reason": row["disable_reason"], "chunk_count": len(chunks), "vector_count": len(vectors),
+                "disable_reason": row["disable_reason"], "display_title_truncated": len(value["title"]) > 255,
+                "chunk_count": len(chunks), "vector_count": len(vectors),
                 "index_version": version, "graph_status": "not_requested", "degraded_reasons": reasons}
 
     def feature(self, row, include_chunks=False):

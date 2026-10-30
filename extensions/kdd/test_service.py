@@ -76,6 +76,7 @@ class ServiceTests(unittest.TestCase):
                 self.store.docs[kid]["parse_status"]="cancelled"
             if method=="PUT":
                 self.store.docs[kid]["custom_metadata"]=kwargs["json"]["custom_metadata"]
+                self.store.docs[kid]["title"]=kwargs["json"]["title"]
             return {"data":copy.deepcopy(self.store.docs[kid])}
         if path.startswith("/api/v1/chunks/"):
             if self.fail_disable:
@@ -123,6 +124,33 @@ class ServiceTests(unittest.TestCase):
         with self.assertRaises(HTTPException) as e:self.s.publish(Publication(**payload()))
         self.assertEqual(e.exception.status_code,409)
         self.assertEqual(self.uploads,0)
+
+    def test_native_parser_snapshot_and_real_length_title(self):
+        original=self.s.request
+        def processing_upload(method,path,**kwargs):
+            result=original(method,path,**kwargs)
+            if path.endswith("/knowledge/file"):
+                self.store.docs[result["data"]["id"]]["parse_status"]="processing"
+            return result
+        self.s.request=processing_upload
+        title="T"*286  # Observed ClinicalTrials NCT04165083 briefTitle length.
+        receipt=self.s.publish(Publication(**payload(title=title)))
+        kid=receipt["knowledge_id"]
+        self.assertEqual(receipt["binding_status"],"pending")
+        self.assertEqual(receipt["source_status"],"active")
+        self.assertEqual(self.store.docs[kid]["custom_metadata"],{})
+        # Native parse completion writes its original empty custom_metadata.
+        self.store.docs[kid]["parse_status"]="completed"
+        final=self.s.publish(Publication(**payload(title=title)))
+        self.assertEqual(final["index_status"],"ready")
+        self.assertEqual(self.uploads,1)
+        self.assertEqual(len(self.store.docs[kid]["title"]),255)
+        self.assertEqual(self.s.features(self.member_request())["features"][0]["title"],title)
+        self.assertTrue(final["display_title_truncated"])
+        self.store.docs[kid]["custom_metadata"]["raw_sha256"]="b"*64
+        with self.assertRaises(HTTPException) as e:self.s.publish(Publication(**payload(title=title)))
+        self.assertEqual(e.exception.status_code,409)
+        self.assertEqual(self.store.docs[kid]["custom_metadata"]["raw_sha256"],"b"*64)
 
     def test_scope_is_not_authorization(self):
         with self.assertRaises(HTTPException) as e:

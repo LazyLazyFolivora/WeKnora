@@ -43,7 +43,7 @@
         "version_id": "string",
         "raw_sha256": "64 hex",
         "raw_locator": "object above",
-        "title": "string",
+        "title": "string, 1..500 characters; original retained in receipt/features, native display title limited to 255",
         "content": "cleaned authorized UTF-8 text, 1..2000000 bytes",
         "content_sha256": "optional 64 hex; verified against UTF-8 content"
       },
@@ -63,7 +63,8 @@
         "source_status": "active|disabled",
         "chunk_count": "actual count",
         "vector_count": "actual enabled text chunk count",
-        "graph_status": "not_requested; reviewed graph pipeline remains separate"
+        "graph_status": "not_requested; reviewed graph pipeline remains separate",
+        "display_title_truncated": "boolean; only the native display column is truncated"
       }
     },
     "GET /api/v1/kdd/publications/{publication_id}": {
@@ -151,7 +152,8 @@
     "New versions create distinct index documents; prior versions remain fixed until explicitly disabled/superseded.",
     "Source identity binds chunks via their knowledge foreign key; API exposes it on each returned chunk.",
     "No Fabric database writes; index mutations only via existing WeKnora HTTP APIs; vector SQL uses read-only transactions.",
-    "Initial bounded verification uses a new KDD KB with BAAI/bge-m3 1024; no full-corpus reindex."
+    "Initial bounded verification uses a new KDD KB with BAAI/bge-m3 1024; no full-corpus reindex.",
+    "While parse is pending/processing/finalizing, binding remains pending. Replay the same publication after parse completed to finalize the native metadata projection without re-uploading. A missing projection is not an explicit revocation."
   ],
   "publication_id_formula": "sha256(json.dumps([knowledge_base_id, source_instance, source_id, source_record_id, version_id], ensure_ascii=False, separators=(',', ':')).encode('utf-8')).hexdigest()",
   "revoked_source_cleanup": "Authenticated service may read content-free receipts and disable only already registered publication IDs after source mapping revocation. Features and search always require the current mapping."

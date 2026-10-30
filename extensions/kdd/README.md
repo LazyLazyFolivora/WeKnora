@@ -33,9 +33,9 @@ python -m unittest extensions.kdd.test_service -v
 
 ## 身份、向量与恢复
 
-publication_id 是 `[knowledge_base_id,source_instance,source_id,source_record_id,version_id]` 规范 JSON 数组的 SHA-256（UTF-8，ensure_ascii=False，separators=(',',':')）。原件身份原子写入上传 metadata，再复制到原生 API 可读的 custom_metadata。chunk 以现有 knowledge_id 外键绑定，扩展逐块返回身份，不创建第二套权威来源表。
+publication_id 是 `[knowledge_base_id,source_instance,source_id,source_record_id,version_id]` 规范 JSON 数组的 SHA-256（UTF-8，ensure_ascii=False，separators=(',',':')）。原件身份原子写入上传 metadata。原生异步解析会保存上传时的 Knowledge 快照，因此解析 completed 后才复制到原生 API 可读的 custom_metadata；binding pending 时由 Fabric 用同一 publication 重放完成投影，不重新上传。原子身份或已有投影冲突仍报错，空投影不冒充撤权。chunk 以现有 knowledge_id 外键绑定，扩展逐块返回身份，不创建第二套权威来源表。
 
-上传内容增加一行固定版本注释，使相同正文的两个版本不会被原生文件去重合并。content_sha256 对应清洗正文，indexed_text_sha256 对应实际上传内容。分块配置通过本次上传 process_config 固定；块向量可包含 WeKnora 的上下文标题。include_chunks 会同时返回实际 embeddings.content 的哈希。features 返回的正文去除扩展注释（取自不可变发布回执），原始原件仍回 Fabric 读取。
+上传内容增加一行固定版本注释，使相同正文的两个版本不会被原生文件去重合并。content_sha256 对应清洗正文，indexed_text_sha256 对应实际上传内容。分块配置通过本次上传 process_config 固定；块向量可包含 WeKnora 的上下文标题。include_chunks 会同时返回实际 embeddings.content 的哈希。features 返回的正文去除扩展注释（取自不可变发布回执），原始原件仍回 Fabric 读取。真实登记的标题可能超过原生展示列 255 字符；接口接受最多 500 字符并在回执/特征中保留完整标题，只把原生展示列裁到 255，返回 display_title_truncated，身份和正文哈希保持不变。
 
 聚合仅选启用的原始 text 块、source_type=0 且 source_id=chunk_id 的向量，先按块 L2 归一化，求均值，再对文档向量 L2 归一化。父块、摘要、自动问题、图实体不作为独立研究。实际向量缺失、维度不符、模型记录消失、模型配置变化或人工修改块时不返回已验证向量。文档向量不直接代表项目或独立研究；Radar 仍须完成单位/队列映射和适用性评价。
 
