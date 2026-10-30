@@ -20,6 +20,7 @@ class Locator(StrictModel):
     uri: str | None = Field(default=None, max_length=1000)
 
 class Publication(Identity):
+    is_demo: bool = Field(default=False, strict=True)
     knowledge_base_id: str = Field(min_length=1, max_length=64)
     source_scope: str = Field(min_length=1, max_length=128)
     raw_locator: Locator
@@ -31,12 +32,14 @@ class Member(Identity):
     knowledge_id: str | None = Field(default=None, max_length=64)
 
 class Features(StrictModel):
+    is_demo: bool = Field(default=False, strict=True)
     knowledge_base_id: str = Field(min_length=1, max_length=64)
     source_scope: str = Field(min_length=1, max_length=128)
     members: list[Member] = Field(min_length=1, max_length=100)
     include_chunks: bool = False
 
 class Search(StrictModel):
+    is_demo: bool = Field(default=False, strict=True)
     knowledge_base_id: str = Field(min_length=1, max_length=64)
     source_scope: str = Field(min_length=1, max_length=128)
     query_text: str = Field(min_length=1, max_length=8000)

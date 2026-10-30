@@ -91,6 +91,41 @@ class ServiceTests(unittest.TestCase):
         v = value or payload()
         return Features(knowledge_base_id=KB,source_scope="pipeline",members=[identity(v)])
 
+    def test_demo_never_publishes_or_searches_a_real_scope(self):
+        with self.assertRaises(HTTPException) as error:
+            self.s.publish(Publication(**payload(is_demo=True)))
+        self.assertEqual(error.exception.status_code, 403)
+        self.assertEqual(self.uploads, 0)
+        with self.assertRaises(HTTPException):
+            self.s.search(Search(knowledge_base_id=KB, source_scope="pipeline", query_text="trial", is_demo=True))
+
+    def test_explicit_demo_scope_roundtrip_and_real_exclusion(self):
+        self.cfg["demo_kb_ids"] = [KB]
+        self.path.write_text(json.dumps(self.cfg))
+        with self.assertRaises(HTTPException):
+            self.s.publish(Publication(**payload()))
+        receipt = self.s.publish(Publication(**payload(is_demo=True)))
+        self.assertTrue(receipt["is_demo"])
+        self.assertEqual(self.store.docs[receipt["knowledge_id"]]["metadata"]["is_demo"], "true")
+        request = self.member_request().model_copy(update={"is_demo": True})
+        features = self.s.features(request)
+        self.assertTrue(features["is_demo"])
+        self.assertTrue(features["features"][0]["is_demo"])
+        with self.assertRaises(HTTPException):
+            self.s.features(self.member_request())
+        with self.assertRaises(HTTPException):
+            self.s.search(Search(knowledge_base_id=KB, source_scope="pipeline", query_text="trial"))
+
+    def test_reclassifying_kb_cannot_relabel_existing_publication(self):
+        receipt = self.s.publish(Publication(**payload()))
+        self.cfg["demo_kb_ids"] = [KB]
+        self.path.write_text(json.dumps(self.cfg))
+        with self.assertRaises(HTTPException) as error:
+            self.s.publish(Publication(**payload(is_demo=True)))
+        self.assertEqual(error.exception.status_code, 409)
+        self.assertFalse(self.s.status(receipt["publication_id"])["is_demo"])
+        self.assertEqual(self.uploads, 1)
+
     def test_idempotent_versions_and_hash_conflicts(self):
         first=self.s.publish(Publication(**payload()))
         again=self.s.publish(Publication(**payload()))

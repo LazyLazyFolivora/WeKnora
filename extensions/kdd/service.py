@@ -69,9 +69,11 @@ class Service:
     def config(self):
         return json.loads(self.config_path.read_text())
 
-    def authorize(self, kb, scope, source=None):
+    def authorize(self, kb, scope, source=None, *, is_demo=False):
         # Reload the source mapping so a permission removal applies immediately.
         cfg = self.config()
+        if is_demo != (kb in cfg.get("demo_kb_ids", [])):
+            raise HTTPException(403, "simulation status does not match the configured knowledge base")
         if kb not in cfg["allowed_kb_ids"]:
             raise HTTPException(403, "knowledge base is outside configured access")
         mappings = [m for m in cfg["source_mappings"] if m["knowledge_base_id"] == kb and scope in m["scopes"]]
@@ -114,7 +116,7 @@ class Service:
 
     def prepare(self, req):
         value = req.model_dump(exclude_none=True)
-        self.authorize(value["knowledge_base_id"], value["source_scope"], value)
+        self.authorize(value["knowledge_base_id"], value["source_scope"], value, is_demo=value.get("is_demo", False))
         if len(value["content"].encode()) > 2000000:
             raise HTTPException(400, "content exceeds byte limit")
         for k in IDENTITY_FIELDS[:-1]:
@@ -130,7 +132,8 @@ class Service:
         return value
 
     def metadata(self, value, pid):
-        return {**identity(value), "source_scope": value["source_scope"],
+        return {**identity(value), **({"is_demo": str(value["is_demo"]).lower()} if "is_demo" in value else {}),
+                "source_scope": value["source_scope"],
                 "raw_locator": json.dumps(value["raw_locator"], ensure_ascii=False, separators=(",", ":")),
                 "publication_id": pid, "content_sha256": value["content_sha256"],
                 "indexed_text_sha256": value["indexed_text_sha256"], "source_status": "active",
@@ -157,6 +160,8 @@ class Service:
             row = self.journal.get(pid)
             if row:
                 prior = row["payload"]
+                if value.get("is_demo", False) != prior.get("is_demo", False):
+                    raise HTTPException(409, "fixed version simulation status cannot change")
                 for k in ("raw_sha256", "content_sha256", "source_scope", "raw_locator"):
                     if value[k] != prior[k]:
                         raise HTTPException(409, "fixed version already exists with different identity/content/scope")
@@ -208,6 +213,8 @@ class Service:
         meta = doc.get("metadata") or {}
         immutable_fields = (*IDENTITY_FIELDS, "source_scope", "raw_locator", "publication_id",
                             "content_sha256", "indexed_text_sha256", "contract_version")
+        if "is_demo" in value:
+            immutable_fields += ("is_demo",)
         if any(meta.get(k) != expected[k] for k in immutable_fields):
             raise HTTPException(409, "upstream fixed source metadata mismatch")
         custom = doc.get("custom_metadata") or {}
@@ -237,7 +244,7 @@ class Service:
             raise HTTPException(404, "publication not found")
         value = row["payload"]
         if not receipt_only:
-            self.authorize(value["knowledge_base_id"], value["source_scope"], value)
+            self.authorize(value["knowledge_base_id"], value["source_scope"], value, is_demo=value.get("is_demo", False))
         # Receipt/cleanup access is confined to bindings this authenticated
         # service previously registered. It reveals no document content and
         # remains available after a source mapping has been revoked.
@@ -265,6 +272,8 @@ class Service:
         custom = doc.get("custom_metadata") or {}
         reasons = []
         binding_fields = (*IDENTITY_FIELDS, "publication_id", "raw_locator", "source_scope", "content_sha256", "indexed_text_sha256")
+        if "is_demo" in value:
+            binding_fields += ("is_demo",)
         if any(meta.get(k) != expected[k] or custom.get(k) != expected[k] for k in binding_fields):
             reasons.append("source_binding_mismatch")
         if any(c["content_revision"] != 0 for c in chunks):
@@ -302,7 +311,8 @@ class Service:
             vector_status = "missing"
         version = digest([row["knowledge_id"], value["indexed_text_sha256"], value["embedding_provenance"], value["chunking"],
                           [(c["id"],str(c["updated_at"]),str(c["vector_updated_at"]),c["is_enabled"],c["vector_enabled"]) for c in chunks]])
-        return {"contract_version": CONTRACT, "publication_id": pid, "knowledge_id": row["knowledge_id"],
+        return {"contract_version": CONTRACT, "is_demo": value.get("is_demo", False),
+                "publication_id": pid, "knowledge_id": row["knowledge_id"],
                 "knowledge_base_id": value["knowledge_base_id"], "identity": identity(value), "raw_locator": value["raw_locator"],
                 "source_scope": value["source_scope"], "content_sha256": value["content_sha256"],
                 "indexed_text_sha256": value["indexed_text_sha256"], "upload_status": row["upload_status"],
@@ -353,9 +363,9 @@ class Service:
         return result
 
     def features(self, req):
-        self.authorize(req.knowledge_base_id, req.source_scope)
+        self.authorize(req.knowledge_base_id, req.source_scope, is_demo=req.is_demo)
         for member in req.members:
-            self.authorize(req.knowledge_base_id, req.source_scope, member.model_dump())
+            self.authorize(req.knowledge_base_id, req.source_scope, member.model_dump(), is_demo=req.is_demo)
         features, excluded, seen = [], [], set()
         total_text_bytes, total_chunks = 0, 0
         for member in req.members:
@@ -368,6 +378,8 @@ class Service:
             reason = None
             if row is None:
                 reason = "fixed_version_not_published"
+            elif row["payload"].get("is_demo", False) != req.is_demo:
+                reason = "simulation_status_mismatch"
             elif identity(row["payload"]) != identity(value) or row["payload"]["source_scope"] != req.source_scope:
                 reason = "fixed_version_identity_mismatch"
             elif member.knowledge_id and member.knowledge_id != row["knowledge_id"]:
@@ -388,7 +400,8 @@ class Service:
                 raise HTTPException(400, "batch exceeds 10 MB text or 10000 chunks; split the fixed member list")
             features.append(self.feature(row, req.include_chunks))
         members = sorted([identity(m.model_dump()) for m in req.members], key=lambda m: json.dumps(m,sort_keys=True))
-        return {"contract_version": CONTRACT, "scope_fingerprint": digest([req.knowledge_base_id, req.source_scope, members]),
+        return {"contract_version": CONTRACT, "is_demo": req.is_demo,
+                "scope_fingerprint": digest([req.knowledge_base_id, req.source_scope, members]),
                 "requested_count": len(req.members), "returned_count": len(features), "features": features, "excluded": excluded,
                 "population": "explicit_members_only", "statistical_unit": "document_version", "aggregation": AGGREGATION}
 
@@ -427,14 +440,14 @@ class Service:
         return result, model_descriptor(model)
 
     def search(self, req):
-        self.authorize(req.knowledge_base_id, req.source_scope)
+        self.authorize(req.knowledge_base_id, req.source_scope, is_demo=req.is_demo)
         rows = {}
         for pid in self.journal.all():
             row = self.journal.get(pid)
             value = row["payload"]
-            if row["knowledge_id"] and row["source_status"] == "active" and value["knowledge_base_id"] == req.knowledge_base_id and value["source_scope"] == req.source_scope:
+            if row["knowledge_id"] and row["source_status"] == "active" and value["knowledge_base_id"] == req.knowledge_base_id and value["source_scope"] == req.source_scope and value.get("is_demo", False) == req.is_demo:
                 try:
-                    self.authorize(req.knowledge_base_id, req.source_scope, value)
+                    self.authorize(req.knowledge_base_id, req.source_scope, value, is_demo=req.is_demo)
                 except HTTPException:
                     continue
                 rows[row["knowledge_id"]] = row
@@ -442,7 +455,7 @@ class Service:
             raise HTTPException(400, "search scope exceeds 1000 published documents; narrow server scope")
         execution = {"keyword": "not_run", "vector": "not_run", "embedding": "not_run", "rerank": "not_run", "degraded_reasons": []}
         if not rows:
-            return {"contract_version": CONTRACT, "results": [], "execution": {**execution, "degraded": False, "scope_document_count": 0}}
+            return {"contract_version": CONTRACT, "is_demo": req.is_demo, "results": [], "execution": {**execution, "degraded": False, "scope_document_count": 0}}
         query_embedding = None
         try:
             embedded, descriptor = self.model_call("embedding", {"input": [req.query_text]})
@@ -518,7 +531,7 @@ class Service:
                 if not explicitly_disabled:
                     execution["degraded_reasons"].extend(["result_index_unverified", *reasons])
                 continue
-            results.append({**hit, "publication_id": row["id"], "identity": identity(value),
+            results.append({**hit, "is_demo": value.get("is_demo", False), "publication_id": row["id"], "identity": identity(value),
                             "raw_locator": value["raw_locator"], "source_scope": value["source_scope"],
                             "content_sha256": value["content_sha256"], "index_version": status["index_version"]})
             if len(results) >= req.top_k:
@@ -530,4 +543,4 @@ class Service:
                          index_version=digest(sorted((pid,s["index_version"]) for pid,s in statuses.items())),
                          fusion="reciprocal_rank_fusion_k60", upstream_source_commit=self.cfg.get("upstream_source_commit"),
                          upstream_image=self.cfg.get("upstream_image"))
-        return {"contract_version": CONTRACT, "results": results, "execution": execution}
+        return {"contract_version": CONTRACT, "is_demo": req.is_demo, "results": results, "execution": execution}

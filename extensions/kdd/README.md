@@ -18,6 +18,8 @@ python -m unittest extensions.kdd.test_service -v
 
 `runtime.json` 包含 `token`、`upstream_url`、`upstream_api_key`、`db`（psycopg 连接参数对象）、`models`（现役 embedding/rerank 的固定模型配置）、`journal_path`、`allowed_kb_ids` 和 `source_mappings`。每条映射是 `{source_instance, source_id, knowledge_base_id, scopes:[字符串]}`。每次授权重新读取映射，撤销即时生效。不要把客户端的 scope 字符串当作授权。生产使用独立配置和持久 `journal_path`，重启时保留 SQLite 回执库；不要运行多个副本或删回执后重发。
 
+模拟实验使用新建的空 KB、独立回执库，并在配置 `demo_kb_ids` 中明确登记（同时仍须 `allowed_kb_ids` 与来源映射授权）。发布、特征、搜索请求传 `is_demo=true`，回执及命中保留该标记；模拟请求不能访问真实 KB，真实请求也不能访问模拟 KB。同一发布的真假标记不可改写，旧无标记回执仍算真实。结束后先禁用本轮发布，再删除本轮 KB 和回执库。不要把已有真实 KB 重新标成模拟。
+
 当前模型协议支持现有 generic/OpenAI 兼容的 embedding/rerank。每次实际模型调用核对数据库里的配置版本；配置漂移报冲突或明确降级，不继续谎报旧版本。`model_version` 是配置 revision 的哈希，权重文件版本由上游未报告时 `artifact_version=null`。
 
 ## 最小调用顺序

@@ -45,7 +45,8 @@
         "raw_locator": "object above",
         "title": "string, 1..500 characters; original retained in receipt/features, native display title limited to 255",
         "content": "cleaned authorized UTF-8 text, 1..2000000 bytes",
-        "content_sha256": "optional 64 hex; verified against UTF-8 content"
+        "content_sha256": "optional 64 hex; verified against UTF-8 content",
+        "is_demo": "boolean default false; must match server KB classification"
       },
       "response": {
         "publication_id": "deterministic string",
@@ -64,7 +65,8 @@
         "chunk_count": "actual count",
         "vector_count": "actual enabled text chunk count",
         "graph_status": "not_requested; reviewed graph pipeline remains separate",
-        "display_title_truncated": "boolean; only the native display column is truncated"
+        "display_title_truncated": "boolean; only the native display column is truncated",
+        "is_demo": "boolean; also preserved per returned feature/search hit"
       }
     },
     "GET /api/v1/kdd/publications/{publication_id}": {
@@ -82,7 +84,8 @@
         "knowledge_base_id": "string",
         "source_scope": "string",
         "members": "1..100 identity objects; optional knowledge_id, all fixed version identity fields required",
-        "include_chunks": "boolean default false"
+        "include_chunks": "boolean default false",
+        "is_demo": "boolean default false; must match server KB classification"
       },
       "response": {
         "contract_version": "weknora-kdd-v1",
@@ -121,7 +124,8 @@
         ],
         "excluded": "list of member+reason, no silent omissions",
         "population": "explicit_members_only",
-        "statistical_unit": "document_version; independent studies/projects require Radar mapping"
+        "statistical_unit": "document_version; independent studies/projects require Radar mapping",
+        "is_demo": "boolean; also preserved per returned feature/search hit"
       }
     },
     "POST /api/v1/kdd/search": {
@@ -130,12 +134,14 @@
         "source_scope": "string",
         "query_text": "string 1..8000 chars",
         "top_k": "1..20 default 10",
-        "rerank": "boolean default true"
+        "rerank": "boolean default true",
+        "is_demo": "boolean default false; must match server KB classification"
       },
       "response": {
         "results": "list of content,chunk_id,knowledge_id,score,identity,raw_locator,source_scope,content_sha256,index_version",
         "execution": "actual keyword/vector/embedding/rerank executed states, safe model descriptors, index version, degraded bool and degraded_reasons",
-        "contract_version": "weknora-kdd-v1"
+        "contract_version": "weknora-kdd-v1",
+        "is_demo": "boolean; also preserved per returned feature/search hit"
       }
     }
   },
@@ -156,5 +162,6 @@
     "While parse is pending/processing/finalizing, binding remains pending. Replay the same publication after parse completed to finalize the native metadata projection without re-uploading. A missing projection is not an explicit revocation."
   ],
   "publication_id_formula": "sha256(json.dumps([knowledge_base_id, source_instance, source_id, source_record_id, version_id], ensure_ascii=False, separators=(',', ':')).encode('utf-8')).hexdigest()",
-  "revoked_source_cleanup": "Authenticated service may read content-free receipts and disable only already registered publication IDs after source mapping revocation. Features and search always require the current mapping."
+  "revoked_source_cleanup": "Authenticated service may read content-free receipts and disable only already registered publication IDs after source mapping revocation. Features and search always require the current mapping.",
+  "simulation_isolation": "Requests use is_demo (strict boolean, default false). Server demo_kb_ids is an explicit subset of allowed_kb_ids for disposable simulation KBs. A demo request cannot use a real KB and a real request cannot use a demo KB. Published status cannot change. Legacy receipts without is_demo remain real. Use a separate journal and new empty KB for simulation; cleanup only owned bindings and KB."
 }
