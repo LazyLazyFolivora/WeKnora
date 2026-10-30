@@ -23,7 +23,7 @@ class Publication(Identity):
     knowledge_base_id: str = Field(min_length=1, max_length=64)
     source_scope: str = Field(min_length=1, max_length=128)
     raw_locator: Locator
-    title: str = Field(min_length=1, max_length=500)
+    title: str = Field(min_length=1, max_length=255)
     content: str = Field(min_length=1, max_length=2000000)
     content_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
 

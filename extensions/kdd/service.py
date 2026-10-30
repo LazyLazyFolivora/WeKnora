@@ -124,6 +124,9 @@ class Service:
         if value.get("content_sha256") and checksum != value["content_sha256"]:
             raise HTTPException(400, "content_sha256 mismatch")
         value["content_sha256"] = checksum
+        locator_text = json.dumps(value["raw_locator"], ensure_ascii=False, separators=(",", ":"))
+        if len(locator_text.encode()) > 1000:
+            raise HTTPException(400, "raw_locator exceeds upstream metadata byte limit")
         return value
 
     def metadata(self, value, pid):
@@ -271,7 +274,7 @@ class Service:
         vectors = [c for c in text_chunks if c["is_enabled"] and c["vector_enabled"] and c["embedding"]]
         parse = doc["parse_status"] if doc else "unknown"
         ready = bool(text_chunks) and len(vectors) == len(text_chunks) and parse in ("completed", "finalizing") and not reasons
-        disabled = row["source_status"] != "active"
+        disabled = row["source_status"] != "active" or "source_disabled" in reasons
         confirmed_disabled = disabled and doc is not None and all(not c["is_enabled"] and not c["vector_enabled"] for c in chunks)
         vector_status = "ready" if ready else "pending"
         index_status = "ready" if ready else "pending"
@@ -291,7 +294,7 @@ class Service:
                 "indexed_text_sha256": value["indexed_text_sha256"], "upload_status": row["upload_status"],
                 "parse_status": parse, "vector_status": vector_status, "index_status": index_status,
                 "binding_status": "bound" if doc and not {"source_binding_mismatch", "index_text_mismatch"}.intersection(reasons) else "pending",
-                "source_status": "disabled" if disabled else "active", "source_change_type": row["source_status"],
+                "source_status": "disabled" if disabled else "active", "source_change_type": row["source_status"] if row["source_status"] != "active" or not disabled else "disabled_upstream",
                 "disable_reason": row["disable_reason"], "chunk_count": len(chunks), "vector_count": len(vectors),
                 "index_version": version, "graph_status": "not_requested", "degraded_reasons": reasons}
 
@@ -484,6 +487,7 @@ class Service:
                 execution["degraded_reasons"].append("rerank_failed_using_reciprocal_rank_fusion")
         results = []
         statuses = {}
+        filtered_publications = {}
         for hit in hits:
             row = rows[hit["knowledge_id"]]
             value = row["payload"]
@@ -491,13 +495,23 @@ class Service:
                 statuses[row["id"]] = self.status(row["id"])
             status = statuses[row["id"]]
             if status["index_status"] != "ready":
+                reasons = status["degraded_reasons"] or ["index_not_ready"]
+                explicitly_disabled = status.get("source_status") == "disabled" or status["index_status"] == "disabled"
+                filtered_publications[row["id"]] = {"publication_id": row["id"], "knowledge_id": row["knowledge_id"],
+                    "index_status": status["index_status"], "reason_type": "disabled" if explicitly_disabled else "unverified",
+                    "reasons": reasons}
+                if not explicitly_disabled:
+                    execution["degraded_reasons"].extend(["result_index_unverified", *reasons])
                 continue
             results.append({**hit, "publication_id": row["id"], "identity": identity(value),
                             "raw_locator": value["raw_locator"], "source_scope": value["source_scope"],
                             "content_sha256": value["content_sha256"], "index_version": status["index_version"]})
             if len(results) >= req.top_k:
                 break
+        execution["degraded_reasons"] = sorted(set(execution["degraded_reasons"]))
         execution.update(degraded=bool(execution["degraded_reasons"]), scope_document_count=len(rows),
+                         filtered_publications=list(filtered_publications.values()),
+                         coverage_status="verification_incomplete" if any(x["reason_type"] == "unverified" for x in filtered_publications.values()) else "verified_returned_candidates",
                          index_version=digest(sorted((pid,s["index_version"]) for pid,s in statuses.items())),
                          fusion="reciprocal_rank_fusion_k60", upstream_source_commit=self.cfg.get("upstream_source_commit"),
                          upstream_image=self.cfg.get("upstream_image"))

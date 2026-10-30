@@ -198,6 +198,30 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(response.status_code,400)
         self.assertNotIn("private document",response.text)
 
+    def test_search_index_read_failure_is_degraded_not_complete_no_hits(self):
+        receipt=self.s.publish(Publication(**payload()))
+        original=self.s.request
+        def upstream(method,path,**kwargs):
+            if path.endswith("/hybrid-search"):
+                return {"data":[{"id":"chunk-one","knowledge_id":receipt["knowledge_id"],"content":"matched text"}]}
+            return original(method,path,**kwargs)
+        self.s.request=upstream
+        def model_call(kind,body):
+            if kind=="embedding":return {"data":[{"embedding":[1.0,0.0]}]}, {"dimension":2}
+            return {"results":[{"index":0,"relevance_score":0.9}]}, {"model_id":"reranker"}
+        self.s.model_call=model_call
+        self.s.status=lambda pid:{"index_status":"unavailable","degraded_reasons":["vector_store_unavailable"],"index_version":"unknown"}
+        result=self.s.search(Search(knowledge_base_id=KB,source_scope="pipeline",query_text="trial"))
+        self.assertEqual(result["results"],[])
+        self.assertTrue(result["execution"]["degraded"])
+        self.assertIn("vector_store_unavailable",result["execution"]["degraded_reasons"])
+        self.assertEqual(result["execution"]["coverage_status"],"verification_incomplete")
+        self.assertEqual(result["execution"]["filtered_publications"][0]["reason_type"],"unverified")
+        self.s.status=lambda pid:{"index_status":"disabled","source_status":"disabled","degraded_reasons":["source_disabled"],"index_version":"disabled"}
+        result=self.s.search(Search(knowledge_base_id=KB,source_scope="pipeline",query_text="trial"))
+        self.assertEqual(result["execution"]["filtered_publications"][0]["reason_type"],"disabled")
+        self.assertFalse(result["execution"]["degraded"])
+
     def test_aggregation_normalizes_chunks_and_rejects_bad_vectors(self):
         self.assertEqual(aggregate([[3,0],[6,0]]),[1.0,0.0])
         with self.assertRaises(ValueError):aggregate([[1,0],[1]])
