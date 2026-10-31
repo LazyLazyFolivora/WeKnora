@@ -5,7 +5,7 @@ import math
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit, urlunsplit, parse_qsl, urlencode
 
 import httpx
 from fastapi import HTTPException
@@ -25,6 +25,48 @@ def identity(value):
 
 def publication_id(value):
     return digest([value["knowledge_base_id"], *[value[k] for k in IDENTITY_FIELDS[:-1]]])
+
+# These are credentials, not identities of embedding/rerank configuration.
+# Do not put them in a public descriptor or make rotation invalidate vectors.
+_MODEL_CREDENTIAL_KEYS = frozenset({
+    "api_key", "x_api_key", "authorization", "proxy_authorization", "app_id", "app_secret",
+    "secret", "password", "token", "access_token", "refresh_token", "x_token", "x_auth_token", "cookie",
+})
+
+
+def _semantic_options(values, *, headers=False):
+    return {(key.lower() if headers else key): value for key, value in (values or {}).items()
+            if key.lower().replace("-", "_") not in _MODEL_CREDENTIAL_KEYS}
+
+
+def model_configuration_fingerprint(model):
+    """Compare the pinned provider configuration, never a model weights revision."""
+    params = model.get("parameters") or {}
+    endpoint = urlsplit((params.get("base_url") or "").strip())
+    host = (endpoint.hostname or "").lower()
+    if ":" in host:
+        host = "[" + host + "]"
+    port = endpoint.port
+    if port is not None and (endpoint.scheme.lower(), port) not in (("http", 80), ("https", 443)):
+        host += ":" + str(port)
+    query = [(key, value) for key, value in parse_qsl(endpoint.query, keep_blank_values=True)
+             if key.lower().replace("-", "_") not in _MODEL_CREDENTIAL_KEYS]
+    base_url = urlunsplit((endpoint.scheme.lower(), host, endpoint.path.rstrip("/"), urlencode(query), ""))
+    embedding = params.get("embedding_parameters") or {}
+    return digest({
+        "model_id": model["id"], "model_name": model["name"],
+        "type": str(model.get("type") or "").lower(), "source": str(model.get("source") or "").lower(),
+        "provider": str(params.get("provider") or model.get("provider") or "").lower(),
+        "base_url": base_url, "interface_type": params.get("interface_type") or "",
+        "parameter_size": params.get("parameter_size") or "", "supports_vision": bool(params.get("supports_vision", False)),
+        "embedding_parameters": {
+            "dimension": int(embedding.get("dimension", model.get("dimension") or 0)),
+            "truncate_prompt_tokens": int(embedding.get("truncate_prompt_tokens", 0)),
+            "supports_dimension_override": bool(embedding.get("supports_dimension_override", False)),
+        },
+        "extra_config": _semantic_options(params.get("extra_config")),
+        "custom_headers": _semantic_options(params.get("custom_headers"), headers=True),
+    })
 
 def model_descriptor(model):
     params = model.get("parameters", {})
@@ -110,8 +152,14 @@ class Service:
     def check_model(self, kind):
         configured = self.configured_model(kind)
         current = self.store.model(configured["id"])
-        if not current or model_descriptor(current) != model_descriptor(configured):
+        try:
+            matches = current and model_configuration_fingerprint(current) == model_configuration_fingerprint(configured)
+        except (KeyError, TypeError, ValueError):
+            matches = False
+        if not matches:
             raise HTTPException(409, "model configuration changed; refresh the pinned service configuration")
+        # Keep the original snapshot descriptor and credentials. A bookkeeping
+        # timestamp refresh must not rewrite existing publication provenance.
         return configured
 
     def prepare(self, req):
@@ -334,7 +382,10 @@ class Service:
             reasons.append("index_not_ready")
         try:
             current_model = self.store.model(doc["embedding_model_id"]) if doc else None
-            if not current_model or model_descriptor(current_model) != value["embedding_provenance"]:
+            configured_model = self.configured_model("embedding")
+            if (not current_model
+                    or model_configuration_fingerprint(current_model) != model_configuration_fingerprint(configured_model)
+                    or model_descriptor(configured_model) != value["embedding_provenance"]):
                 reasons.append("embedding_model_provenance_unverified")
             if any(c["content_revision"] != 0 for c in text_chunks):
                 reasons.append("indexed_chunk_content_changed")
@@ -464,8 +515,10 @@ class Service:
                 raise ValueError("bad embedding")
             execution.update(embedding="succeeded", embedding_model=descriptor,
                              embedding_usage=embedded.get("usage"), embedding_usage_status="reported" if embedded.get("usage") else "unknown")
-        except (HTTPException, KeyError, IndexError, ValueError, TypeError):
+        except (HTTPException, KeyError, IndexError, ValueError, TypeError) as exc:
             execution["embedding"] = "failed"
+            if isinstance(exc, HTTPException) and exc.status_code == 409:
+                execution["embedding_error_code"] = "model_configuration_changed"
             execution["degraded_reasons"].append("query_embedding_failed")
         merged = {}
         for mode in ("keyword", "vector"):
@@ -510,8 +563,10 @@ class Service:
                 hits.sort(key=lambda h: (-h["rerank_score"],h["chunk_id"]))
                 execution.update(rerank="succeeded", rerank_model=descriptor,
                                  rerank_usage=reranked.get("usage"), rerank_usage_status="reported" if reranked.get("usage") else "unknown")
-            except (HTTPException, KeyError, TypeError, ValueError):
+            except (HTTPException, KeyError, TypeError, ValueError) as exc:
                 execution["rerank"] = "failed"
+                if isinstance(exc, HTTPException) and exc.status_code == 409:
+                    execution["rerank_error_code"] = "model_configuration_changed"
                 execution["degraded_reasons"].append("rerank_failed_using_reciprocal_rank_fusion")
         results = []
         statuses = {}

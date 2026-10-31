@@ -90,6 +90,6 @@ class IndexStore:
 
     def model(self, model_id):
         with self.connect() as db:
-            return db.execute("""SELECT id,name,source,parameters->>'provider' AS provider,
+            return db.execute("""SELECT id,name,type,source,parameters,parameters->>'provider' AS provider,
                 parameters->'embedding_parameters'->>'dimension' AS dimension,updated_at
                 FROM models WHERE id=%s AND deleted_at IS NULL""", (model_id,)).fetchone()
