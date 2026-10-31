@@ -120,3 +120,7 @@ func TestBindContentResourcesIsInertWithoutCatalog(t *testing.T) {
 	// claim and keeps the pre-binding behaviour.
 	svc.bindContentResources(context.Background(), 7, "kn-1", "![a]("+contentRef("f")+")")
 }
+
+func (c *resolvingCatalog) ResolveForDeletion(ctx context.Context, ref string) (*types.StoredResource, error) {
+	return c.Resolve(ctx, ref)
+}

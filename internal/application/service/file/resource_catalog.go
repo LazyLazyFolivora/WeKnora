@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"mime"
@@ -151,11 +152,19 @@ func (s *resourceCatalogFileService) GetFileURL(ctx context.Context, filePath st
 }
 
 func (s *resourceCatalogFileService) DeleteFile(ctx context.Context, filePath string) error {
-	physical, isResource, err := s.resolve(ctx, filePath)
-	if err != nil {
-		return err
+	physical := filePath
+	_, isResource := types.ParseResourcePath(filePath)
+	if isResource {
+		resource, err := s.catalog.ResolveForDeletion(ctx, filePath)
+		if err != nil {
+			return err
+		}
+		if resource.State == types.ResourceStateDeleted {
+			return nil
+		}
+		physical = resource.PhysicalPath
 	}
-	if err := s.inner.DeleteFile(ctx, physical); err != nil {
+	if err := s.inner.DeleteFile(ctx, physical); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
 	if isResource {

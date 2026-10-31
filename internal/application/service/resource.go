@@ -124,6 +124,23 @@ func (s *resourceCatalog) Resolve(ctx context.Context, reference string) (*types
 	return resource, nil
 }
 
+// ResolveForDeletion keeps a partially completed task retryable. Ordinary
+// Resolve/GetFile still require an active resource and cannot revive tombstones.
+func (s *resourceCatalog) ResolveForDeletion(ctx context.Context, reference string) (*types.StoredResource, error) {
+	handle, ok := types.ParseResourcePath(reference)
+	if !ok {
+		return nil, fmt.Errorf("invalid resource reference")
+	}
+	resource, err := s.repo.GetByHandleForDeletion(ctx, handle)
+	if err != nil {
+		return nil, err
+	}
+	if resource == nil {
+		return nil, fmt.Errorf("resource not found")
+	}
+	return resource, nil
+}
+
 func (s *resourceCatalog) ResolvePath(ctx context.Context, value string) (string, *types.StoredResource, error) {
 	if _, ok := types.ParseResourcePath(value); !ok {
 		return value, nil, nil
@@ -183,7 +200,7 @@ func (s *resourceCatalog) Release(
 }
 
 func (s *resourceCatalog) MarkDeleted(ctx context.Context, reference string) error {
-	resource, err := s.Resolve(ctx, reference)
+	resource, err := s.ResolveForDeletion(ctx, reference)
 	if err != nil {
 		return err
 	}

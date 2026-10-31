@@ -42,6 +42,16 @@ func (r *resourceRepository) GetByHandle(ctx context.Context, handle string) (*t
 	return &resource, err
 }
 
+// GetByHandleForDeletion is only for idempotent physical cleanup, never reads.
+func (r *resourceRepository) GetByHandleForDeletion(ctx context.Context, handle string) (*types.StoredResource, error) {
+	var resource types.StoredResource
+	err := r.db.WithContext(ctx).Unscoped().Where("handle = ?", handle).First(&resource).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	return &resource, err
+}
+
 func (r *resourceRepository) GetByTenantLocation(
 	ctx context.Context,
 	tenantID uint64,

@@ -584,3 +584,7 @@ func bytesN(n int) []byte {
 	}
 	return b
 }
+
+func (c *fakeCatalog) ResolveForDeletion(ctx context.Context, ref string) (*types.StoredResource, error) {
+	return c.Resolve(ctx, ref)
+}

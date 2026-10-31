@@ -109,3 +109,7 @@ func TestResourceCatalogFileServiceReturnsShortExternalGrantURL(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "https://weknora.example.com/r/GrantTokenAbCdEfGhIjKl", externalURL)
 }
+
+func (c *catalogStub) ResolveForDeletion(ctx context.Context, ref string) (*types.StoredResource, error) {
+	return c.Resolve(ctx, ref)
+}

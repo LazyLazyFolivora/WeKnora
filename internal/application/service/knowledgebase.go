@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -50,7 +51,7 @@ type knowledgeBaseService struct {
 	dsScheduler     *datasource.Scheduler
 	audit           interfaces.AuditLogService
 	resourceCatalog interfaces.ResourceCatalog
-	db             *gorm.DB
+	db              *gorm.DB
 }
 
 // NewKnowledgeBaseService creates a new knowledge base service
@@ -97,7 +98,7 @@ func NewKnowledgeBaseService(repo interfaces.KnowledgeBaseRepository,
 		dsScheduler:     dsScheduler,
 		audit:           audit,
 		resourceCatalog: resourceCatalog,
-		db:             db,
+		db:              db,
 	}
 }
 
@@ -913,6 +914,7 @@ func (s *knowledgeBaseService) ProcessKBDelete(ctx context.Context, t *asynq.Tas
 		chunkImageInfos, imgErr := s.chunkRepo.ListImageInfoByKnowledgeIDs(ctx, tenantID, knowledgeIDs)
 		if imgErr != nil {
 			logger.Warnf(ctx, "Failed to collect image URLs for KB delete: %v", imgErr)
+			return imgErr
 		}
 		var imageInfoStrs []string
 		for _, ci := range chunkImageInfos {
@@ -920,6 +922,20 @@ func (s *knowledgeBaseService) ProcessKBDelete(ctx context.Context, t *asynq.Tas
 		}
 		imageURLs := collectImageURLs(ctx, imageInfoStrs)
 
+		// Resolve each registered storage instance, never feed storage:// to the
+		// global local driver. Keep source/chunk rows when a physical cleanup fails.
+		paths := append([]string(nil), imageURLs...)
+		for _, knowledge := range knowledgeList {
+			if knowledge.FilePath != "" {
+				paths = append(paths, knowledge.FilePath)
+			}
+		}
+		for _, path := range paths {
+			if err := s.deleteKBStoredFile(ctx, path, knowledgeIDs); err != nil {
+				logger.Errorf(ctx, "KB physical cleanup deferred: %v", err)
+				return err
+			}
+		}
 		// Delete all chunks
 		logger.Infof(ctx, "Deleting all chunks in knowledge base")
 		for _, knowledgeID := range knowledgeIDs {
@@ -928,18 +944,10 @@ func (s *knowledgeBaseService) ProcessKBDelete(ctx context.Context, t *asynq.Tas
 			}
 		}
 
-		// Delete physical files, extracted images, and adjust storage
-		logger.Infof(ctx, "Deleting physical files and extracted images")
 		storageAdjust := int64(0)
 		for _, knowledge := range knowledgeList {
-			if knowledge.FilePath != "" {
-				if err := s.fileSvc.DeleteFile(ctx, knowledge.FilePath); err != nil {
-					logger.Warnf(ctx, "Failed to delete file %s: %v", knowledge.FilePath, err)
-				}
-			}
 			storageAdjust -= knowledge.StorageSize
 		}
-		deleteExtractedImages(ctx, s.fileSvc, knowledgeResourceOwners(s.resourceCatalog, knowledgeIDs...), imageURLs)
 		if storageAdjust != 0 {
 			if err := s.tenantRepo.AdjustStorageUsed(ctx, tenantID, storageAdjust); err != nil {
 				logger.Warnf(ctx, "Failed to adjust tenant storage: %v", err)
@@ -972,6 +980,70 @@ func (s *knowledgeBaseService) ProcessKBDelete(ctx context.Context, t *asynq.Tas
 	}
 
 	logger.Infof(ctx, "KB delete task completed successfully, knowledge base ID: %s", kbID)
+	return nil
+}
+
+// deleteKBStoredFile selects the immutable resource's backend after the KB is
+// soft-deleted. Another owner's binding keeps shared bytes alive.
+func (s *knowledgeBaseService) deleteKBStoredFile(ctx context.Context, path string, knowledgeIDs []string) error {
+	svc := s.fileSvc
+	if _, isResource := types.ParseResourcePath(path); isResource {
+		if s.resourceCatalog == nil || s.storageResolver == nil || s.tenantRepo == nil {
+			return fmt.Errorf("resource cleanup dependencies unavailable")
+		}
+		resource, err := s.resourceCatalog.ResolveForDeletion(ctx, path)
+		if err != nil {
+			return err
+		}
+		if resource.TenantID != types.MustTenantIDFromContext(ctx) {
+			return fmt.Errorf("resource cleanup tenant mismatch")
+		}
+		if resource.State == types.ResourceStateDeleted {
+			return nil
+		}
+		tenant, err := s.tenantRepo.GetTenantByID(ctx, resource.TenantID)
+		if err != nil {
+			return err
+		}
+		if tenant == nil {
+			return fmt.Errorf("resource owner tenant unavailable")
+		}
+		svc, _, err = s.storageResolver.ResolveFileService(ctx, tenant, resource.StorageBackendID, resource.Provider, strings.TrimSpace(os.Getenv("LOCAL_STORAGE_BASE_DIR")))
+		if err != nil {
+			return err
+		}
+		remaining := int64(-1)
+		for _, id := range knowledgeIDs {
+			remaining, err = s.resourceCatalog.Release(ctx, path, types.ResourceOwnerKnowledge, id)
+			if err != nil {
+				return err
+			}
+		}
+		if remaining < 0 {
+			return fmt.Errorf("resource ownership count unavailable")
+		}
+		if remaining > 0 {
+			return nil
+		}
+	} else if backend, inner, ok := types.ParseStorageBackendPath(path); ok {
+		if s.storageResolver == nil || s.tenantRepo == nil {
+			return fmt.Errorf("storage cleanup dependencies unavailable")
+		}
+		tenant, err := s.tenantRepo.GetTenantByID(ctx, types.MustTenantIDFromContext(ctx))
+		if err != nil {
+			return err
+		}
+		svc, _, err = s.storageResolver.ResolveFileService(ctx, tenant, backend, types.ParseProviderScheme(inner), strings.TrimSpace(os.Getenv("LOCAL_STORAGE_BASE_DIR")))
+		if err != nil {
+			return err
+		}
+	}
+	if svc == nil {
+		return fmt.Errorf("file cleanup service unavailable")
+	}
+	if err := svc.DeleteFile(ctx, path); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
 	return nil
 }
 

@@ -767,3 +767,7 @@ func TestServeFilesForcesActiveContentDownload(t *testing.T) {
 		t.Fatalf("X-Content-Type-Options = %q, want nosniff", got)
 	}
 }
+
+func (s *stubResourceCatalog) ResolveForDeletion(ctx context.Context, ref string) (*types.StoredResource, error) {
+	return s.Resolve(ctx, ref)
+}
