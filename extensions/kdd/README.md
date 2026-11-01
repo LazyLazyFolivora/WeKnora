@@ -2,7 +2,7 @@
 
 本扩展把 Fabric 固定版本发布到现有 WeKnora，并提供明确名单的文档特征与检索回执。所有上传、元数据更新、解析取消和分块禁用调用现役 HTTP API；向量读取仅在 PostgreSQL 的强制只读事务中执行。它不启动 Go 主服务、消费原有队列或修改 Neo4j，Fabric 的既有持久发布程序负责重试。
 
-2026-10-30 核查的线上实例来自 `sync_v0.8.0`、提交 `6f2c2955`、数据库版本 90，支持 custom_metadata、content_revision、index_status。zktest 原 checkout 是 `e01ac7cf` 的 v0.6.2；不要用旧 Go 主服务连接线上新库。本分支只添加这个与部署 API 兼容的扩展，不替换学生主服务或部署文件。
+2026-10-30 核查的线上实例来自 `sync_v0.8.0`、提交 `6f2c2955`、数据库版本 90，支持 custom_metadata、content_revision、index_status。zktest 原 checkout 是 `e01ac7cf` 的 v0.6.2；不要用旧 Go 主服务连接线上新库。本轮 main 已普通合并现役 6f2c2955 源码、三处实际源码差异及本轮修复；没有部署到现役服务。zktest 原工作目录保留旧检出，学生应从 main 的新克隆运行。
 
 ## 运行
 
@@ -48,3 +48,12 @@ publication_id 是 `[knowledge_base_id,source_instance,source_id,source_record_i
 ## 本轮证据
 
 本轮以独立 synthetic KB 验证幂等、冲突、双版本、真实向量/重排、撤权与索引禁用；业务四源使用另一独立 KB，二者分开。机器可读实测回执在协调运行目录，包含 `synthetic`、实际模型、scope/版本和每项检查结果。单元测试覆盖丢响应恢复、来源授权、哈希、模型来源缺失、解析完成但缺向量、编辑后的向量、撤权后清理。真实四方向材料还需通过 Fabric 发布和 Radar 消费验收，不能把 synthetic 工程测试视作研究效果。
+
+
+## 2026-11-01 交付结果与下一步
+
+李明洋负责 WeKnora 与雷达的接入维护。真实问题从雷达发起，例如比较 BCMA×CD3 管线：Fabric 发布固定版本，扩展完成索引，雷达路由搜索或请求明确名单的特征，再回 Fabric 读原件并交专业方法核验。完整启动与四项集成检查见 [BioRadar README](../../../BioRadar/README.md)。上游原文档保持不动。
+
+单一运行记录在 `/home/zk_test/zk_projects/.branch-archive-20261101/runs.jsonl`。扩展测试 38 项、11 个子测试通过；本轮有 10 条 document_search 读到 WeKnora 材料的动作回执，图谱动作选择数为 0。系统 A/B/C PASS 0/3，不能据索引/召回成功声称研报通过。
+
+原生 Go 检查需要 Go 1.26；本轮依赖下载长期未完成后终止，仍待验证。下一步补齐依赖并运行原生知识解析失败、知识库删除与资源读取相关测试，再安排部署。共有 main 一个保留分支，已正常推送；旧源码各引用在 WeKnora.bundle 和 refs-manifest.tsv。现役私有配置、backup.sql、PrimeKG 数据及共享知识库未随分支清理删除。
