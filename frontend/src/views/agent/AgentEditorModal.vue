@@ -2727,7 +2727,7 @@ const defaultFormData = {
     model_id: '',
     rerank_model_id: '',
     temperature: 0.7,
-    max_completion_tokens: 0,
+    max_completion_tokens: 65536,
     thinking: false, // 默认禁用思考模式
     citation_enabled: true, // 默认输出知识库/网页来源引用
     // Agent模式设置
