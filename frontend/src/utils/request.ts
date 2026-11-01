@@ -1,8 +1,9 @@
 // src/utils/request.js
 import axios from "axios";
-import { generateRandomString } from "./index";
+import { generateRandomString, MAX_FILE_SIZE_MB, MAX_SKILL_BUNDLE_SIZE_MB } from "./index";
 import i18n from '@/i18n'
 import { getApiBaseUrl } from './api-base';
+import { isSkillBundleUploadUrl } from './uploadLimit';
 
 const t = (key: string) => i18n.global.t(key)
 
@@ -21,35 +22,41 @@ const instance = axios.create({
 });
 
 // 获取当前用户语言（用于 Accept-Language header）
-function getCurrentLanguage(): string {
+export function getCurrentLanguage(): string {
   return i18n.global.locale?.value || localStorage.getItem('locale') || 'zh-CN'
 }
 
 
 instance.interceptors.request.use(
   (config) => {
-    // 添加JWT token认证
-    const token = localStorage.getItem('weknora_token');
-    if (token) {
-      config.headers["Authorization"] = `Bearer ${token}`;
+    const existingAuth = config.headers?.Authorization ?? config.headers?.authorization;
+    const isEmbedAuth = typeof existingAuth === 'string' && existingAuth.startsWith('Embed ');
+    const isEmbedPath = typeof config.url === 'string' && config.url.includes('/api/v1/embed/');
+
+    // 嵌入渠道使用 Embed token；勿用本地 JWT 覆盖（否则调试页会 401）
+    if (!isEmbedAuth) {
+      const token = localStorage.getItem('weknora_token');
+      if (token) {
+        config.headers["Authorization"] = `Bearer ${token}`;
+      }
     }
     
     // 添加用户语言偏好
     config.headers["Accept-Language"] = getCurrentLanguage();
     
-    // 添加跨租户访问请求头（如果选择了其他租户）
-    const selectedTenantId = localStorage.getItem('weknora_selected_tenant_id');
-    const defaultTenantId = localStorage.getItem('weknora_tenant');
-    if (selectedTenantId) {
-      try {
-        const defaultTenant = defaultTenantId ? JSON.parse(defaultTenantId) : null;
-        const defaultId = defaultTenant?.id ? String(defaultTenant.id) : null;
-        // 如果选择的租户ID与默认租户ID不同，添加请求头
-        if (selectedTenantId !== defaultId) {
-          config.headers["X-Tenant-ID"] = selectedTenantId;
-        }
-      } catch (e) {
-        console.error('Failed to parse tenant info', e);
+    // 添加跨空间访问请求头：只要 setSelectedTenant 写过激活空间，
+    // 每个请求都要附 X-Tenant-ID。早期版本会 short-circuit
+    // "selectedTenantId === defaultTenantId 时不附"以减少 header 体积，
+    // 但这条优化会被任何把 weknora_tenant 写成激活空间的代码（OIDC
+    // 回调、UserMenu loadUserInfo、router hydrate）触发，导致后续请求
+    // 静默丢失 header，前端"切换了"但实际仍跑在 home 空间里——把"切
+    // 换之后只有第一批请求带 X-Tenant-ID"调成永久状态。
+    // 后端 IsTenantAccessible 已经允许 header 指向 home 空间（自家），
+    // 所以无脑附不会引入新风险。
+    if (!isEmbedAuth && !isEmbedPath) {
+      const selectedTenantId = localStorage.getItem('weknora_selected_tenant_id');
+      if (selectedTenantId) {
+        config.headers["X-Tenant-ID"] = selectedTenantId;
       }
     }
     
@@ -65,7 +72,12 @@ instance.interceptors.request.use(
 let isRefreshing = false;
 let failedQueue: Array<{ resolve: Function; reject: Function }> = [];
 
-const PUBLIC_AUTH_PATHS = ['/auth/auto-setup', '/auth/login', '/auth/register', '/auth/oidc/'];
+// Share-link endpoints (/auth/invitations/lookup, /auth/register-by-invite)
+// are reachable by anonymous users opening an invite link. A 401 from these
+// must surface to the page (e.g. expired token), not trigger the
+// refresh-then-redirect-to-login flow (issue #1617). '/auth/register' already
+// covers '/auth/register-by-invite' via substring match.
+const PUBLIC_AUTH_PATHS = ['/auth/auto-setup', '/auth/login', '/auth/register', '/auth/oidc/', '/auth/invitations/lookup', '/api/v1/embed/'];
 
 function isPublicAuthRequest(url?: string): boolean {
   if (!url) return false;
@@ -85,9 +97,16 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
+function isEmbedPage(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.location.pathname.startsWith('/embed/');
+}
+
 function redirectToLogin() {
   if (typeof window === 'undefined') return;
   if (window.location.pathname === '/login') return;
+  // Embed 渠道用 Embed token 鉴权，匿名访问不应被踢到登录页
+  if (isEmbedPage()) return;
   window.location.href = '/login';
 }
 
@@ -109,9 +128,21 @@ instance.interceptors.response.use(
     }
     
     // 公开接口（auto-setup / login / register / oidc）的 401 不走 refresh 逻辑，直接返回错误
-    if (error.response.status === 401 && isPublicAuthRequest(originalRequest?.url)) {
+    if ((error.response.status === 401 || error.response.status === 403) && isPublicAuthRequest(originalRequest?.url)) {
       const { status, data } = error.response;
-      return Promise.reject({ status, message: (typeof data === 'object' ? (data?.error?.message || data?.message) : data) || t('error.invalidCredentials') });
+      const msg = typeof data === 'object'
+        ? (typeof data?.error === 'string' ? data.error : (data?.error?.message || data?.message))
+        : data;
+      return Promise.reject({ status, message: msg || t('error.invalidCredentials') });
+    }
+
+    // Embed 调试页/挂件：无 JWT 时直接拒绝，勿走 refresh → /login
+    if (error.response.status === 401 && isEmbedPage()) {
+      const { status, data } = error.response;
+      const msg = typeof data === 'object'
+        ? (typeof data?.error === 'string' ? data.error : (data?.error?.message || data?.message))
+        : data;
+      return Promise.reject({ status, message: msg || t('error.invalidCredentials') });
     }
 
     // 如果是401错误且不是刷新token的请求，尝试刷新token
@@ -185,9 +216,12 @@ instance.interceptors.response.use(
     
     // 处理 Nginx 413 Request Entity Too Large
     if (error.response.status === 413) {
+      const skillUpload = isSkillBundleUploadUrl(error.config?.url)
       return Promise.reject({ 
         status: 413, 
-        message: t('error.fileSizeExceeded'),
+        message: skillUpload
+          ? i18n.global.t('settings.sandbox.skillBundleTooLarge', { size: MAX_SKILL_BUNDLE_SIZE_MB })
+          : i18n.global.t('error.fileSizeExceeded', { size: MAX_FILE_SIZE_MB }),
         success: false
       });
     }
@@ -216,44 +250,55 @@ instance.interceptors.response.use(
   }
 );
 
-export function get(url: string) {
-  return instance.get(url);
+export function get<T = any>(url: string, config?: any): Promise<T> {
+  return instance.get<T>(url, config) as unknown as Promise<T>;
 }
 
-export async function getDown(url: string) {
-  let res = await instance.get(url, {
+export async function getDown(url: string): Promise<Blob> {
+  const res = await instance.get<Blob>(url, {
     responseType: "blob",
-  });
+  }) as unknown as Blob;
   return res
 }
 
-export function postUpload(url: string, data = {}, onUploadProgress?: (progressEvent: any) => void) {
+export function postUpload(
+  url: string,
+  data = {},
+  onUploadProgress?: (progressEvent: any) => void,
+  config: any = {},
+): Promise<any> {
   return instance.post(url, data, {
+    ...config,
     headers: {
       "Content-Type": "multipart/form-data",
       "X-Request-ID": `${generateRandomString(12)}`,
+      ...(config.headers || {}),
     },
-    onUploadProgress,
-  });
+    onUploadProgress: onUploadProgress || config.onUploadProgress,
+  }) as unknown as Promise<any>;
 }
 
-export function postChat(url: string, data = {}) {
+export function postChat<T = any>(url: string, data = {}): Promise<T> {
   return instance.post(url, data, {
     headers: {
       "Content-Type": "text/event-stream;charset=utf-8",
       "X-Request-ID": `${generateRandomString(12)}`,
     },
-  });
+  }) as unknown as Promise<T>;
 }
 
-export function post(url: string, data = {}, config?: any) {
-  return instance.post(url, data, config);
+export function post<T = any>(url: string, data = {}, config?: any): Promise<T> {
+  return instance.post<T>(url, data, config) as unknown as Promise<T>;
 }
 
-export function put(url: string, data = {}) {
-  return instance.put(url, data);
+export function put<T = any>(url: string, data = {}, config?: any): Promise<T> {
+  return instance.put<T>(url, data, config) as unknown as Promise<T>;
 }
 
-export function del(url: string, data?: any) {
-  return instance.delete(url, { data });
+export function patch<T = any>(url: string, data = {}, config?: any): Promise<T> {
+  return instance.patch<T>(url, data, config) as unknown as Promise<T>;
+}
+
+export function del<T = any>(url: string, data?: any): Promise<T> {
+  return instance.delete<T>(url, { data }) as unknown as Promise<T>;
 }

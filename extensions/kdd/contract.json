@@ -1,0 +1,167 @@
+{
+  "contract_version": "weknora-kdd-v1",
+  "base_url": "http://127.0.0.1:18563",
+  "auth": {
+    "header": "Authorization",
+    "scheme": "Bearer",
+    "token_env": "WEKNORA_KDD_TOKEN",
+    "configuration": "private /home/zk_test/.config/weknora-kdd/runtime.json; never commit or print"
+  },
+  "authorization": "Server configuration allowlists knowledge_base_id and maps source_instance/source_id to allowed source_scope strings. Every publication/member/search hit is checked independently against that mapping. A caller-supplied source_scope never grants permission.",
+  "source_scope": {
+    "type": "string",
+    "description": "Configured dataset/business scope label, e.g. pipeline_landscape, research_frontier, commercial_metrics, public_health. May be any explicitly configured string; source mapping is authoritative."
+  },
+  "identity": {
+    "source_instance": "string required",
+    "source_id": "string required",
+    "source_record_id": "string required",
+    "version_id": "string required",
+    "raw_sha256": "64 lowercase hex required"
+  },
+  "raw_locator": {
+    "type": "object",
+    "required": [
+      "source_instance",
+      "source_id",
+      "source_record_id",
+      "version_id"
+    ],
+    "optional": [
+      "uri"
+    ],
+    "description": "Opaque Fabric fixed-version locator. Never fetched by WeKnora; identity fields must equal publication identity. uri max 1000 chars."
+  },
+  "endpoints": {
+    "POST /api/v1/kdd/publications": {
+      "request": {
+        "knowledge_base_id": "string",
+        "source_scope": "string",
+        "source_instance": "string",
+        "source_id": "string",
+        "source_record_id": "string",
+        "version_id": "string",
+        "raw_sha256": "64 hex",
+        "raw_locator": "object above",
+        "title": "string, 1..500 characters; original retained in receipt/features, native display title limited to 255",
+        "content": "cleaned authorized UTF-8 text, 1..2000000 bytes",
+        "content_sha256": "optional 64 hex; verified against UTF-8 content",
+        "is_demo": "boolean default false; must match server KB classification"
+      },
+      "response": {
+        "publication_id": "deterministic string",
+        "knowledge_id": "string or null before upload recovered",
+        "knowledge_base_id": "string",
+        "identity": "object above",
+        "source_scope": "string",
+        "content_sha256": "hash of supplied clean text",
+        "indexed_text_sha256": "hash of actual uploaded text including version marker",
+        "upload_status": "pending|uploaded|unknown|failed",
+        "parse_status": "upstream state",
+        "vector_status": "pending|ready|missing|unavailable|disabled",
+        "index_status": "pending|ready|disabled|failed|unavailable",
+        "binding_status": "bound|pending|mismatch",
+        "source_status": "active|disabled",
+        "chunk_count": "actual count",
+        "vector_count": "actual enabled text chunk count",
+        "graph_status": "not_requested; reviewed graph pipeline remains separate",
+        "display_title_truncated": "boolean; only the native display column is truncated",
+        "is_demo": "boolean; also preserved per returned feature/search hit"
+      }
+    },
+    "GET /api/v1/kdd/publications/{publication_id}": {
+      "response": "same publication receipt; reads current upstream state and actual vector rows"
+    },
+    "POST /api/v1/kdd/publications/{publication_id}/disable": {
+      "request": {
+        "reason": "string",
+        "state": "disabled|withdrawn|revoked|superseded (default disabled)"
+      },
+      "response": "publication receipt, source_status disabled, disable_reason, index exclusion verified from read-only storage"
+    },
+    "POST /api/v1/kdd/features": {
+      "request": {
+        "knowledge_base_id": "string",
+        "source_scope": "string",
+        "members": "1..100 identity objects; optional knowledge_id, all fixed version identity fields required",
+        "include_chunks": "boolean default false",
+        "is_demo": "boolean default false; must match server KB classification"
+      },
+      "response": {
+        "contract_version": "weknora-kdd-v1",
+        "scope_fingerprint": "sha256 of fixed members and scope",
+        "requested_count": "member count, not total corpus",
+        "returned_count": "document features count",
+        "features": [
+          {
+            "knowledge_id": "string",
+            "publication_id": "string",
+            "identity": "object above",
+            "raw_locator": "object",
+            "source_scope": "string",
+            "title": "string",
+            "text": "authorized clean text",
+            "content_sha256": "string",
+            "indexed_text_sha256": "string",
+            "embedding": "1024 floats when verified else null",
+            "embedding_provenance": {
+              "provider": "string",
+              "model_id": "string",
+              "model_name": "string",
+              "model_version": "model configuration revision (no claimed weights version)",
+              "artifact_version": "null unless provider reports it",
+              "dimension": "integer",
+              "verified": "boolean"
+            },
+            "chunking": "actual KB configuration snapshot",
+            "aggregation": "mean_l2_normalized_enabled_text_chunks_v1",
+            "chunk_count": "integer",
+            "vector_count": "integer",
+            "index_version": "string",
+            "status": "ready|unavailable|disabled|provenance_unverified",
+            "degraded_reasons": "list[str]"
+          }
+        ],
+        "excluded": "list of member+reason, no silent omissions",
+        "population": "explicit_members_only",
+        "statistical_unit": "document_version; independent studies/projects require Radar mapping",
+        "is_demo": "boolean; also preserved per returned feature/search hit"
+      }
+    },
+    "POST /api/v1/kdd/search": {
+      "request": {
+        "knowledge_base_id": "string",
+        "source_scope": "string",
+        "query_text": "string 1..8000 chars",
+        "top_k": "1..20 default 10",
+        "rerank": "boolean default true",
+        "is_demo": "boolean default false; must match server KB classification"
+      },
+      "response": {
+        "results": "list of content,chunk_id,knowledge_id,score,identity,raw_locator,source_scope,content_sha256,index_version",
+        "execution": "actual keyword/vector/embedding/rerank executed states, safe model descriptors, index version, degraded bool and degraded_reasons",
+        "contract_version": "weknora-kdd-v1",
+        "is_demo": "boolean; also preserved per returned feature/search hit"
+      }
+    }
+  },
+  "errors": {
+    "400": "invalid identity/hash/body/limit",
+    "401": "missing or wrong token",
+    "403": "KB/source/scope outside configured mapping",
+    "404": "unknown publication",
+    "409": "same fixed version has different raw/content hash, unknown upload awaiting reconciliation, or concurrent operation",
+    "502": "upstream API/model failure; never empty success",
+    "503": "vector store unavailable; status/features report explicit degradation when safely possible"
+  },
+  "notes": [
+    "New versions create distinct index documents; prior versions remain fixed until explicitly disabled/superseded.",
+    "Source identity binds chunks via their knowledge foreign key; API exposes it on each returned chunk.",
+    "No Fabric database writes; index mutations only via existing WeKnora HTTP APIs; vector SQL uses read-only transactions.",
+    "Initial bounded verification uses a new KDD KB with BAAI/bge-m3 1024; no full-corpus reindex.",
+    "While parse is pending/processing/finalizing, binding remains pending. Replay the same publication after parse completed to finalize the native metadata projection without re-uploading. A missing projection is not an explicit revocation."
+  ],
+  "publication_id_formula": "sha256(json.dumps([knowledge_base_id, source_instance, source_id, source_record_id, version_id], ensure_ascii=False, separators=(',', ':')).encode('utf-8')).hexdigest()",
+  "revoked_source_cleanup": "Authenticated service may read content-free receipts and disable only already registered publication IDs after source mapping revocation. Features and search always require the current mapping.",
+  "simulation_isolation": "Requests use is_demo (strict boolean, default false). Server demo_kb_ids is an explicit subset of allowed_kb_ids for disposable simulation KBs. A demo request cannot use a real KB and a real request cannot use a demo KB. Published status cannot change. Legacy receipts without is_demo remain real. Use a separate journal and new empty KB for simulation; cleanup only owned bindings and KB."
+}

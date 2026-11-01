@@ -1,43 +1,26 @@
-# 构建阶段
-FROM node:24-alpine AS build-stage
+# Production image. Build static assets on the host first:
+#   ./scripts/build_frontend_dist.sh
+#
+# Base image pinned by digest for reproducibility. Do NOT switch back to the
+# floating `nginx:stable-alpine` tag: it drifts with every stable release and a
+# newer Alpine base (3.24+) fails to start on old hosts such as CentOS 7
+# (kernel 3.10 + old libseccomp), which broke v0.7.0. This digest is
+# nginx 1.30.3 / Alpine 3.23.5, the same base as the working v0.6.3 image.
+FROM nginx:1.30.3-alpine@sha256:0d3b80406a13a767339fbe2f41406d6c7da727ab89cf8fae399e81f780f814d1
 
-WORKDIR /app
+COPY dist /usr/share/nginx/html
 
-# 设置环境变量，忽略类型检查错误
-ENV NODE_OPTIONS="--max-old-space-size=4096"
-ENV VITE_IS_DOCKER=true
-
-# 复制依赖文件
-COPY package*.json ./
-COPY packages/xlsx-0.20.2.tgz ./packages/xlsx-0.20.2.tgz
-
-# 安装依赖
-RUN corepack enable
-RUN pnpm install
-
-# 复制项目文件
-COPY . .
-
-# 构建应用
-RUN pnpm run build
-
-# 生产阶段
-FROM nginx:stable-alpine AS production-stage
-
-# 复制构建产物到nginx服务目录
-COPY --from=build-stage /app/dist /usr/share/nginx/html
-
-# 复制nginx配置模板文件
 COPY nginx.conf /etc/nginx/templates/default.conf.template
 
-# 复制启动脚本
+# Copied outside templates/ on purpose: envsubst would eat $host and the other
+# nginx variables in it.
+COPY nginx-api-proxy.conf /etc/nginx/api-proxy.conf
+
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
-# 设置默认环境变量（MB）
 ENV MAX_FILE_SIZE_MB=50
 
-# 暴露端口
 EXPOSE 80
 
-ENTRYPOINT ["/docker-entrypoint.sh"] 
+ENTRYPOINT ["/docker-entrypoint.sh"]

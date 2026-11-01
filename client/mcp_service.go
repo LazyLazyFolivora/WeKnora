@@ -35,7 +35,13 @@ type MCPService struct {
 	UpdatedAt      string             `json:"updated_at"`
 }
 
-// MCPAuthConfig represents authentication configuration for MCP service
+// MCPAuthConfig represents authentication configuration for MCP service.
+//
+// Secret fields (APIKey, Token) are accepted on create but are never returned
+// by the server. To mutate credentials on an existing service, use the
+// dedicated /credentials subresource — see the MCP credentials API for the
+// PUT / DELETE shape. Sending secret fields in a main PUT body is silently
+// ignored server-side.
 type MCPAuthConfig struct {
 	APIKey        string            `json:"api_key,omitempty"`
 	Token         string            `json:"token,omitempty"`
@@ -72,10 +78,11 @@ type MCPResource struct {
 
 // MCPTestResult represents the result of testing an MCP service connection
 type MCPTestResult struct {
-	Success   bool           `json:"success"`
-	Message   string         `json:"message,omitempty"`
-	Tools     []*MCPTool     `json:"tools,omitempty"`
-	Resources []*MCPResource `json:"resources,omitempty"`
+	Success     bool           `json:"success"`
+	Message     string         `json:"message,omitempty"`
+	Description string         `json:"description,omitempty"`
+	Tools       []*MCPTool     `json:"tools,omitempty"`
+	Resources   []*MCPResource `json:"resources,omitempty"`
 }
 
 // CreateMCPService creates a new MCP service
@@ -204,4 +211,29 @@ func (c *Client) GetMCPServiceResources(ctx context.Context, serviceID string) (
 		return nil, err
 	}
 	return result.Data, nil
+}
+
+// ResolveToolApprovalRequest is the body for resolving a pending tool-approval
+// raised during an agent run (session ask). Decision is "approve" or "reject".
+// ModifiedArgs optionally replaces the tool call arguments on approve; it must
+// be a JSON object when present.
+type ResolveToolApprovalRequest struct {
+	Decision     string          `json:"decision"`
+	Reason       string          `json:"reason,omitempty"`
+	ModifiedArgs json.RawMessage `json:"modified_args,omitempty"`
+}
+
+// ResolveToolApproval resolves a pending tool approval by id.
+// Server route: POST /api/v1/agent/tool-approvals/{pending_id}.
+func (c *Client) ResolveToolApproval(ctx context.Context, pendingID string, req *ResolveToolApprovalRequest) error {
+	path := fmt.Sprintf("/api/v1/agent/tool-approvals/%s", pendingID)
+	resp, err := c.doRequest(ctx, http.MethodPost, path, req, nil)
+	if err != nil {
+		return err
+	}
+	var response struct {
+		Success bool   `json:"success"`
+		Message string `json:"message,omitempty"`
+	}
+	return parseResponse(resp, &response)
 }

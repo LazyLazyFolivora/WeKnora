@@ -2,6 +2,8 @@ import { reactive, ref, computed, watch } from 'vue'
 import { defineStore } from 'pinia'
 import i18n from '@/i18n'
 import { useAuthStore } from '@/stores/auth'
+import { useDeploymentCapabilitiesStore } from '@/stores/deploymentCapabilities'
+import type { DeploymentCapabilityKey } from '@/config/deploymentCapabilities'
 
 type MenuChild = Record<string, any>
 
@@ -12,24 +14,24 @@ interface MenuItem {
   path: string
   childrenPath?: string
   children?: MenuChild[]
+  requiredCapability?: DeploymentCapabilityKey
 }
 
 const createMenuChildren = () => reactive<MenuChild[]>([])
 
 export const useMenuStore = defineStore('menuStore', () => {
   const menuArr = reactive<MenuItem[]>([
-    { title: '', titleKey: 'menu.knowledgeBase', icon: 'zhishiku', path: 'knowledge-bases' },
-    { title: '', titleKey: 'menu.knowledgeSearch', icon: 'search', path: 'knowledge-search' },
-    { title: '', titleKey: 'menu.agents', icon: 'agent', path: 'agents' },
-    { title: '', titleKey: 'menu.organizations', icon: 'organization', path: 'organizations' },
     {
       title: '',
-      titleKey: 'menu.chat',
+      titleKey: 'menu.newChat',
       icon: 'prefixIcon',
       path: 'creatChat',
       childrenPath: 'chat',
       children: createMenuChildren()
     },
+    { title: '', titleKey: 'menu.knowledgeBase', icon: 'zhishiku', path: 'knowledge-bases' },
+    { title: '', titleKey: 'menu.agents', icon: 'agent', path: 'agents', requiredCapability: 'agents' },
+    { title: '', titleKey: 'menu.organizations', icon: 'organization', path: 'organizations', requiredCapability: 'organizations' },
     { title: '', titleKey: 'menu.settings', icon: 'setting', path: 'settings' },
     { title: '', titleKey: 'menu.logout', icon: 'logout', path: 'logout' }
   ])
@@ -61,12 +63,24 @@ export const useMenuStore = defineStore('menuStore', () => {
 
   const liteHiddenPaths = new Set(['logout', 'organizations'])
 
+  // 共享空间 (organizations) 和发布集成 (integrations) 仅对管理员 (10000)
+  // 暴露入口，普通用户端隐藏。
+  const adminOnlyPaths = new Set(['organizations', 'integrations'])
   const visibleMenuArr = computed(() => {
     const authStore = useAuthStore()
-    if (authStore.isLiteMode) {
-      return menuArr.filter(item => !liteHiddenPaths.has(item.path))
-    }
-    return menuArr
+    const deploymentCapabilities = useDeploymentCapabilitiesStore()
+    return menuArr.filter(item => {
+      if (authStore.isLiteMode && liteHiddenPaths.has(item.path)) {
+        return false
+      }
+      if (adminOnlyPaths.has(item.path) && !authStore.isAdminTenant) {
+        return false
+      }
+      if (!deploymentCapabilities.isSupported(item.requiredCapability)) {
+        return false
+      }
+      return true
+    })
   })
 
   const chatMenuIndex = menuArr.findIndex(item => item.path === 'creatChat')

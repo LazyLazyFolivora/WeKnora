@@ -8,6 +8,7 @@ import (
 	filesvc "github.com/Tencent/WeKnora/internal/application/service/file"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/Tencent/WeKnora/internal/logger"
@@ -34,8 +35,75 @@ func sqlSingleQuoteEscape(s string) string {
 	return strings.ReplaceAll(s, "'", "''")
 }
 
+func normalizeIdentifierForMatch(s string) string {
+	normalized := strings.ToLower(strings.TrimSpace(s))
+	normalized = strings.ReplaceAll(normalized, " ", "")
+	normalized = strings.ReplaceAll(normalized, "\u3000", "")
+	return normalized
+}
+
+func reconcileSQLColumnsWithSchema(sqlText string, schema *TableSchema) (string, []string) {
+	if schema == nil || len(schema.Columns) == 0 {
+		return sqlText, nil
+	}
+
+	normalizedToCanonical := make(map[string]string, len(schema.Columns))
+	for _, col := range schema.Columns {
+		key := normalizeIdentifierForMatch(col.Name)
+		if key == "" {
+			continue
+		}
+		if _, exists := normalizedToCanonical[key]; !exists {
+			normalizedToCanonical[key] = col.Name
+		}
+	}
+
+	quotedIdentifierPattern := regexp.MustCompile(`"([^"]+)"`)
+	fixes := make([]string, 0)
+	rewritten := quotedIdentifierPattern.ReplaceAllStringFunc(sqlText, func(token string) string {
+		name := strings.Trim(token, "\"")
+		canonical, ok := normalizedToCanonical[normalizeIdentifierForMatch(name)]
+		if !ok || canonical == name {
+			return token
+		}
+		fixes = append(fixes, fmt.Sprintf("%q -> %q", name, canonical))
+		return fmt.Sprintf(`"%s"`, canonical)
+	})
+
+	return rewritten, fixes
+}
+
+func buildMissingColumnSuggestion(sqlErr error, schema *TableSchema) string {
+	if sqlErr == nil || schema == nil {
+		return ""
+	}
+	msg := sqlErr.Error()
+	if !strings.Contains(msg, `Referenced column "`) || !strings.Contains(msg, `not found`) {
+		return ""
+	}
+
+	matches := regexp.MustCompile(`Referenced column "([^"]+)" not found`).FindStringSubmatch(msg)
+	if len(matches) < 2 {
+		return ""
+	}
+
+	missing := matches[1]
+	normalizedMissing := normalizeIdentifierForMatch(missing)
+	if normalizedMissing == "" {
+		return ""
+	}
+
+	for _, col := range schema.Columns {
+		if normalizeIdentifierForMatch(col.Name) == normalizedMissing {
+			return fmt.Sprintf("Column %q does not exist. Did you mean %q? Please use the exact column name from schema.", missing, col.Name)
+		}
+	}
+
+	return ""
+}
+
 type DataAnalysisInput struct {
-	KnowledgeID string `json:"knowledge_id" jsonschema:"id of the knowledge to query"`
+	KnowledgeID string `json:"knowledge_id" jsonschema:"short dN document ID to query"`
 	Sql         string `json:"sql" jsonschema:"SQL to be executed on knowledge"`
 }
 
@@ -48,6 +116,27 @@ type DataAnalysisTool struct {
 	db                   *sql.DB
 	sessionID            string
 	createdTables        []string // Track tables created in this session
+	// localBaseDir is the LOCAL_STORAGE_BASE_DIR value captured at construction
+	// time so resolveFileServiceForKnowledge uses the same base path that was
+	// used when the local FileService was initialised by DI.  Re-reading the
+	// env var at request time can produce a different (or empty) value if the
+	// variable was not exported to the sub-process or was set programmatically
+	// after startup, causing GetFile to look in the wrong directory (#1040).
+	localBaseDir    string
+	storageResolver interfaces.StorageBackendResolver
+	searchTargets   types.SearchTargets
+	scopeEnforced   bool
+}
+
+// WithSearchTargets enables the Agent-only authorization boundary. Other
+// internal data-analysis callers retain their existing service-owned scope.
+// The flag is set independently of the slice length: an Agent turn that ended
+// up with no search target must reject every document, not fall back to
+// unrestricted access.
+func (t *DataAnalysisTool) WithSearchTargets(searchTargets types.SearchTargets) *DataAnalysisTool {
+	t.searchTargets = searchTargets
+	t.scopeEnforced = true
+	return t
 }
 
 func NewDataAnalysisTool(
@@ -57,8 +146,9 @@ func NewDataAnalysisTool(
 	fileService interfaces.FileService,
 	db *sql.DB,
 	sessionID string,
+	storageResolvers ...interfaces.StorageBackendResolver,
 ) *DataAnalysisTool {
-	return &DataAnalysisTool{
+	tool := &DataAnalysisTool{
 		BaseTool:             dataAnalysisTool,
 		knowledgeBaseService: knowledgeBaseService,
 		knowledgeService:     knowledgeService,
@@ -66,7 +156,16 @@ func NewDataAnalysisTool(
 		tenantService:        tenantService,
 		db:                   db,
 		sessionID:            sessionID,
+		// Capture LOCAL_STORAGE_BASE_DIR once at construction time so that every
+		// call to resolveFileServiceForKnowledge uses the same base path.  The
+		// env var is guaranteed to be set (or empty == "/data/files" fallback)
+		// when the application starts and the DI container is assembled.
+		localBaseDir: strings.TrimSpace(os.Getenv("LOCAL_STORAGE_BASE_DIR")),
 	}
+	if len(storageResolvers) > 0 {
+		tool.storageResolver = storageResolvers[0]
+	}
+	return tool
 }
 
 // recordCreatedTable records a table name for cleanup, ensuring uniqueness
@@ -115,6 +214,11 @@ func (t *DataAnalysisTool) Execute(ctx context.Context, args json.RawMessage) (*
 			Error:   fmt.Sprintf("Failed to parse input args: %v", err),
 		}, err
 	}
+	if t.scopeEnforced {
+		if _, err := authorizeKnowledgeInSearchTargets(ctx, t.searchTargets, input.KnowledgeID, t.knowledgeService); err != nil {
+			return &types.ToolResult{Success: false, Error: err.Error()}, err
+		}
+	}
 
 	schema, err := t.LoadFromKnowledgeID(ctx, input.KnowledgeID)
 	if err != nil {
@@ -127,6 +231,10 @@ func (t *DataAnalysisTool) Execute(ctx context.Context, args json.RawMessage) (*
 
 	// Replace knowledge ID with table name
 	input.Sql = strings.ReplaceAll(input.Sql, input.KnowledgeID, schema.TableName)
+	if rewrittenSQL, fixes := reconcileSQLColumnsWithSchema(input.Sql, schema); len(fixes) > 0 {
+		logger.Infof(ctx, "[Tool][DataAnalysis] Auto-rewrote SQL identifiers for session %s: %v", t.sessionID, fixes)
+		input.Sql = rewrittenSQL
+	}
 
 	// Check if this is a read-only query
 	normalizedSQL := strings.TrimSpace(strings.ToLower(input.Sql))
@@ -164,6 +272,12 @@ func (t *DataAnalysisTool) Execute(ctx context.Context, args json.RawMessage) (*
 	// Execute single query and get results
 	results, err := t.executeSingleQuery(ctx, input.Sql)
 	if err != nil {
+		if suggestion := buildMissingColumnSuggestion(err, schema); suggestion != "" {
+			return &types.ToolResult{
+				Success: false,
+				Error:   fmt.Sprintf("Query execution failed: %v. %s", err, suggestion),
+			}, err
+		}
 		return &types.ToolResult{
 			Success: false,
 			Error:   fmt.Sprintf("Query execution failed: %v", err),
@@ -305,8 +419,13 @@ func (t *DataAnalysisTool) LoadFromCSV(ctx context.Context, filename string, tab
 	// Record the created table for cleanup. If already exists, skip creation
 	if t.recordCreatedTable(tableName) {
 		// Create table from CSV using DuckDB's read_csv_auto function
+		// with explicit header detection and VARCHAR coercion to align with
+		// Excel loading behavior.
 		// Table will be created in the session schema
-		createTableSQL := fmt.Sprintf("CREATE TABLE \"%s\" AS SELECT * FROM read_csv_auto('%s')", tableName, filename)
+		createTableSQL := fmt.Sprintf(
+			"CREATE TABLE \"%s\" AS SELECT * FROM read_csv_auto('%s', header=true, all_varchar=true)",
+			tableName, sqlSingleQuoteEscape(filename),
+		)
 
 		_, err := t.db.ExecContext(ctx, createTableSQL)
 		if err != nil {
@@ -415,7 +534,7 @@ func buildExcelCreateTableSQL(tableName, filename string, sheetNames []string) s
 	// No sheet info (enumeration failed or empty): read the first sheet only.
 	if len(sheetNames) == 0 {
 		return fmt.Sprintf(
-			"CREATE TABLE \"%s\" AS SELECT * FROM read_xlsx('%s')",
+			"CREATE TABLE \"%s\" AS SELECT * FROM read_xlsx('%s', header=true, all_varchar=true)",
 			tableName, escFile,
 		)
 	}
@@ -425,7 +544,7 @@ func buildExcelCreateTableSQL(tableName, filename string, sheetNames []string) s
 	if len(sheetNames) == 1 {
 		escSheet := sqlSingleQuoteEscape(sheetNames[0])
 		return fmt.Sprintf(
-			"CREATE TABLE \"%s\" AS SELECT *, '%s' AS %s FROM read_xlsx('%s', sheet = '%s')",
+			"CREATE TABLE \"%s\" AS SELECT *, '%s' AS %s FROM read_xlsx('%s', sheet = '%s', header=true, all_varchar=true)",
 			tableName, escSheet, excelSheetNameColumn, escFile, escSheet,
 		)
 	}
@@ -437,7 +556,7 @@ func buildExcelCreateTableSQL(tableName, filename string, sheetNames []string) s
 	for _, sheet := range sheetNames {
 		escSheet := sqlSingleQuoteEscape(sheet)
 		parts = append(parts, fmt.Sprintf(
-			"SELECT *, '%s' AS %s FROM read_xlsx('%s', sheet = '%s')",
+			"SELECT *, '%s' AS %s FROM read_xlsx('%s', sheet = '%s', header=true, all_varchar=true)",
 			escSheet, excelSheetNameColumn, escFile, escSheet,
 		))
 	}
@@ -558,7 +677,10 @@ func (t *DataAnalysisTool) materializeKnowledgeFile(ctx context.Context, knowled
 func (t *DataAnalysisTool) LoadFromKnowledgeID(ctx context.Context, knowledgeID string) (*TableSchema, error) {
 	// Use GetKnowledgeByIDOnly to support cross-tenant shared KB
 	knowledge, err := t.knowledgeService.GetKnowledgeByIDOnly(ctx, knowledgeID)
-	if err != nil {
+	if err != nil || knowledge == nil {
+		if err == nil {
+			err = fmt.Errorf("knowledge service returned an empty result")
+		}
 		logger.Errorf(ctx, "[Tool][DataAnalysis] Failed to get knowledge by ID '%s': %v", knowledgeID, err)
 		return nil, fmt.Errorf("failed to get knowledge by ID: %w", err)
 	}
@@ -687,8 +809,12 @@ func (t *DataAnalysisTool) resolveFileServiceForKnowledge(ctx context.Context, k
 	}
 
 	provider := ""
+	backendID, _, _ := types.ParseStorageBackendPath(knowledge.FilePath)
 	if kb != nil {
 		provider = kb.GetStorageProvider()
+		if backendID == "" && kb.StorageBackendID != nil {
+			backendID = strings.TrimSpace(*kb.StorageBackendID)
+		}
 	}
 	tenant, _ := ctx.Value(types.TenantInfoContextKey).(*types.Tenant)
 	if tenant == nil {
@@ -714,6 +840,18 @@ func (t *DataAnalysisTool) resolveFileServiceForKnowledge(ctx context.Context, k
 	if provider == "" && tenant != nil && tenant.StorageEngineConfig != nil {
 		provider = strings.ToLower(strings.TrimSpace(tenant.StorageEngineConfig.DefaultProvider))
 	}
+	if t.storageResolver != nil && tenant != nil && (backendID != "" || provider != "") {
+		resolvedSvc, resolvedProvider, err := t.storageResolver.ResolveFileService(
+			ctx, tenant, backendID, provider, t.localBaseDir,
+		)
+		if err == nil {
+			logger.Infof(ctx, "[Tool][DataAnalysis][storage] resolved storage backend: session_id=%s knowledge_id=%s kb_id=%s backend_id=%s provider=%s",
+				t.sessionID, knowledge.ID, kbID, backendID, resolvedProvider)
+			return resolvedSvc
+		}
+		logger.Warnf(ctx, "[Tool][DataAnalysis][storage] resolve storage backend failed, trying legacy config: session_id=%s knowledge_id=%s kb_id=%s backend_id=%s provider=%s err=%v",
+			t.sessionID, knowledge.ID, kbID, backendID, provider, err)
+	}
 
 	if provider == "" || tenant == nil || tenant.StorageEngineConfig == nil {
 		hasTenantStorageConfig := tenant != nil && tenant.StorageEngineConfig != nil
@@ -723,7 +861,14 @@ func (t *DataAnalysisTool) resolveFileServiceForKnowledge(ctx context.Context, k
 	}
 
 	storageConfig := tenant.StorageEngineConfig
-	baseDir := strings.TrimSpace(os.Getenv("LOCAL_STORAGE_BASE_DIR"))
+	// Use the localBaseDir captured at construction time rather than re-reading
+	// LOCAL_STORAGE_BASE_DIR from os.Getenv here.  Reading the env var at
+	// request-handling time can produce an empty string (or the wrong value)
+	// when the variable was set programmatically before startup or is absent
+	// from the process environment of the DI-constructed sub-component, causing
+	// the newly created local FileService to use the /data/files fallback
+	// instead of the configured path and therefore fail to locate files (#1040).
+	baseDir := t.localBaseDir
 
 	resolvedSvc, resolvedProvider, err := filesvc.NewFileServiceFromStorageConfig(provider, storageConfig, baseDir)
 	if err != nil {

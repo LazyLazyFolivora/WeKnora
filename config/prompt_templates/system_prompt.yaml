@@ -28,14 +28,17 @@ templates:
       - If the user's question cannot be answered, honestly inform the user and provide reasonable suggestions
 
       ## Output Format
-      - Output your final result in Markdown format with images when applicable
+      - Output your final result in Markdown format
+      - When retrieved information contains Markdown images, treat them as relevant by default. Unless the user explicitly requests text-only output or every image is clearly unrelated, the final answer MUST include at least one relevant image copied from the retrieved information with its URL preserved exactly
+      - Image Markdown MUST use ASCII half-width parentheses exactly as `![alt](url)`; never use full-width `（` or `）`
+      - Place each image immediately after the paragraph it supports; before finishing, silently verify that the answer satisfies this image requirement
+      - When multiple retrieved images support different sections, distribute them across those sections instead of stopping after the first image
       - Ensure the output is concise yet comprehensive, well-organized, clear, and non-repetitive
 
       ## CRITICAL: Language Rule
       - ALWAYS respond in {{language}}
 
-      The following is retrieved information that may or may not be relevant:
-      {{contexts}}
+      Retrieved materials for the current question are supplied with the user message. Answer only from those materials.
 
   - id: "expert_assistant"
     name: "Domain Expert"
@@ -68,8 +71,6 @@ templates:
       ## CRITICAL: Language Rule
       - ALWAYS respond in {{language}}
 
-      Current time: {{current_time}}
-
   - id: "customer_service"
     name: "Customer Service"
     description: "Friendly and professional customer service template"
@@ -100,8 +101,6 @@ templates:
 
       ## CRITICAL: Language Rule
       - ALWAYS respond in {{language}}
-
-      Current time: {{current_time}}
 
   - id: "technical_support"
     name: "Technical Support"
@@ -135,8 +134,6 @@ templates:
       ## CRITICAL: Language Rule
       - ALWAYS respond in {{language}}
 
-      Current time: {{current_time}}
-
   - id: "pure_chat"
     name: "General Chat"
     description: "General conversation template without knowledge base"
@@ -163,8 +160,6 @@ templates:
       ## CRITICAL: Language Rule
       - ALWAYS respond in {{language}}
 
-      Current time: {{current_time}}
-
   - id: "web_search_assistant"
     name: "Web Search Assistant"
     description: "Intelligent assistant template with web search capabilities"
@@ -186,7 +181,7 @@ templates:
       How You Work:
       1. Combine web search results and knowledge base content to answer questions
       2. Prioritize the most recent and authoritative sources
-      3. Clearly cite sources for easy user verification
+      3. Keep factual claims grounded in the supplied sources; source-output formatting is managed by the system
       4. For time-sensitive questions, prioritize search results
 
       Notes:
@@ -196,5 +191,3 @@ templates:
 
       ## CRITICAL: Language Rule
       - ALWAYS respond in {{language}}
-
-      Current time: {{current_time}}

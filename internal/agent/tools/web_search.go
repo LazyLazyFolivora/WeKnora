@@ -41,7 +41,7 @@ var webSearchTool = BaseTool{
 **Parameters**:
 - query (required): Search query string
 
-**Returns**: Web search results with title, URL, snippet, and content (up to %d results)
+**Returns**: Web search results with title, short wN page ID, snippet, and content (up to %d results)
 
 ## Examples
 
@@ -57,13 +57,14 @@ var webSearchTool = BaseTool{
 }
 ` + "`" + `
 
-## Tips
+## Evidence and Fallback
 
 - Results are automatically compressed using RAG to extract relevant content
 - Search results are stored in a temporary knowledge base for the session
-- Use this tool when knowledge bases don't have the information you need
-- Results include URL, title, snippet, and content snippet (may be truncated)
-- **CRITICAL**: If content is truncated or you need full details, use **web_fetch** to fetch complete page content
+- Titles, URLs, snippets, and content snippets are usable search-summary evidence
+- Use web_fetch only when the snippet is insufficient or full-page verification is important
+- If web_fetch fails, keep the search evidence, disclose that page content was not verified, and lower confidence for dynamic facts
+- Do not repeat equivalent searches merely because a page could not be fetched
 - Maximum %d results will be returned per search`,
 	schema: utils.GenerateSchema[WebSearchInput](),
 }
@@ -144,28 +145,27 @@ func (t *WebSearchTool) Execute(ctx context.Context, args json.RawMessage) (*typ
 	}
 
 	if tenantID == 0 {
-		logger.Errorf(ctx, "[Tool][WebSearch] Tenant ID not found in context")
+		logger.Errorf(ctx, "[Tool][WebSearch] Workspace ID not found in context")
 		return &types.ToolResult{
 			Success: false,
-			Error:   "tenant ID not found in context",
-		}, fmt.Errorf("tenant ID not found in context")
+			Error:   "workspace ID not found in context",
+		}, fmt.Errorf("workspace ID not found in context")
 	}
 
 	// Get tenant info from context (same approach as search.go)
-	tenant := ctx.Value(types.TenantInfoContextKey).(*types.Tenant)
-	if tenant == nil || tenant.WebSearchConfig == nil {
-		logger.Errorf(ctx, "[Tool][WebSearch] Web search not configured for tenant %d", tenantID)
-		return &types.ToolResult{
-			Success: false,
-			Error:   "web search is not configured for this tenant",
-		}, fmt.Errorf("web search is not configured for tenant %d", tenantID)
+	var tenant *types.Tenant
+	if tenantValue := ctx.Value(types.TenantInfoContextKey); tenantValue != nil {
+		tenant, _ = tenantValue.(*types.Tenant)
 	}
 
 	// Resolve provider ID: tool-level (set from agent config, which already resolved default)
 	resolvedProviderID := t.providerID
 
-	// Create a copy of web search config with maxResults from agent config
-	searchConfig := *tenant.WebSearchConfig
+	// Create a copy of the effective web search config with maxResults from agent config.
+	searchConfig := types.EffectiveWebSearchConfig(nil)
+	if tenant != nil {
+		searchConfig = types.EffectiveWebSearchConfig(tenant.WebSearchConfig)
+	}
 	searchConfig.MaxResults = t.maxResults
 
 	// Perform web search
@@ -175,7 +175,7 @@ func (t *WebSearchTool) Execute(ctx context.Context, args json.RawMessage) (*typ
 		resolvedProviderID,
 		searchConfig.MaxResults,
 	)
-	webResults, err := t.webSearchService.Search(ctx, resolvedProviderID, &searchConfig, query)
+	webResults, err := t.webSearchService.Search(ctx, resolvedProviderID, searchConfig, query)
 	if err != nil {
 		logger.Errorf(ctx, "[Tool][WebSearch] Web search failed: %v", err)
 		return &types.ToolResult{
@@ -187,8 +187,8 @@ func (t *WebSearchTool) Execute(ctx context.Context, args json.RawMessage) (*typ
 	logger.Infof(ctx, "[Tool][WebSearch] Web search returned %d results", len(webResults))
 
 	// Apply RAG compression if configured
-	if len(webResults) > 0 && tenant.WebSearchConfig.CompressionMethod != "none" &&
-		tenant.WebSearchConfig.CompressionMethod != "" {
+	if len(webResults) > 0 && searchConfig.CompressionMethod != "none" &&
+		searchConfig.CompressionMethod != "" {
 		// Load session-scoped temp KB state from Redis using WebSearchStateRepository
 		tempKBID, seen, ids := t.webSearchStateService.GetWebSearchTempKBState(ctx, t.sessionID)
 
@@ -197,7 +197,7 @@ func (t *WebSearchTool) Execute(ctx context.Context, args json.RawMessage) (*typ
 
 		logger.Infof(ctx, "[Tool][WebSearch] Applying RAG compression")
 		compressed, kbID, newSeen, newIDs, err := t.webSearchService.CompressWithRAG(
-			ctx, t.sessionID, tempKBID, questions, webResults, tenant.WebSearchConfig,
+			ctx, t.sessionID, tempKBID, questions, webResults, searchConfig,
 			t.knowledgeBaseService, t.knowledgeService, seen, ids,
 		)
 		if err != nil {
@@ -251,12 +251,14 @@ func (t *WebSearchTool) Execute(ctx context.Context, args json.RawMessage) (*typ
 		output += "\n"
 
 		resultData := map[string]interface{}{
-			"result_index": i + 1,
-			"title":        result.Title,
-			"url":          result.URL,
-			"snippet":      result.Snippet,
-			"content":      result.Content,
-			"source":       result.Source,
+			"result_index":  i + 1,
+			"title":         result.Title,
+			"url":           result.URL,
+			"snippet":       result.Snippet,
+			"content":       result.Content,
+			"source":        result.Source,
+			"evidence_type": "search_summary",
+			"page_verified": false,
 		}
 		if result.PublishedAt != nil {
 			resultData["published_at"] = result.PublishedAt.Format(time.RFC3339)
@@ -267,9 +269,9 @@ func (t *WebSearchTool) Execute(ctx context.Context, args json.RawMessage) (*typ
 	// Add guidance for next steps
 	output += "\n=== Next Steps ===\n"
 	if len(webResults) > 0 {
-		output += "- ⚠️ Content may be truncated (showing first 500 chars). Use web_fetch to get full page content.\n"
-		output += "- Extract URLs from results above and use web_fetch with appropriate prompts to get detailed information.\n"
-		output += "- Synthesize information from multiple sources for comprehensive answers.\n"
+		output += "- Titles, URLs, snippets, and content snippets are usable search-summary evidence.\n"
+		output += "- If the evidence is sufficient, answer now. Use web_fetch only for claims that need full-page verification.\n"
+		output += "- If fetching fails, retain these results, disclose that page content was not verified, and avoid presenting dynamic facts as certain.\n"
 	} else {
 		output += "- No web search results found. Consider:\n"
 		output += "  - Try different search queries or keywords\n"

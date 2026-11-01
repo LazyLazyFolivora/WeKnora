@@ -1,4 +1,4 @@
-package neo4j
+﻿package neo4j
 
 import (
 	"context"
@@ -202,10 +202,17 @@ func (n *Neo4jRepository) SearchNode(
 				nameStr := n.Props["name"].(string)
 				if _, ok := nodeSeen[nameStr]; !ok {
 					nodeSeen[nameStr] = true
+					attrs := listI2listS(n.Props["attributes"].([]interface{}))
+					if entityType, ok := n.Props["entity_type"].(string); ok && entityType != "" {
+						attrs = append(attrs, "type:"+entityType)
+					}
+					if entityData, ok := n.Props["entity_data"].(string); ok && entityData != "" {
+						attrs = append(attrs, entityData)
+					}
 					graphData.Node = append(graphData.Node, &types.GraphNode{
 						Name:       nameStr,
 						Chunks:     listI2listS(n.Props["chunks"].([]interface{})),
-						Attributes: listI2listS(n.Props["attributes"].([]interface{})),
+						Attributes: attrs,
 					})
 				}
 			}
@@ -222,6 +229,126 @@ func (n *Neo4jRepository) SearchNode(
 	})
 	if err != nil {
 		logger.Errorf(ctx, "search node failed: %v", err)
+		return nil, err
+	}
+	return result.(*types.GraphData), nil
+}
+
+// SearchByCypher executes a read-only Cypher query that must RETURN n, r, m (node, relationship, node).
+func (n *Neo4jRepository) SearchByCypher(
+	ctx context.Context,
+	cypher string,
+	params map[string]interface{},
+) (*types.GraphData, error) {
+	if n.driver == nil {
+		logger.Warnf(ctx, "NOT SUPPORT RETRIEVE GRAPH")
+		return nil, nil
+	}
+
+	logger.Infof(ctx, "[SearchByCypher] executing cypher: %s, params: %+v", cypher, params)
+
+	session := n.driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead})
+	defer session.Close(ctx)
+
+	result, err := session.ExecuteRead(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
+		cypherResult, err := tx.Run(ctx, cypher, params)
+		if err != nil {
+			return nil, fmt.Errorf("failed to run cypher: %v", err)
+		}
+
+		graphData := &types.GraphData{}
+		nodeSeen := make(map[string]bool)
+		recordCount := 0
+		skippedCount := 0
+
+		for cypherResult.Next(ctx) {
+			record := cypherResult.Record()
+
+			// Collect all nodes and relationships from every returned column,
+			// so the LLM is free to write RETURN n, RETURN n/r/m, or any aliases.
+			var recordNodes []neo4j.Node
+			var recordRels []neo4j.Relationship
+
+			for _, key := range record.Keys {
+				val, _ := record.Get(key)
+				if val == nil {
+					continue
+				}
+				switch v := val.(type) {
+				case neo4j.Node:
+					recordNodes = append(recordNodes, v)
+				case neo4j.Relationship:
+					recordRels = append(recordRels, v)
+				}
+			}
+
+			if len(recordNodes) == 0 {
+				skippedCount++
+				continue
+			}
+
+			for _, nd := range recordNodes {
+				nameStr, ok := nd.Props["name"].(string)
+				if !ok || nodeSeen[nameStr] {
+					continue
+				}
+				nodeSeen[nameStr] = true
+				attrs := []string{}
+				if rawAttrs, ok := nd.Props["attributes"].([]interface{}); ok {
+					attrs = listI2listS(rawAttrs)
+				}
+				if entityType, ok := nd.Props["entity_type"].(string); ok && entityType != "" {
+					attrs = append(attrs, "type:"+entityType)
+				}
+				if entityData, ok := nd.Props["entity_data"].(string); ok && entityData != "" {
+					attrs = append(attrs, entityData)
+				}
+				if primekgType, ok := nd.Props["primekg_type"].(string); ok && primekgType != "" {
+					attrs = append(attrs, "primekg_type:"+primekgType)
+				}
+				if primekgID, ok := nd.Props["primekg_id"].(string); ok && primekgID != "" {
+					attrs = append(attrs, "primekg_id:"+primekgID)
+				}
+				if nodeSource, ok := nd.Props["node_source"].(string); ok && nodeSource != "" {
+					attrs = append(attrs, "source:"+nodeSource)
+				}
+				if sourceSite, ok := nd.Props["source_site"].(string); ok && sourceSite != "" {
+					attrs = append(attrs, "site:"+sourceSite)
+				}
+				graphData.Node = append(graphData.Node, &types.GraphNode{
+					Name:       nameStr,
+					Attributes: attrs,
+				})
+			}
+
+			// Relations: when the record also has a relationship together with
+			// at least 2 nodes, connect the first two nodes.
+			for _, rel := range recordRels {
+				var node1, node2 string
+				if len(recordNodes) >= 2 {
+					if n, ok := recordNodes[0].Props["name"].(string); ok {
+						node1 = n
+					}
+					if n, ok := recordNodes[1].Props["name"].(string); ok {
+						node2 = n
+					}
+				}
+				graphData.Relation = append(graphData.Relation, &types.GraphRelation{
+					Node1: node1,
+					Node2: node2,
+					Type:  rel.Type,
+				})
+			}
+			recordCount++
+		}
+
+		logger.Infof(ctx, "[SearchByCypher] parsed %d records (skipped %d), %d nodes, %d relations",
+			recordCount, skippedCount, len(graphData.Node), len(graphData.Relation))
+
+		return graphData, nil
+	})
+	if err != nil {
+		logger.Errorf(ctx, "search by cypher failed: %v", err)
 		return nil, err
 	}
 	return result.(*types.GraphData), nil

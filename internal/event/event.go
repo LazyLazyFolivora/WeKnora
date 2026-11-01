@@ -6,6 +6,8 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
+
+	"github.com/Tencent/WeKnora/internal/logger"
 )
 
 // EventType represents the type of event in the system
@@ -53,9 +55,29 @@ const (
 	EventAgentReflection  EventType = "reflection"   // Agent 反思
 	EventAgentReferences  EventType = "references"   // 知识引用
 	EventAgentFinalAnswer EventType = "final_answer" // 最终答案
+	EventAgentGraph       EventType = "agent_graph"  // MCP 流式知识图谱增量事件
+
+	// MCP tool human approval (issue #1173)
+	EventToolApprovalRequired EventType = "tool_approval_required"
+	EventToolApprovalResolved EventType = "tool_approval_resolved"
+
+	// MCP OAuth in-conversation authorization prompt: emitted when an
+	// OAuth-enabled MCP service is invoked but the current user has not
+	// authorized it yet. The agent pauses until the user authorizes (or the
+	// wait times out / is canceled).
+	EventMCPOAuthRequired EventType = "mcp_oauth_required"
+	EventMCPOAuthResolved EventType = "mcp_oauth_resolved"
 
 	// Error events
 	EventError EventType = "error" // 错误事件
+
+	// Long-term memory recalled for this turn. Emitted once, before the answer
+	// streams, so the UI can show which memories the answer saw.
+	EventMemoryRecalled EventType = "memory_recalled"
+
+	// EventContextCompacted is emitted when older conversation was summarized
+	// away to fit the context window.
+	EventContextCompacted EventType = "context_compacted"
 
 	// Session events
 	EventSessionTitle EventType = "session_title" // 会话标题更新
@@ -140,6 +162,11 @@ func (eb *EventBus) Emit(ctx context.Context, event Event) error {
 		for _, handler := range handlers {
 			h := handler // capture loop variable
 			go func() {
+				defer func() {
+					if r := recover(); r != nil {
+						logger.Errorf(ctx, "event handler panic recovered (type=%s): %v", event.Type, r)
+					}
+				}()
 				_ = h(ctx, event)
 			}()
 		}
@@ -182,6 +209,11 @@ func (eb *EventBus) EmitAndWait(ctx context.Context, event Event) error {
 
 		go func() {
 			defer wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					errChan <- fmt.Errorf("event handler panic (type=%s): %v", event.Type, r)
+				}
+			}()
 			if err := h(ctx, event); err != nil {
 				errChan <- err
 			}
