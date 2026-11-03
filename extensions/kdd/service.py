@@ -3,6 +3,7 @@ import hashlib
 import json
 import math
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import quote, urlsplit, urlunsplit, parse_qsl, urlencode
@@ -536,7 +537,8 @@ class Service:
                 continue
             done = 0
             execution[mode + "_result_count"] = 0
-            for batch in batches:
+
+            def one(batch, mode=mode):
                 body = {"query_text": req.query_text, "match_count": min(60, req.top_k * 3),
                         "knowledge_ids": batch, "disable_vector_match": mode == "keyword",
                         "disable_keywords_match": mode == "vector", "vector_threshold": 0, "keyword_threshold": 0,
@@ -544,8 +546,14 @@ class Service:
                 if mode == "vector":
                     body["query_embedding"] = query_embedding
                 try:
-                    data = self.request("POST", "/api/v1/knowledge-bases/" + req.knowledge_base_id + "/hybrid-search", json=body)["data"]
+                    return self.request("POST", "/api/v1/knowledge-bases/" + req.knowledge_base_id + "/hybrid-search", json=body)["data"]
                 except HTTPException:
+                    return None
+
+            with ThreadPoolExecutor(max_workers=min(4, len(batches))) as pool:
+                answers = list(pool.map(one, batches))
+            for data in answers:
+                if data is None:
                     continue
                 done += 1
                 execution[mode + "_result_count"] += len(data)
@@ -568,7 +576,8 @@ class Service:
                 execution["degraded_reasons"].append(mode + "_retrieval_failed")
         if execution["keyword"] == "failed" and execution["vector"] in ("failed", "skipped"):
             raise HTTPException(502, "all retrieval channels failed")
-        hits = sorted(merged.values(), key=lambda x: (-x["score"],x["chunk_id"]))
+        # rerank as many candidates as one batch of both channels can give, however many batches ran
+        hits = sorted(merged.values(), key=lambda x: (-x["score"],x["chunk_id"]))[:2 * min(60, req.top_k * 3)]
         if req.rerank and hits:
             try:
                 reranked, descriptor = self.model_call("rerank", {"query": req.query_text, "documents": [h["content"] for h in hits], "top_n": len(hits)})
