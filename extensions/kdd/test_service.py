@@ -285,6 +285,43 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(result["execution"]["filtered_publications"][0]["reason_type"],"disabled")
         self.assertFalse(result["execution"]["degraded"])
 
+    def test_a_scope_over_one_id_list_is_searched_in_batches_and_a_failed_batch_is_partial(self):
+        from . import service as module
+        receipts=[self.s.publish(Publication(**payload(source_record_id="NCT%d"%i,raw_sha256=("%x"%i).rjust(64,"0"),
+            content="Actual fixed text %d."%i,raw_locator=dict(source_instance="fabric",source_id="clinicaltrials",
+            source_record_id="NCT%d"%i,version_id="v1")))) for i in range(5)]
+        kids=sorted(r["knowledge_id"] for r in receipts)
+        calls=[]
+        original=self.s.request
+        def upstream(method,path,**kwargs):
+            if path.endswith("/hybrid-search"):
+                batch=kwargs["json"]["knowledge_ids"]
+                calls.append((kwargs["json"]["disable_vector_match"],list(batch)))
+                if self.fail_batch is not None and batch==self.fail_batch:
+                    raise HTTPException(502,"down")
+                return {"data":[{"id":"chunk-"+batch[-1],"knowledge_id":batch[-1],"content":"matched text"}]}
+            return original(method,path,**kwargs)
+        self.s.request=upstream
+        self.s.model_call=lambda kind,body:(({"data":[{"embedding":[1.0,0.0]}]},{"dimension":2}) if kind=="embedding"
+                                            else ({"results":[{"index":i,"relevance_score":1.0-i/10} for i in range(len(body["documents"]))]},{"model_id":"r"}))
+        self.s.status=lambda pid:{"index_status":"ready","degraded_reasons":[],"index_version":"v"}
+        self.fail_batch=None
+        with patch.object(module,"SCOPE_BATCH",2):
+            result=self.s.search(Search(knowledge_base_id=KB,source_scope="pipeline",query_text="trial"))
+            self.assertEqual(result["execution"]["scope_batches"],3)
+            self.assertEqual(sorted(b for _,b in calls if _),[kids[0:2],kids[2:4],kids[4:5]])
+            self.assertEqual({r["knowledge_id"] for r in result["results"]},{kids[1],kids[3],kids[4]})
+            self.assertFalse(result["execution"]["degraded"])
+            calls.clear(); self.fail_batch=kids[2:4]
+            result=self.s.search(Search(knowledge_base_id=KB,source_scope="pipeline",query_text="trial"))
+            self.assertEqual(result["execution"]["keyword"],"partial")
+            self.assertIn("keyword_retrieval_partial",result["execution"]["degraded_reasons"])
+            self.assertEqual({r["knowledge_id"] for r in result["results"]},{kids[1],kids[4]})
+            with patch.object(module,"MAX_SCOPE_BATCHES",2):
+                with self.assertRaises(HTTPException) as caught:
+                    self.s.search(Search(knowledge_base_id=KB,source_scope="pipeline",query_text="trial"))
+                self.assertEqual(caught.exception.status_code,400)
+
     def test_aggregation_normalizes_chunks_and_rejects_bad_vectors(self):
         self.assertEqual(aggregate([[3,0],[6,0]]),[1.0,0.0])
         with self.assertRaises(ValueError):aggregate([[1,0],[1]])

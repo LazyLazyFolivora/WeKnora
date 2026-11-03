@@ -99,6 +99,10 @@ def aggregate(vectors):
         raise ValueError("zero aggregate")
     return [x / norm for x in total]
 
+SCOPE_BATCH = 1000  # knowledge ids per hybrid-search call
+MAX_SCOPE_BATCHES = 20
+
+
 class Service:
     def __init__(self, config_path, client=None, store=None):
         self.config_path = Path(config_path)
@@ -502,8 +506,12 @@ class Service:
                 except HTTPException:
                     continue
                 rows[row["knowledge_id"]] = row
-        if len(rows) > 1000:
-            raise HTTPException(400, "search scope exceeds 1000 published documents; narrow server scope")
+        # WeKnora's hybrid search takes an explicit knowledge id list; a scope larger than one list is
+        # searched list by list and fused by rank like the two channels are
+        ids = sorted(rows)
+        batches = [ids[i:i + SCOPE_BATCH] for i in range(0, len(ids), SCOPE_BATCH)]
+        if len(batches) > MAX_SCOPE_BATCHES:
+            raise HTTPException(400, "search scope exceeds %d published documents; narrow server scope" % (SCOPE_BATCH * MAX_SCOPE_BATCHES))
         execution = {"keyword": "not_run", "vector": "not_run", "embedding": "not_run", "rerank": "not_run", "degraded_reasons": []}
         if not rows:
             return {"contract_version": CONTRACT, "is_demo": req.is_demo, "results": [], "execution": {**execution, "degraded": False, "scope_document_count": 0}}
@@ -521,20 +529,26 @@ class Service:
                 execution["embedding_error_code"] = "model_configuration_changed"
             execution["degraded_reasons"].append("query_embedding_failed")
         merged = {}
+        execution["scope_batches"] = len(batches)
         for mode in ("keyword", "vector"):
             if mode == "vector" and query_embedding is None:
                 execution[mode] = "skipped"
                 continue
-            body = {"query_text": req.query_text, "match_count": min(60, req.top_k * 3),
-                    "knowledge_ids": list(rows), "disable_vector_match": mode == "keyword",
-                    "disable_keywords_match": mode == "vector", "vector_threshold": 0, "keyword_threshold": 0,
-                    "skip_context_enrichment": True}
-            if mode == "vector":
-                body["query_embedding"] = query_embedding
-            try:
-                data = self.request("POST", "/api/v1/knowledge-bases/" + req.knowledge_base_id + "/hybrid-search", json=body)["data"]
-                execution[mode] = "succeeded"
-                execution[mode + "_result_count"] = len(data)
+            done = 0
+            execution[mode + "_result_count"] = 0
+            for batch in batches:
+                body = {"query_text": req.query_text, "match_count": min(60, req.top_k * 3),
+                        "knowledge_ids": batch, "disable_vector_match": mode == "keyword",
+                        "disable_keywords_match": mode == "vector", "vector_threshold": 0, "keyword_threshold": 0,
+                        "skip_context_enrichment": True}
+                if mode == "vector":
+                    body["query_embedding"] = query_embedding
+                try:
+                    data = self.request("POST", "/api/v1/knowledge-bases/" + req.knowledge_base_id + "/hybrid-search", json=body)["data"]
+                except HTTPException:
+                    continue
+                done += 1
+                execution[mode + "_result_count"] += len(data)
                 for rank, hit in enumerate(data):
                     kid, cid = hit.get("knowledge_id"), hit.get("id") or hit.get("chunk_id")
                     if kid not in rows or not cid:
@@ -542,8 +556,14 @@ class Service:
                     if cid not in merged:
                         merged[cid] = {**hit, "chunk_id": cid, "score": 0.0, "retrieval_modes": []}
                     merged[cid]["score"] += 1.0 / (60 + rank + 1)
-                    merged[cid]["retrieval_modes"].append(mode)
-            except HTTPException:
+                    if mode not in merged[cid]["retrieval_modes"]:
+                        merged[cid]["retrieval_modes"].append(mode)
+            if done == len(batches):
+                execution[mode] = "succeeded"
+            elif done:
+                execution[mode] = "partial"
+                execution["degraded_reasons"].append(mode + "_retrieval_partial")
+            else:
                 execution[mode] = "failed"
                 execution["degraded_reasons"].append(mode + "_retrieval_failed")
         if execution["keyword"] == "failed" and execution["vector"] in ("failed", "skipped"):
