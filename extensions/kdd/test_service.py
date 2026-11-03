@@ -322,6 +322,31 @@ class ServiceTests(unittest.TestCase):
                     self.s.search(Search(knowledge_base_id=KB,source_scope="pipeline",query_text="trial"))
                 self.assertEqual(caught.exception.status_code,400)
 
+    def test_batched_hits_keep_the_global_order_a_single_request_would_give(self):
+        """Codex r24: ranks restarted at 1 in every batch, so a strong hit in a crowded batch was cut."""
+        from . import service as module
+        receipts=[self.s.publish(Publication(**payload(source_record_id="NCT%d"%i,raw_sha256=("%x"%(i+100)).rjust(64,"0"),
+            content="Actual fixed text %d."%i,raw_locator=dict(source_instance="fabric",source_id="clinicaltrials",
+            source_record_id="NCT%d"%i,version_id="v1")))) for i in range(6)]
+        kids=sorted(r["knowledge_id"] for r in receipts)
+        score={k:float(i) for i,k in enumerate(kids)}  # the last id scores highest, wherever it lands
+        original=self.s.request
+        def upstream(method,path,**kwargs):
+            if path.endswith("/hybrid-search"):
+                ids=kwargs["json"]["knowledge_ids"]; n=kwargs["json"]["match_count"]
+                ranked=sorted(ids,key=lambda k:-score[k])[:n]
+                return {"data":[{"id":"chunk-"+k,"knowledge_id":k,"content":"t","score":score[k]} for k in ranked] or None}
+            return original(method,path,**kwargs)
+        self.s.request=upstream
+        self.s.model_call=lambda kind,body:({"data":[{"embedding":[1.0,0.0]}]},{"dimension":2}) if kind=="embedding" else (_ for _ in ()).throw(KeyError())
+        self.s.status=lambda pid:{"index_status":"ready","degraded_reasons":[],"index_version":"v"}
+        def top(batch):
+            with patch.object(module,"SCOPE_BATCH",batch):
+                return [r["knowledge_id"] for r in self.s.search(Search(knowledge_base_id=KB,source_scope="pipeline",query_text="t",top_k=1))["results"]]
+        self.assertEqual(top(1000),[kids[-1]])
+        for batch in (1,2,4):
+            self.assertEqual(top(batch),[kids[-1]],batch)
+
     def test_aggregation_normalizes_chunks_and_rejects_bad_vectors(self):
         self.assertEqual(aggregate([[3,0],[6,0]]),[1.0,0.0])
         with self.assertRaises(ValueError):aggregate([[1,0],[1]])

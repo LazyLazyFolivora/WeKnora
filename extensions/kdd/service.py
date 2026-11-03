@@ -546,26 +546,32 @@ class Service:
                 if mode == "vector":
                     body["query_embedding"] = query_embedding
                 try:
-                    return self.request("POST", "/api/v1/knowledge-bases/" + req.knowledge_base_id + "/hybrid-search", json=body)["data"]
+                    return self.request("POST", "/api/v1/knowledge-bases/" + req.knowledge_base_id + "/hybrid-search", json=body)["data"] or []
                 except HTTPException:
                     return None
 
             with ThreadPoolExecutor(max_workers=min(4, len(batches))) as pool:
                 answers = list(pool.map(one, batches))
+            found = []
             for data in answers:
                 if data is None:
                     continue
                 done += 1
                 execution[mode + "_result_count"] += len(data)
-                for rank, hit in enumerate(data):
-                    kid, cid = hit.get("knowledge_id"), hit.get("id") or hit.get("chunk_id")
-                    if kid not in rows or not cid:
-                        continue
-                    if cid not in merged:
-                        merged[cid] = {**hit, "chunk_id": cid, "score": 0.0, "retrieval_modes": []}
-                    merged[cid]["score"] += 1.0 / (60 + rank + 1)
-                    if mode not in merged[cid]["retrieval_modes"]:
-                        merged[cid]["retrieval_modes"].append(mode)
+                found += [h for h in data if h.get("knowledge_id") in rows and (h.get("id") or h.get("chunk_id"))]
+            if len(batches) > 1:
+                # one global order per channel: the upstream score of a keyword or vector match does not
+                # depend on which other documents were in the request (checked on the live index), so the
+                # batches' hits are comparable; keep as many as one request would have returned
+                found.sort(key=lambda h: (-float(h.get("score") or 0), h.get("id") or h.get("chunk_id")))
+                found = found[:min(60, req.top_k * 3)]
+            for rank, hit in enumerate(found):
+                cid = hit.get("id") or hit.get("chunk_id")
+                if cid not in merged:
+                    merged[cid] = {**hit, "chunk_id": cid, "score": 0.0, "retrieval_modes": []}
+                merged[cid]["score"] += 1.0 / (60 + rank + 1)
+                if mode not in merged[cid]["retrieval_modes"]:
+                    merged[cid]["retrieval_modes"].append(mode)
             if done == len(batches):
                 execution[mode] = "succeeded"
             elif done:
@@ -576,8 +582,7 @@ class Service:
                 execution["degraded_reasons"].append(mode + "_retrieval_failed")
         if execution["keyword"] == "failed" and execution["vector"] in ("failed", "skipped"):
             raise HTTPException(502, "all retrieval channels failed")
-        # rerank as many candidates as one batch of both channels can give, however many batches ran
-        hits = sorted(merged.values(), key=lambda x: (-x["score"],x["chunk_id"]))[:2 * min(60, req.top_k * 3)]
+        hits = sorted(merged.values(), key=lambda x: (-x["score"],x["chunk_id"]))
         if req.rerank and hits:
             try:
                 reranked, descriptor = self.model_call("rerank", {"query": req.query_text, "documents": [h["content"] for h in hits], "top_n": len(hits)})
