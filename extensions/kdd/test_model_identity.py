@@ -101,3 +101,20 @@ class ModelIdentityTests(unittest.TestCase):
         self.assertEqual(execution['rerank_error_code'], 'model_configuration_changed')
         self.assertTrue(execution['degraded'])
         self.assertNotIn('changed.invalid', json.dumps(execution))
+
+    def test_artifact_key_is_optional_identity_and_keeps_v1_ids(self):
+        from .service import publication_id
+        base = payload()
+        plain = Publication(**base).model_dump(exclude_none=True)
+        self.assertNotIn('artifact_key', plain)
+        v1 = publication_id({**plain, 'knowledge_base_id': base['knowledge_base_id']})
+        a = publication_id({**plain, 'artifact_key': 'proc.v1:' + 'a' * 64})
+        b = publication_id({**plain, 'artifact_key': 'proc.v2:' + 'b' * 64})
+        self.assertEqual(len({v1, a, b}), 3)
+        # two artifacts of one fixed version are two publications, both accepted
+        first = self.s.publish(Publication(**{**base, 'artifact_key': 'proc.v1:' + 'a' * 64}))
+        second = self.s.publish(Publication(**{**base, 'content': 'reparsed text', 'content_sha256': None,
+                                                'artifact_key': 'proc.v2:' + 'b' * 64}))
+        self.assertNotEqual(first['publication_id'], second['publication_id'])
+        self.assertEqual(second['identity']['artifact_key'], 'proc.v2:' + 'b' * 64)
+

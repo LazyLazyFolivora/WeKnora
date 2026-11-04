@@ -22,10 +22,17 @@ def digest(value):
     return hashlib.sha256(value).hexdigest()
 
 def identity(value):
-    return {k: value[k] for k in IDENTITY_FIELDS}
+    out = {k: value[k] for k in IDENTITY_FIELDS}
+    if value.get("artifact_key"):
+        out["artifact_key"] = value["artifact_key"]
+    return out
 
 def publication_id(value):
-    return digest([value["knowledge_base_id"], *[value[k] for k in IDENTITY_FIELDS[:-1]]])
+    # artifact_key absent: exactly the weknora-kdd-v1 identity, so existing publications keep their IDs.
+    parts = [value["knowledge_base_id"], *[value[k] for k in IDENTITY_FIELDS[:-1]]]
+    if value.get("artifact_key"):
+        parts.append(value["artifact_key"])
+    return digest(parts)
 
 # These are credentials, not identities of embedding/rerank configuration.
 # Do not put them in a public descriptor or make rotation invalidate vectors.

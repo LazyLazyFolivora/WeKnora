@@ -11,6 +11,9 @@ class Identity(StrictModel):
     source_record_id: str = Field(min_length=1, max_length=512)
     version_id: str = Field(min_length=1, max_length=128)
     raw_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    # 同一固定版本的派生正文产物（Fabric 附件：处理器版本:正文摘要）。带上时它是身份的一部分，
+    # 处理器升级后的新正文是另一条发布；不带时身份与 weknora-kdd-v1 完全相同。
+    artifact_key: str | None = Field(default=None, min_length=1, max_length=200, pattern=r"^[A-Za-z0-9._:-]+$")
 
 class Locator(StrictModel):
     source_instance: str = Field(min_length=1, max_length=128)
