@@ -58,10 +58,19 @@ class Journal:
                        (*values.values(), pid))
 
     def record_attempt(self, pid, outcome, http_status, reason):
+        """Append an attempt; returns its number."""
         with self.connect() as db:
             n = db.execute("SELECT count(*) FROM upload_attempts WHERE publication_id=?", (pid,)).fetchone()[0]
             db.execute("INSERT INTO upload_attempts(publication_id,attempt,outcome,http_status,reason) VALUES(?,?,?,?,?)",
                        (pid, n + 1, outcome, http_status, reason[:200]))
+        return n + 1
+
+    def finish_attempt(self, pid, attempt, outcome, http_status, reason):
+        """Settle an in-flight attempt once; a settled outcome is never rewritten."""
+        with self.connect() as db:
+            db.execute("UPDATE upload_attempts SET outcome=?,http_status=?,reason=? "
+                       "WHERE publication_id=? AND attempt=? AND outcome='in_flight'",
+                       (outcome, http_status, reason[:200], pid, attempt))
 
     def attempts(self, pid):
         with self.connect() as db:

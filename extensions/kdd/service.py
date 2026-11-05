@@ -36,15 +36,30 @@ def wire(value):
     return value
 
 
+# Statuses that prove WeKnora refused an upload before creating anything; only these allow a second upload.
+# 408, 429, 5xx, gateway and any other status leave the outcome unknown.
+REFUSED_BEFORE_CREATION = frozenset({400, 401, 403, 404, 405, 411, 413, 414, 415, 422})
+KNOWN_UPSTREAM_MESSAGES = frozenset({"Invalid metadata format"})
+
+
 def upstream_reason(response):
-    """The upstream's own code and message (a category such as "code1000 Invalid metadata format"), bounded."""
+    """A bounded category: the upstream error code (flat or nested under "error") and only a known message.
+    Free text and details may carry source content and are never kept."""
+    reason = "http_" + str(response.status_code)
     try:
         body = response.json()
     except ValueError:
-        return "http_" + str(response.status_code)
-    if not isinstance(body, dict):
-        return "http_" + str(response.status_code)
-    return ("code" + str(body.get("code", "")) + " " + str(body.get("message") or body.get("error") or ""))[:160]
+        return reason
+    err = body.get("error") if isinstance(body, dict) and isinstance(body.get("error"), dict) else body
+    if not isinstance(err, dict):
+        return reason
+    code, message = err.get("code"), err.get("message")
+    if isinstance(code, (int, str)) and not isinstance(code, bool) and str(code).isascii() \
+            and 0 < len(str(code)) <= 32 and all(c.isalnum() or c in "_.-" for c in str(code)):
+        reason = "code" + str(code)
+    if isinstance(message, str) and message in KNOWN_UPSTREAM_MESSAGES:
+        reason += " " + message
+    return reason
 
 
 def identity(value):
@@ -272,7 +287,10 @@ class Service:
                 for k in ("raw_sha256", "content_sha256", "source_scope", "raw_locator"):
                     if value[k] != prior[k]:
                         raise HTTPException(409, "fixed version already exists with different identity/content/scope")
-                if not row["knowledge_id"] and row["upload_status"] == "rejected":
+                if row["knowledge_id"] and row["upload_status"] == "accepted":
+                    self.verify_accepted(pid)  # created upstream, not yet verified: verify, never upload
+                    row = self.journal.get(pid)
+                elif not row["knowledge_id"] and row["upload_status"] == "rejected":
                     # the upstream refused the earlier upload before creating anything: uploading again is safe
                     self.upload(pid, prior)
                     row = self.journal.get(pid)
@@ -295,9 +313,13 @@ class Service:
             return self.status(pid)
 
     def upload(self, pid, value):
-        """One physical upload of a reserved publication; its outcome is recorded per attempt."""
+        """One physical upload of a reserved publication, recorded per attempt. Before the request the publication
+        is durably sending with an in-flight attempt, so a process lost mid-request is reconciled, never re-sent.
+        Only a response proving a refusal before creation makes it rejected (and re-uploadable)."""
         indexed = "<!-- Fabric fixed version " + pid + " -->\n" + value["content"]
         metadata = self.metadata(value, pid)
+        self.journal.update(pid, upload_status="sending")
+        attempt = self.journal.record_attempt(pid, "in_flight", None, "")
         try:
             result = self.request("POST", "/api/v1/knowledge-bases/" + value["knowledge_base_id"] + "/knowledge/file",
                 files={"file": ("fabric-" + pid + ".md", indexed.encode(), "text/markdown")},
@@ -305,26 +327,32 @@ class Service:
                       "process_config": json.dumps({"graph_enabled": False, "extract_config": {"enabled": False},
                           "question_generation_config": {"enabled": False, "question_count": 0},
                           "chunking_config": value["chunking"]})})
-            doc = result.get("data") or result.get("knowledge")
-            if not isinstance(doc, dict) or not doc.get("id"):
-                raise HTTPException(502, "upload returned no knowledge ID")
-            kid = doc["id"]
-            check = self.get_document(kid)
-            if (check.get("metadata") or {}).get("publication_id") != pid:
-                raise HTTPException(409, "upstream duplicate does not match the fixed source version")
-            self.journal.update(pid, knowledge_id=kid, upload_status="uploaded")
-            self.journal.record_attempt(pid, "uploaded", None, "knowledge_created")
         except UpstreamError as exc:
-            explicit = exc.upstream_status is not None and 400 <= exc.upstream_status < 500
-            self.journal.record_attempt(pid, "rejected" if explicit else "unknown", exc.upstream_status, exc.reason)
-            if not self.journal.get(pid)["knowledge_id"]:
-                self.journal.update(pid, upload_status="rejected" if explicit else "unknown")
+            refused = exc.upstream_status in REFUSED_BEFORE_CREATION
+            self.journal.finish_attempt(pid, attempt, "rejected" if refused else "unknown", exc.upstream_status, exc.reason)
+            self.journal.update(pid, upload_status="rejected" if refused else "unknown")
             raise
-        except HTTPException as exc:
-            self.journal.record_attempt(pid, "unknown", None, str(exc.detail))
-            if not self.journal.get(pid)["knowledge_id"]:
-                self.journal.update(pid, upload_status="unknown")
+        except HTTPException:
+            self.journal.finish_attempt(pid, attempt, "unknown", None, "bridge_error")
+            self.journal.update(pid, upload_status="unknown")
             raise
+        doc = result.get("data") or result.get("knowledge")
+        if not isinstance(doc, dict) or not doc.get("id"):
+            self.journal.finish_attempt(pid, attempt, "unknown", None, "no_knowledge_id")
+            self.journal.update(pid, upload_status="unknown")
+            raise HTTPException(502, "upload returned no knowledge ID")
+        # WeKnora accepted it: keep the ID before anything else can fail, so every later step only verifies
+        self.journal.update(pid, knowledge_id=doc["id"], upload_status="accepted")
+        self.journal.finish_attempt(pid, attempt, "uploaded", None, "knowledge_created")
+        self.verify_accepted(pid)
+
+    def verify_accepted(self, pid):
+        """The accepted document must carry this fixed version (a 409 duplicate may point at another one)."""
+        row = self.journal.get(pid)
+        check = self.get_document(row["knowledge_id"])
+        if (check.get("metadata") or {}).get("publication_id") != pid:
+            raise HTTPException(409, "upstream duplicate does not match the fixed source version")
+        self.journal.update(pid, upload_status="uploaded")
 
     def ensure_binding(self, row):
         if not row["knowledge_id"]:

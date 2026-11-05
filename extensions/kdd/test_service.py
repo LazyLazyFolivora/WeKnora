@@ -465,6 +465,23 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual([(a["outcome"],a["http_status"],a["reason"]) for a in self.s.journal.attempts(pid)],
                          [("unknown",None,"transport")])
 
+    def test_lost_retry_stays_in_flight_and_is_only_reconciled(self):
+        self.reject_next=True
+        with self.assertRaises(HTTPException):self.s.publish(Publication(**payload()))
+        (pid,)=self.s.journal.all()
+        original=self.s.request
+        def lost(method,path,**kwargs):
+            result=original(method,path,**kwargs)
+            if path.endswith("/knowledge/file"):raise SystemExit("process lost after the upstream accepted")
+            return result
+        self.s.request=lost
+        with self.assertRaises(SystemExit):self.s.publish(Publication(**payload()))
+        self.s.request=original
+        self.assertEqual(self.s.journal.get(pid)["upload_status"],"sending")  # the earlier rejection no longer applies
+        receipt=self.s.publish(Publication(**payload()))
+        self.assertEqual((self.uploads,receipt["binding_status"]),(1,"bound"))
+        self.assertEqual([(a["attempt"],a["outcome"]) for a in self.s.journal.attempts(pid)],[(1,"rejected"),(2,"in_flight")])
+
     def test_request_types_the_upstream_outcome_without_content(self):
         import httpx
         class Client:
