@@ -9,7 +9,7 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from .app import create_app
 from .models import Publication, Features, Search, Disable, Rerank
-from .service import Service, identity, aggregate
+from .service import Service, UpstreamError, identity, aggregate
 
 KB = "bounded-kb"
 MODEL = {"id": "builtin-embedding-default", "name": "bge-m3", "source": "remote", "updated_at": "2026-10-30T00:00:00Z",
@@ -47,6 +47,8 @@ class ServiceTests(unittest.TestCase):
         self.store = FakeStore()
         self.s = Service(self.path,store=self.store)
         self.uploads = 0
+        self.rejected = 0
+        self.reject_next = False
         self.fail_after_upload = False
         self.fail_disable = False
         self.s.request = self.upstream
@@ -55,8 +57,13 @@ class ServiceTests(unittest.TestCase):
         if path == "/api/v1/knowledge-bases/"+KB:
             return {"data":{"embedding_model_id":MODEL["id"],"chunking_config":{"chunk_size":512,"chunk_overlap":80}}}
         if path.endswith("/knowledge/file"):
-            self.uploads += 1
             meta=json.loads(kwargs["data"]["metadata"])
+            # WeKnora binds metadata to map[string]string: anything else is refused, nothing is created
+            if self.reject_next or any(not isinstance(v,str) for v in meta.values()):
+                self.reject_next=False
+                self.rejected += 1
+                raise UpstreamError("WeKnora returned HTTP 400",400,"code1000 Invalid metadata format")
+            self.uploads += 1
             kid="knowledge-"+str(self.uploads)
             self.store.docs[kid]=dict(id=kid,knowledge_base_id=KB,tenant_id=10000,embedding_model_id=MODEL["id"],
                 parse_status="completed",enable_status="enabled",metadata=meta,custom_metadata={},processed_at="now",updated_at="now")
@@ -397,6 +404,83 @@ class ServiceTests(unittest.TestCase):
         with self.assertRaises(HTTPException) as error:
             self.s.publish(Publication(**payload(artifact_key="proc.v1:"+"a"*64,content="other",piece=piece(2,text[10:]))))
         self.assertEqual(error.exception.status_code,400)
+
+    def piece_payload(self, **changes):
+        import hashlib
+        text="Actual fixed text."
+        piece={"rule":"datafabric.index_piece.v1","index":1,"count":2,"start":0,"end":10,"context_chars":0,
+               "chars":10,"bytes":10,"sha256":hashlib.sha256(text[:10].encode()).hexdigest()}
+        return payload(artifact_key="proc.v1:"+"a"*64,content=text[:10],piece=piece,**changes)
+
+    def test_piece_goes_on_the_wire_as_one_canonical_string(self):
+        receipt=self.s.publish(Publication(**self.piece_payload()))
+        self.assertEqual((self.uploads,self.rejected),(1,0))
+        meta=self.store.docs[receipt["knowledge_id"]]["metadata"]
+        self.assertTrue(all(isinstance(v,str) for v in meta.values()))
+        self.assertEqual(json.loads(meta["piece"]),receipt["identity"]["piece"])
+        self.assertEqual(meta["piece"],json.dumps(receipt["identity"]["piece"],sort_keys=True,ensure_ascii=False,separators=(",",":")))
+        self.assertIsInstance(receipt["identity"]["piece"],dict)  # the structured identity is unchanged
+        self.assertEqual(receipt["binding_status"],"bound")
+        self.assertEqual([a["outcome"] for a in self.s.journal.attempts(receipt["publication_id"])],["uploaded"])
+
+    def test_tampered_piece_or_artifact_string_is_a_binding_mismatch(self):
+        for field,forged in (("piece",lambda v:v.replace('"end":10','"end":11')),("artifact_key",lambda v:v[:-1]+"b")):
+            with self.subTest(field=field):
+                receipt=self.s.publish(Publication(**self.piece_payload(version_id="v-"+field)))
+                pid,kid=receipt["publication_id"],receipt["knowledge_id"]
+                doc=self.store.docs[kid]
+                doc["metadata"][field]=forged(doc["metadata"][field])
+                with self.assertRaises(HTTPException) as e:self.s.publish(Publication(**self.piece_payload(version_id="v-"+field)))
+                self.assertEqual(e.exception.status_code,409)
+                self.assertIn("source_binding_mismatch",self.s.inspect(self.s.journal.get(pid))[2])
+                self.store.docs.pop(kid)
+
+    def test_first_explicit_rejection_is_kept_and_only_it_may_be_uploaded_again(self):
+        self.reject_next=True
+        with self.assertRaises(HTTPException):self.s.publish(Publication(**payload()))
+        (pid,)=self.s.journal.all()
+        self.assertEqual(self.s.journal.get(pid)["upload_status"],"rejected")
+        first=self.s.journal.attempts(pid)[0]
+        self.assertEqual((first["outcome"],first["http_status"],first["reason"]),("rejected",400,"code1000 Invalid metadata format"))
+        receipt=self.s.publish(Publication(**payload()))  # nothing was created upstream: a second upload is safe
+        self.assertEqual((self.uploads,self.rejected,receipt["binding_status"]),(1,1,"bound"))
+        self.assertEqual([(a["attempt"],a["outcome"],a["http_status"]) for a in self.s.journal.attempts(pid)],
+                         [(1,"rejected",400),(2,"uploaded",None)])
+
+    def test_unknown_outcome_is_recorded_and_never_overwritten_by_the_recover_409(self):
+        original=self.s.request
+        def timeout(method,path,**kwargs):
+            if path.endswith("/knowledge/file"):
+                raise UpstreamError("WeKnora request outcome unavailable",None,"transport")
+            return original(method,path,**kwargs)
+        self.s.request=timeout
+        with self.assertRaises(HTTPException):self.s.publish(Publication(**payload()))
+        self.s.request=original
+        (pid,)=self.s.journal.all()
+        for _ in range(2):
+            with self.assertRaises(HTTPException) as e:self.s.publish(Publication(**payload()))
+            self.assertEqual(e.exception.status_code,409)
+        self.assertEqual(self.uploads,0)
+        self.assertEqual(self.s.journal.get(pid)["upload_status"],"unknown")
+        self.assertEqual([(a["outcome"],a["http_status"],a["reason"]) for a in self.s.journal.attempts(pid)],
+                         [("unknown",None,"transport")])
+
+    def test_request_types_the_upstream_outcome_without_content(self):
+        import httpx
+        class Client:
+            def __init__(self,outcome):self.outcome=outcome
+            def request(self,method,url,**kwargs):
+                if isinstance(self.outcome,Exception):raise self.outcome
+                return self.outcome
+        cases=((httpx.Response(400,json={"code":1000,"message":"Invalid metadata format"}),400,"code1000 Invalid metadata format"),
+               (httpx.Response(503,text="<html>busy</html>"),503,"http_503"),
+               (httpx.ReadTimeout("slow"),None,"transport"))
+        for outcome,status,reason in cases:
+            with self.subTest(status=status):
+                self.s.client=Client(outcome)
+                with self.assertRaises(UpstreamError) as e:Service.request(self.s,"POST","/api/v1/x")
+                self.assertEqual((e.exception.status_code,e.exception.upstream_status,e.exception.reason),(502,status,reason))
+                self.assertNotIn("private-key",str(e.exception.detail)+e.exception.reason)
 
     def test_more_chunks_than_verified_is_a_budget_limit_not_an_outage(self):
         receipt=self.s.publish(Publication(**payload()))

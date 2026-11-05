@@ -22,6 +22,12 @@ class Journal:
                 disable_reason TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
             # search maps a hit's knowledge id back to its publication
             db.execute("CREATE INDEX IF NOT EXISTS publications_knowledge ON publications(knowledge_id)")
+            # every physical upload's outcome, append-only: an explicit upstream rejection (nothing created) is kept
+            # apart from a transport/unknown outcome and is never overwritten by a later recover. No content, no keys.
+            db.execute("""CREATE TABLE IF NOT EXISTS upload_attempts (
+                publication_id TEXT NOT NULL, attempt INTEGER NOT NULL, outcome TEXT NOT NULL,
+                http_status INTEGER, reason TEXT NOT NULL, at TEXT DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (publication_id, attempt))""")
         Path(path).chmod(0o600)
 
     def connect(self):
@@ -50,6 +56,18 @@ class Journal:
         with self.connect() as db:
             db.execute("UPDATE publications SET " + ",".join(k + "=?" for k in values) + " WHERE id=?",
                        (*values.values(), pid))
+
+    def record_attempt(self, pid, outcome, http_status, reason):
+        with self.connect() as db:
+            n = db.execute("SELECT count(*) FROM upload_attempts WHERE publication_id=?", (pid,)).fetchone()[0]
+            db.execute("INSERT INTO upload_attempts(publication_id,attempt,outcome,http_status,reason) VALUES(?,?,?,?,?)",
+                       (pid, n + 1, outcome, http_status, reason[:200]))
+
+    def attempts(self, pid):
+        with self.connect() as db:
+            return [dict(r) for r in db.execute(
+                "SELECT attempt,outcome,http_status,reason,at FROM upload_attempts WHERE publication_id=? ORDER BY attempt",
+                (pid,)).fetchall()]
 
     def by_knowledge(self, kid):
         with self.connect() as db:

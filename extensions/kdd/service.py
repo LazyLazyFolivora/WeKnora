@@ -20,6 +20,33 @@ def digest(value):
         value = json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()
     return hashlib.sha256(value).hexdigest()
 
+class UpstreamError(HTTPException):
+    """A WeKnora request that did not succeed: the upstream HTTP status (None when the outcome is unknown) and a
+    reason category (upstream code and message, or transport/invalid_response) - never content or credentials."""
+
+    def __init__(self, detail, upstream_status=None, reason=""):
+        super().__init__(502, detail)
+        self.upstream_status, self.reason = upstream_status, reason
+
+
+def wire(value):
+    """A metadata value as WeKnora stores it (map[string]string): structured values as one canonical JSON string."""
+    if isinstance(value, (dict, list)):
+        return json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return value
+
+
+def upstream_reason(response):
+    """The upstream's own code and message (a category such as "code1000 Invalid metadata format"), bounded."""
+    try:
+        body = response.json()
+    except ValueError:
+        return "http_" + str(response.status_code)
+    if not isinstance(body, dict):
+        return "http_" + str(response.status_code)
+    return ("code" + str(body.get("code", "")) + " " + str(body.get("message") or body.get("error") or ""))[:160]
+
+
 def identity(value):
     out = {k: value[k] for k in IDENTITY_FIELDS}
     if value.get("artifact_key"):
@@ -156,17 +183,18 @@ class Service:
             response = self.client.request(method, self.cfg["upstream_url"] + path,
                 headers={"X-API-Key": self.cfg["upstream_api_key"]}, **kwargs)
         except httpx.HTTPError:
-            raise HTTPException(502, "WeKnora request outcome unavailable") from None
+            raise UpstreamError("WeKnora request outcome unavailable", None, "transport") from None
         if response.status_code not in (200,201,202,204,409):
-            raise HTTPException(502, f"WeKnora returned HTTP {response.status_code}")
+            raise UpstreamError(f"WeKnora returned HTTP {response.status_code}", response.status_code,
+                                upstream_reason(response))
         try:
             result = response.json()
         except ValueError:
-            raise HTTPException(502, "WeKnora returned an invalid response") from None
+            raise UpstreamError("WeKnora returned an invalid response", None, "invalid_response") from None
         if response.status_code == 409:
             return result
         if result.get("success") is False:
-            raise HTTPException(502, "WeKnora rejected operation")
+            raise UpstreamError("WeKnora rejected operation", response.status_code, upstream_reason(response))
         return result
 
     def get_document(self, kid):
@@ -210,7 +238,8 @@ class Service:
 
     def metadata(self, value, pid):
         extra = compact_metadata(value.get("metadata"))
-        return {**identity(value), **({"is_demo": str(value["is_demo"]).lower()} if "is_demo" in value else {}),
+        return {**{k: wire(v) for k, v in identity(value).items()},
+                **({"is_demo": str(value["is_demo"]).lower()} if "is_demo" in value else {}),
                 "source_scope": value["source_scope"],
                 "raw_locator": json.dumps(value["raw_locator"], ensure_ascii=False, separators=(",", ":")),
                 "publication_id": pid, "content_sha256": value["content_sha256"],
@@ -243,8 +272,12 @@ class Service:
                 for k in ("raw_sha256", "content_sha256", "source_scope", "raw_locator"):
                     if value[k] != prior[k]:
                         raise HTTPException(409, "fixed version already exists with different identity/content/scope")
-                if not row["knowledge_id"]:
-                    row = self.recover(row)
+                if not row["knowledge_id"] and row["upload_status"] == "rejected":
+                    # the upstream refused the earlier upload before creating anything: uploading again is safe
+                    self.upload(pid, prior)
+                    row = self.journal.get(pid)
+                elif not row["knowledge_id"]:
+                    row = self.recover(row)  # outcome unknown: never re-sent blindly, only found back
                 self.ensure_binding(row)
                 return self.status(pid)
             kb = self.request("GET", "/api/v1/knowledge-bases/" + value["knowledge_base_id"])["data"]
@@ -257,28 +290,41 @@ class Service:
             value["indexed_text_sha256"] = digest(indexed.encode())
             if not self.journal.reserve(pid, value):
                 raise HTTPException(409, "publication is already being delivered")
-            metadata = self.metadata(value, pid)
-            try:
-                result = self.request("POST", "/api/v1/knowledge-bases/" + value["knowledge_base_id"] + "/knowledge/file",
-                    files={"file": ("fabric-" + pid + ".md", indexed.encode(), "text/markdown")},
-                    data={"metadata": json.dumps(metadata, ensure_ascii=False), "channel": "api",
-                          "process_config": json.dumps({"graph_enabled": False, "extract_config": {"enabled": False},
-                              "question_generation_config": {"enabled": False, "question_count": 0},
-                              "chunking_config": value["chunking"]})})
-                doc = result.get("data") or result.get("knowledge")
-                if not isinstance(doc, dict) or not doc.get("id"):
-                    raise HTTPException(502, "upload returned no knowledge ID")
-                kid = doc["id"]
-                check = self.get_document(kid)
-                if (check.get("metadata") or {}).get("publication_id") != pid:
-                    raise HTTPException(409, "upstream duplicate does not match the fixed source version")
-                self.journal.update(pid, knowledge_id=kid, upload_status="uploaded")
-            except HTTPException:
-                if not self.journal.get(pid)["knowledge_id"]:
-                    self.journal.update(pid, upload_status="unknown")
-                raise
+            self.upload(pid, value)
             self.ensure_binding(self.journal.get(pid))
             return self.status(pid)
+
+    def upload(self, pid, value):
+        """One physical upload of a reserved publication; its outcome is recorded per attempt."""
+        indexed = "<!-- Fabric fixed version " + pid + " -->\n" + value["content"]
+        metadata = self.metadata(value, pid)
+        try:
+            result = self.request("POST", "/api/v1/knowledge-bases/" + value["knowledge_base_id"] + "/knowledge/file",
+                files={"file": ("fabric-" + pid + ".md", indexed.encode(), "text/markdown")},
+                data={"metadata": json.dumps(metadata, ensure_ascii=False), "channel": "api",
+                      "process_config": json.dumps({"graph_enabled": False, "extract_config": {"enabled": False},
+                          "question_generation_config": {"enabled": False, "question_count": 0},
+                          "chunking_config": value["chunking"]})})
+            doc = result.get("data") or result.get("knowledge")
+            if not isinstance(doc, dict) or not doc.get("id"):
+                raise HTTPException(502, "upload returned no knowledge ID")
+            kid = doc["id"]
+            check = self.get_document(kid)
+            if (check.get("metadata") or {}).get("publication_id") != pid:
+                raise HTTPException(409, "upstream duplicate does not match the fixed source version")
+            self.journal.update(pid, knowledge_id=kid, upload_status="uploaded")
+            self.journal.record_attempt(pid, "uploaded", None, "knowledge_created")
+        except UpstreamError as exc:
+            explicit = exc.upstream_status is not None and 400 <= exc.upstream_status < 500
+            self.journal.record_attempt(pid, "rejected" if explicit else "unknown", exc.upstream_status, exc.reason)
+            if not self.journal.get(pid)["knowledge_id"]:
+                self.journal.update(pid, upload_status="rejected" if explicit else "unknown")
+            raise
+        except HTTPException as exc:
+            self.journal.record_attempt(pid, "unknown", None, str(exc.detail))
+            if not self.journal.get(pid)["knowledge_id"]:
+                self.journal.update(pid, upload_status="unknown")
+            raise
 
     def ensure_binding(self, row):
         if not row["knowledge_id"]:
@@ -290,7 +336,8 @@ class Service:
             expected["source_status"] = row["source_status"]
         meta = doc.get("metadata") or {}
         immutable_fields = (*IDENTITY_FIELDS, "source_scope", "raw_locator", "publication_id",
-                            "content_sha256", "indexed_text_sha256", "contract_version")
+                            "content_sha256", "indexed_text_sha256", "contract_version",
+                            *(k for k in ("artifact_key", "piece") if k in expected))
         if "is_demo" in value:
             immutable_fields += ("is_demo",)
         if any(meta.get(k) != expected[k] for k in immutable_fields):
@@ -360,7 +407,8 @@ class Service:
         meta = doc.get("metadata") or {}
         custom = doc.get("custom_metadata") or {}
         reasons = []
-        binding_fields = (*IDENTITY_FIELDS, "publication_id", "raw_locator", "source_scope", "content_sha256", "indexed_text_sha256")
+        binding_fields = (*IDENTITY_FIELDS, "publication_id", "raw_locator", "source_scope", "content_sha256",
+                          "indexed_text_sha256", *(k for k in ("artifact_key", "piece") if k in expected))
         if "is_demo" in value:
             binding_fields += ("is_demo",)
         if any(meta.get(k) != expected[k] or custom.get(k) != expected[k] for k in binding_fields):
