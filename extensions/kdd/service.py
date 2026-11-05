@@ -9,7 +9,7 @@ from urllib.parse import quote, urlsplit, urlunsplit, parse_qsl, urlencode
 
 import httpx
 from fastapi import HTTPException
-from .storage import Journal, IndexStore
+from .storage import IndexStore, Journal, PostBudget
 
 CONTRACT = "weknora-kdd-v1"
 IDENTITY_FIELDS = ("source_instance", "source_id", "source_record_id", "version_id", "raw_sha256")
@@ -318,6 +318,11 @@ class Service:
         Only a response proving a refusal before creation makes it rejected (and re-uploadable)."""
         indexed = "<!-- Fabric fixed version " + pid + " -->\n" + value["content"]
         metadata = self.metadata(value, pid)
+        budget = self.cfg.get("post_budget")
+        if budget and not PostBudget(budget["path"], budget["scope"], budget["cap"]).take():
+            # the hard budget of physical uploads is spent: nothing is sent, nothing created - re-uploadable later
+            self.journal.update(pid, upload_status="rejected")
+            raise HTTPException(429, "physical upload budget exhausted")
         self.journal.update(pid, upload_status="sending")
         attempt = self.journal.record_attempt(pid, "in_flight", None, "")
         try:

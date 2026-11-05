@@ -490,6 +490,31 @@ class ServiceTests(unittest.TestCase):
         receipt=self.s.publish(Publication(**payload()))
         self.assertEqual(receipt["last_attempt"],{"attempt":2,"outcome":"uploaded"})
 
+    def test_the_physical_upload_budget_is_a_hard_shared_gate(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from .storage import PostBudget
+        path = str(Path(self.tmp.name) / "budget.sqlite")
+        self.s.cfg["post_budget"] = {"path": path, "scope": "test", "cap": 2}
+        bodies = [payload(source_record_id=f"NCT{i}", raw_locator=dict(payload()["raw_locator"], source_record_id=f"NCT{i}"))
+                  for i in range(5)]
+        results = []
+        for body in bodies:
+            try:
+                results.append(self.s.publish(Publication(**body))["binding_status"])
+            except HTTPException as exc:
+                results.append(exc.status_code)
+        self.assertEqual(results.count(429), 3)
+        self.assertEqual(self.uploads, 2)  # exactly the cap reached the upstream
+        self.assertEqual(PostBudget(path, "test", 2).state(), {"scope": "test", "cap": 2, "used": 2, "left": 0})
+        refused = [pid for pid in self.s.journal.all() if self.s.journal.get(pid)["upload_status"] == "rejected"]
+        self.assertEqual(len(refused), 3)
+        self.assertTrue(all(self.s.journal.attempts(pid) == [] for pid in refused))  # no POST, no attempt row
+        # many takers at once never exceed the cap
+        shared = PostBudget(str(Path(self.tmp.name) / "many.sqlite"), "many", 7)
+        with ThreadPoolExecutor(8) as pool:
+            taken = list(pool.map(lambda _: shared.take(), range(40)))
+        self.assertEqual(sum(taken), 7)
+
     def test_request_types_the_upstream_outcome_without_content(self):
         import httpx
         class Client:
