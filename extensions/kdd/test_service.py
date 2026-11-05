@@ -385,6 +385,13 @@ class ServiceTests(unittest.TestCase):
         first=self.s.publish(Publication(**payload(artifact_key="proc.v1:"+"a"*64,content=text[:10],piece=piece(1,text[:10]))))
         second=self.s.publish(Publication(**payload(artifact_key="proc.v1:"+"a"*64,content=text[10:],piece=piece(2,text[10:]))))
         self.assertEqual(len({whole["publication_id"],first["publication_id"],second["publication_id"]}),3)
+        # Codex 456/460: same index under another rule or another range is another publication
+        from .service import publication_id
+        base=payload(artifact_key="proc.v1:"+"a"*64,content=text[:10],piece=piece(1,text[:10]))
+        ids={publication_id(dict(base,piece=dict(base["piece"],**change))) for change in
+             ({},{"rule":"datafabric.index_piece.v2"},{"end":12},{"sha256":"e"*64})}
+        self.assertEqual(len(ids),4)
+        self.assertIn(first["publication_id"],ids)
         self.assertEqual(first["identity"]["piece"]["index"],1)
         self.assertNotIn("piece",whole["identity"])  # 不分片：身份与原来一致
         with self.assertRaises(HTTPException) as error:

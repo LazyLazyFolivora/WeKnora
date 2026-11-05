@@ -34,7 +34,8 @@ def publication_id(value):
     if value.get("artifact_key"):
         parts.append(value["artifact_key"])
     if value.get("piece"):
-        parts.append([value["piece"]["rule"], value["piece"]["index"]])
+        piece = value["piece"]
+        parts.append([piece["rule"], piece["index"], piece["start"], piece["end"], piece["sha256"]])
     return digest(parts)
 
 def compact_metadata(meta):
