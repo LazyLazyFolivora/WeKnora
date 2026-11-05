@@ -3,7 +3,6 @@ import hashlib
 import json
 import math
 import threading
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import quote, urlsplit, urlunsplit, parse_qsl, urlencode
@@ -33,6 +32,18 @@ def publication_id(value):
     if value.get("artifact_key"):
         parts.append(value["artifact_key"])
     return digest(parts)
+
+def compact_metadata(meta):
+    """Fabric retrieval metadata as one native metadata value (at most 1000 characters; identifiers are dropped
+    first when it does not fit). Descriptive only: not identity, not part of conflict checks; the full value
+    stays in the receipt journal and is returned with hits."""
+    if not meta:
+        return None
+    for value in (meta, {k: v for k, v in meta.items() if k != "identifiers"}):
+        text = json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+        if len(text) <= 1000:
+            return text
+    return None
 
 # These are credentials, not identities of embedding/rerank configuration.
 # Do not put them in a public descriptor or make rotation invalidate vectors.
@@ -107,8 +118,7 @@ def aggregate(vectors):
         raise ValueError("zero aggregate")
     return [x / norm for x in total]
 
-SCOPE_BATCH = 1000  # knowledge ids per hybrid-search call
-MAX_SCOPE_BATCHES = 20
+MAX_CANDIDATES = 60  # hits per channel from one whole-knowledge-base hybrid-search call
 
 
 class Service:
@@ -192,12 +202,13 @@ class Service:
         return value
 
     def metadata(self, value, pid):
+        extra = compact_metadata(value.get("metadata"))
         return {**identity(value), **({"is_demo": str(value["is_demo"]).lower()} if "is_demo" in value else {}),
                 "source_scope": value["source_scope"],
                 "raw_locator": json.dumps(value["raw_locator"], ensure_ascii=False, separators=(",", ":")),
                 "publication_id": pid, "content_sha256": value["content_sha256"],
                 "indexed_text_sha256": value["indexed_text_sha256"], "source_status": "active",
-                "contract_version": CONTRACT}
+                "contract_version": CONTRACT, **({"fabric_metadata": extra} if extra else {})}
 
     def recover(self, row):
         value, pid = row["payload"], row["id"]
@@ -502,27 +513,38 @@ class Service:
             raise HTTPException(502, kind + " model request failed") from None
         return result, model_descriptor(model)
 
+    def _searchable(self, kid, req, cache):
+        """The publication behind a hit, or why it is not returned (counted, never shown): not registered by this
+        service, disabled, another scope or simulation status, or outside the current source mapping."""
+        if kid not in cache:
+            row = self.journal.by_knowledge(kid)
+            if row is None:
+                cache[kid] = "not_registered"
+            elif row["source_status"] != "active":
+                cache[kid] = "disabled"
+            else:
+                value = row["payload"]
+                if (value["knowledge_base_id"], value["source_scope"], value.get("is_demo", False)) != (
+                        req.knowledge_base_id, req.source_scope, req.is_demo):
+                    cache[kid] = "other_scope"
+                else:
+                    try:
+                        self.authorize(req.knowledge_base_id, req.source_scope, value, is_demo=req.is_demo)
+                        cache[kid] = row
+                    except HTTPException:
+                        cache[kid] = "not_authorized"
+        return cache[kid]
+
     def search(self, req):
+        """Candidate recall over the whole knowledge base: one keyword and one vector hybrid-search call without a
+        knowledge-id list, reciprocal rank fusion, and only hits bound to an active publication of this service in
+        an authorized scope (the others are counted by reason, never shown). The cost follows the hits, not the
+        number of publications. This is recall only: the caller (Fabric) verifies the candidates first and
+        reranks the verified ones through /rerank, so no model reads text that has not been checked; there is
+        no reranking here to bypass that order."""
         self.authorize(req.knowledge_base_id, req.source_scope, is_demo=req.is_demo)
-        rows = {}
-        for pid in self.journal.all():
-            row = self.journal.get(pid)
-            value = row["payload"]
-            if row["knowledge_id"] and row["source_status"] == "active" and value["knowledge_base_id"] == req.knowledge_base_id and value["source_scope"] == req.source_scope and value.get("is_demo", False) == req.is_demo:
-                try:
-                    self.authorize(req.knowledge_base_id, req.source_scope, value, is_demo=req.is_demo)
-                except HTTPException:
-                    continue
-                rows[row["knowledge_id"]] = row
-        # WeKnora's hybrid search takes an explicit knowledge id list; a scope larger than one list is
-        # searched list by list and fused by rank like the two channels are
-        ids = sorted(rows)
-        batches = [ids[i:i + SCOPE_BATCH] for i in range(0, len(ids), SCOPE_BATCH)]
-        if len(batches) > MAX_SCOPE_BATCHES:
-            raise HTTPException(400, "search scope exceeds %d published documents; narrow server scope" % (SCOPE_BATCH * MAX_SCOPE_BATCHES))
-        execution = {"keyword": "not_run", "vector": "not_run", "embedding": "not_run", "rerank": "not_run", "degraded_reasons": []}
-        if not rows:
-            return {"contract_version": CONTRACT, "is_demo": req.is_demo, "results": [], "execution": {**execution, "degraded": False, "scope_document_count": 0}}
+        execution = {"keyword": "not_run", "vector": "not_run", "embedding": "not_run", "degraded_reasons": [],
+                     "search_scope": "knowledge_base"}
         query_embedding = None
         try:
             embedded, descriptor = self.model_call("embedding", {"input": [req.query_text]})
@@ -536,107 +558,81 @@ class Service:
             if isinstance(exc, HTTPException) and exc.status_code == 409:
                 execution["embedding_error_code"] = "model_configuration_changed"
             execution["degraded_reasons"].append("query_embedding_failed")
-        merged = {}
-        execution["scope_batches"] = len(batches)
+        merged, cache, filtered = {}, {}, {}
         for mode in ("keyword", "vector"):
             if mode == "vector" and query_embedding is None:
                 execution[mode] = "skipped"
                 continue
-            done = 0
-            execution[mode + "_result_count"] = 0
-
-            def one(batch, mode=mode):
-                body = {"query_text": req.query_text, "match_count": min(60, req.top_k * 3),
-                        "knowledge_ids": batch, "disable_vector_match": mode == "keyword",
-                        "disable_keywords_match": mode == "vector", "vector_threshold": 0, "keyword_threshold": 0,
-                        "skip_context_enrichment": True}
-                if mode == "vector":
-                    body["query_embedding"] = query_embedding
-                try:
-                    return self.request("POST", "/api/v1/knowledge-bases/" + req.knowledge_base_id + "/hybrid-search", json=body)["data"] or []
-                except HTTPException:
-                    return None
-
-            with ThreadPoolExecutor(max_workers=min(4, len(batches))) as pool:
-                answers = list(pool.map(one, batches))
-            found = []
-            for data in answers:
-                if data is None:
-                    continue
-                done += 1
-                execution[mode + "_result_count"] += len(data)
-                found += [h for h in data if h.get("knowledge_id") in rows and (h.get("id") or h.get("chunk_id"))]
-            if len(batches) > 1:
-                # one global order per channel: the upstream score of a keyword or vector match does not
-                # depend on which other documents were in the request (checked on the live index), so the
-                # batches' hits are comparable; keep as many as one request would have returned
-                found.sort(key=lambda h: (-float(h.get("score") or 0), h.get("id") or h.get("chunk_id")))
-                found = found[:min(60, req.top_k * 3)]
-            for rank, hit in enumerate(found):
-                cid = hit.get("id") or hit.get("chunk_id")
-                if cid not in merged:
-                    merged[cid] = {**hit, "chunk_id": cid, "score": 0.0, "retrieval_modes": []}
-                merged[cid]["score"] += 1.0 / (60 + rank + 1)
-                if mode not in merged[cid]["retrieval_modes"]:
-                    merged[cid]["retrieval_modes"].append(mode)
-            if done == len(batches):
-                execution[mode] = "succeeded"
-            elif done:
-                execution[mode] = "partial"
-                execution["degraded_reasons"].append(mode + "_retrieval_partial")
-            else:
+            body = {"query_text": req.query_text, "match_count": min(MAX_CANDIDATES, req.top_k * 3),
+                    "disable_vector_match": mode == "keyword", "disable_keywords_match": mode == "vector",
+                    "vector_threshold": 0, "keyword_threshold": 0, "skip_context_enrichment": True}
+            if mode == "vector":
+                body["query_embedding"] = query_embedding
+            try:
+                data = self.request("POST", "/api/v1/knowledge-bases/" + req.knowledge_base_id + "/hybrid-search", json=body)["data"] or []
+            except HTTPException:
                 execution[mode] = "failed"
                 execution["degraded_reasons"].append(mode + "_retrieval_failed")
+                continue
+            execution[mode] = "succeeded"
+            execution[mode + "_result_count"] = len(data)
+            rank = 0
+            for hit in data:
+                cid, kid = hit.get("id") or hit.get("chunk_id"), hit.get("knowledge_id")
+                if not cid or not kid:
+                    continue
+                row = self._searchable(kid, req, cache)
+                if isinstance(row, str):
+                    filtered[row] = filtered.get(row, 0) + 1
+                    continue
+                if cid not in merged:
+                    merged[cid] = {**hit, "chunk_id": cid, "score": 0.0, "retrieval_modes": [], "_row": row}
+                merged[cid]["score"] += 1.0 / (60 + rank + 1)
+                rank += 1
+                if mode not in merged[cid]["retrieval_modes"]:
+                    merged[cid]["retrieval_modes"].append(mode)
         if execution["keyword"] == "failed" and execution["vector"] in ("failed", "skipped"):
             raise HTTPException(502, "all retrieval channels failed")
-        hits = sorted(merged.values(), key=lambda x: (-x["score"],x["chunk_id"]))
-        if req.rerank and hits:
-            try:
-                reranked, descriptor = self.model_call("rerank", {"query": req.query_text, "documents": [h["content"] for h in hits], "top_n": len(hits)})
-                scores = reranked.get("results") or reranked.get("data")
-                if len(scores) != len(hits) or {s["index"] for s in scores} != set(range(len(hits))):
-                    raise ValueError("incomplete rerank scores")
-                for item in scores:
-                    score = float(item["relevance_score"])
-                    if not math.isfinite(score):
-                        raise ValueError("bad rerank score")
-                    hits[item["index"]]["rerank_score"] = score
-                hits.sort(key=lambda h: (-h["rerank_score"],h["chunk_id"]))
-                execution.update(rerank="succeeded", rerank_model=descriptor,
-                                 rerank_usage=reranked.get("usage"), rerank_usage_status="reported" if reranked.get("usage") else "unknown")
-            except (HTTPException, KeyError, TypeError, ValueError) as exc:
-                execution["rerank"] = "failed"
-                if isinstance(exc, HTTPException) and exc.status_code == 409:
-                    execution["rerank_error_code"] = "model_configuration_changed"
-                execution["degraded_reasons"].append("rerank_failed_using_reciprocal_rank_fusion")
+        hits = sorted(merged.values(), key=lambda x: (-x["score"], x["chunk_id"]))
         results = []
-        statuses = {}
-        filtered_publications = {}
-        for hit in hits:
-            row = rows[hit["knowledge_id"]]
+        for hit in hits[:req.top_k]:
+            row = hit.pop("_row")
             value = row["payload"]
-            if row["id"] not in statuses:
-                statuses[row["id"]] = self.status(row["id"])
-            status = statuses[row["id"]]
-            if status["index_status"] != "ready":
-                reasons = status["degraded_reasons"] or ["index_not_ready"]
-                explicitly_disabled = status.get("source_status") == "disabled" or status["index_status"] == "disabled"
-                filtered_publications[row["id"]] = {"publication_id": row["id"], "knowledge_id": row["knowledge_id"],
-                    "index_status": status["index_status"], "reason_type": "disabled" if explicitly_disabled else "unverified",
-                    "reasons": reasons}
-                if not explicitly_disabled:
-                    execution["degraded_reasons"].extend(["result_index_unverified", *reasons])
-                continue
             results.append({**hit, "is_demo": value.get("is_demo", False), "publication_id": row["id"], "identity": identity(value),
                             "raw_locator": value["raw_locator"], "source_scope": value["source_scope"],
-                            "content_sha256": value["content_sha256"], "index_version": status["index_version"]})
-            if len(results) >= req.top_k:
-                break
+                            "content_sha256": value["content_sha256"], "metadata": value.get("metadata")})
+        for hit in hits[req.top_k:]:
+            hit.pop("_row", None)
         execution["degraded_reasons"] = sorted(set(execution["degraded_reasons"]))
-        execution.update(degraded=bool(execution["degraded_reasons"]), scope_document_count=len(rows),
-                         filtered_publications=list(filtered_publications.values()),
-                         coverage_status="verification_incomplete" if any(x["reason_type"] == "unverified" for x in filtered_publications.values()) else "verified_returned_candidates",
-                         index_version=digest(sorted((pid,s["index_version"]) for pid,s in statuses.items())),
-                         fusion="reciprocal_rank_fusion_k60", upstream_source_commit=self.cfg.get("upstream_source_commit"),
+        execution.update(degraded=bool(execution["degraded_reasons"]), filtered_counts=filtered,
+                         candidate_count=len(hits), fusion="reciprocal_rank_fusion_k60",
+                         upstream_source_commit=self.cfg.get("upstream_source_commit"),
                          upstream_image=self.cfg.get("upstream_image"))
         return {"contract_version": CONTRACT, "is_demo": req.is_demo, "results": results, "execution": execution}
+
+    @staticmethod
+    def _rerank_scores(result, count):
+        scores = result.get("results") or result.get("data")
+        if len(scores) != count or {s["index"] for s in scores} != set(range(count)):
+            raise ValueError("incomplete rerank scores")
+        out = {}
+        for item in scores:
+            score = float(item["relevance_score"])
+            if not math.isfinite(score):
+                raise ValueError("bad rerank score")
+            out[item["index"]] = score
+        return out
+
+    def rerank(self, req):
+        """Rerank texts the caller already verified, with the pinned rerank model; reports model and usage."""
+        self.authorize(req.knowledge_base_id, req.source_scope, is_demo=req.is_demo)
+        result, descriptor = self.model_call("rerank", {"query": req.query_text, "documents": req.documents,
+                                                        "top_n": len(req.documents)})
+        try:
+            scores = self._rerank_scores(result, len(req.documents))
+        except (KeyError, TypeError, ValueError):
+            raise HTTPException(502, "rerank model returned incomplete scores") from None
+        return {"contract_version": CONTRACT, "is_demo": req.is_demo,
+                "scores": [{"index": i, "relevance_score": scores[i]} for i in range(len(req.documents))],
+                "rerank_model": descriptor, "usage": result.get("usage"),
+                "usage_status": "reported" if result.get("usage") else "unknown"}

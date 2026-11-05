@@ -4,7 +4,7 @@ import os
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from .models import Publication, Features, Search, Disable
+from .models import Publication, Features, Search, Disable, Rerank
 from .service import Service, CONTRACT
 
 def create_app(config_path):
@@ -35,6 +35,9 @@ def create_app(config_path):
     @app.post("/api/v1/kdd/search")
     def search(req: Search):
         return service.search(req)
+    @app.post("/api/v1/kdd/rerank")
+    def rerank(req: Rerank):
+        return service.rerank(req)
     @app.get("/health")
     def health():
         return {"status": "ok", "contract_version": CONTRACT}

@@ -20,6 +20,8 @@ class Journal:
                 id TEXT PRIMARY KEY, payload TEXT NOT NULL, knowledge_id TEXT,
                 upload_status TEXT NOT NULL, source_status TEXT NOT NULL DEFAULT 'active',
                 disable_reason TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
+            # search maps a hit's knowledge id back to its publication
+            db.execute("CREATE INDEX IF NOT EXISTS publications_knowledge ON publications(knowledge_id)")
         Path(path).chmod(0o600)
 
     def connect(self):
@@ -48,6 +50,11 @@ class Journal:
         with self.connect() as db:
             db.execute("UPDATE publications SET " + ",".join(k + "=?" for k in values) + " WHERE id=?",
                        (*values.values(), pid))
+
+    def by_knowledge(self, kid):
+        with self.connect() as db:
+            row = db.execute("SELECT id FROM publications WHERE knowledge_id=?", (kid,)).fetchone()
+        return self.get(row[0]) if row else None
 
     def all(self):
         with self.connect() as db:

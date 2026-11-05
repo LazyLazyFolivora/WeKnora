@@ -4,7 +4,7 @@ import unittest
 
 import httpx
 from fastapi import HTTPException
-from .models import Publication, Search
+from .models import Publication, Search, Rerank
 from .service import model_descriptor
 from .test_service import ServiceTests, MODEL, KB, payload
 
@@ -98,9 +98,13 @@ class ModelIdentityTests(unittest.TestCase):
         self.addCleanup(self.s.client.close)
         execution = self.s.search(Search(knowledge_base_id=KB, source_scope='pipeline', query_text='local fixture'))['execution']
         self.assertEqual(execution['embedding_error_code'], 'model_configuration_changed')
-        self.assertEqual(execution['rerank_error_code'], 'model_configuration_changed')
         self.assertTrue(execution['degraded'])
         self.assertNotIn('changed.invalid', json.dumps(execution))
+        # search is recall only; reranking of verified texts refuses a drifted model configuration the same way
+        with self.assertRaises(HTTPException) as error:
+            self.s.rerank(Rerank(knowledge_base_id=KB, source_scope='pipeline', query_text='q', documents=['a']))
+        self.assertEqual(error.exception.status_code, 409)
+        self.assertNotIn('changed.invalid', str(error.exception.detail))
 
     def test_artifact_key_is_optional_identity_and_keeps_v1_ids(self):
         from .service import publication_id

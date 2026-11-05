@@ -5,12 +5,11 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-import httpx
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from .app import create_app
-from .models import Publication, Features, Search, Disable
-from .service import Service, identity, publication_id, digest, model_descriptor, aggregate
+from .models import Publication, Features, Search, Disable, Rerank
+from .service import Service, identity, aggregate
 
 KB = "bounded-kb"
 MODEL = {"id": "builtin-embedding-default", "name": "bge-m3", "source": "remote", "updated_at": "2026-10-30T00:00:00Z",
@@ -198,7 +197,7 @@ class ServiceTests(unittest.TestCase):
             self.s.publish(Publication(**payload(source_scope="public_health")))
 
     def test_explicit_fixed_members_and_vector_provenance(self):
-        receipt=self.s.publish(Publication(**payload()))
+        self.s.publish(Publication(**payload()))
         result=self.s.features(self.member_request())
         self.assertEqual(result["population"],"explicit_members_only")
         self.assertEqual(result["features"][0]["embedding"],[1.0,0.0])
@@ -261,91 +260,98 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(response.status_code,400)
         self.assertNotIn("private document",response.text)
 
-    def test_search_index_read_failure_is_degraded_not_complete_no_hits(self):
-        receipt=self.s.publish(Publication(**payload()))
+    def _search_upstream(self, hits, calls, fail=()):
         original=self.s.request
         def upstream(method,path,**kwargs):
             if path.endswith("/hybrid-search"):
-                return {"data":[{"id":"chunk-one","knowledge_id":receipt["knowledge_id"],"content":"matched text"}]}
-            return original(method,path,**kwargs)
-        self.s.request=upstream
-        def model_call(kind,body):
-            if kind=="embedding":return {"data":[{"embedding":[1.0,0.0]}]}, {"dimension":2}
-            return {"results":[{"index":0,"relevance_score":0.9}]}, {"model_id":"reranker"}
-        self.s.model_call=model_call
-        self.s.status=lambda pid:{"index_status":"unavailable","degraded_reasons":["vector_store_unavailable"],"index_version":"unknown"}
-        result=self.s.search(Search(knowledge_base_id=KB,source_scope="pipeline",query_text="trial"))
-        self.assertEqual(result["results"],[])
-        self.assertTrue(result["execution"]["degraded"])
-        self.assertIn("vector_store_unavailable",result["execution"]["degraded_reasons"])
-        self.assertEqual(result["execution"]["coverage_status"],"verification_incomplete")
-        self.assertEqual(result["execution"]["filtered_publications"][0]["reason_type"],"unverified")
-        self.s.status=lambda pid:{"index_status":"disabled","source_status":"disabled","degraded_reasons":["source_disabled"],"index_version":"disabled"}
-        result=self.s.search(Search(knowledge_base_id=KB,source_scope="pipeline",query_text="trial"))
-        self.assertEqual(result["execution"]["filtered_publications"][0]["reason_type"],"disabled")
-        self.assertFalse(result["execution"]["degraded"])
-
-    def test_a_scope_over_one_id_list_is_searched_in_batches_and_a_failed_batch_is_partial(self):
-        from . import service as module
-        receipts=[self.s.publish(Publication(**payload(source_record_id="NCT%d"%i,raw_sha256=("%x"%i).rjust(64,"0"),
-            content="Actual fixed text %d."%i,raw_locator=dict(source_instance="fabric",source_id="clinicaltrials",
-            source_record_id="NCT%d"%i,version_id="v1")))) for i in range(5)]
-        kids=sorted(r["knowledge_id"] for r in receipts)
-        calls=[]
-        original=self.s.request
-        def upstream(method,path,**kwargs):
-            if path.endswith("/hybrid-search"):
-                batch=kwargs["json"]["knowledge_ids"]
-                calls.append((kwargs["json"]["disable_vector_match"],list(batch)))
-                if self.fail_batch is not None and batch==self.fail_batch:
+                mode="keyword" if kwargs["json"]["disable_vector_match"] else "vector"
+                calls.append((mode,kwargs["json"]))
+                if mode in fail:
                     raise HTTPException(502,"down")
-                return {"data":[{"id":"chunk-"+batch[-1],"knowledge_id":batch[-1],"content":"matched text"}]}
+                return {"data":copy.deepcopy(hits) or None}
             return original(method,path,**kwargs)
         self.s.request=upstream
-        self.s.model_call=lambda kind,body:(({"data":[{"embedding":[1.0,0.0]}]},{"dimension":2}) if kind=="embedding"
-                                            else ({"results":[{"index":i,"relevance_score":1.0-i/10} for i in range(len(body["documents"]))]},{"model_id":"r"}))
-        self.s.status=lambda pid:{"index_status":"ready","degraded_reasons":[],"index_version":"v"}
-        self.fail_batch=None
-        with patch.object(module,"SCOPE_BATCH",2):
-            result=self.s.search(Search(knowledge_base_id=KB,source_scope="pipeline",query_text="trial"))
-            self.assertEqual(result["execution"]["scope_batches"],3)
-            self.assertEqual(sorted(b for _,b in calls if _),[kids[0:2],kids[2:4],kids[4:5]])
-            self.assertEqual({r["knowledge_id"] for r in result["results"]},{kids[1],kids[3],kids[4]})
-            self.assertFalse(result["execution"]["degraded"])
-            calls.clear(); self.fail_batch=kids[2:4]
-            result=self.s.search(Search(knowledge_base_id=KB,source_scope="pipeline",query_text="trial"))
-            self.assertEqual(result["execution"]["keyword"],"partial")
-            self.assertIn("keyword_retrieval_partial",result["execution"]["degraded_reasons"])
-            self.assertEqual({r["knowledge_id"] for r in result["results"]},{kids[1],kids[4]})
-            with patch.object(module,"MAX_SCOPE_BATCHES",2):
-                with self.assertRaises(HTTPException) as caught:
-                    self.s.search(Search(knowledge_base_id=KB,source_scope="pipeline",query_text="trial"))
-                self.assertEqual(caught.exception.status_code,400)
 
-    def test_batched_hits_keep_the_global_order_a_single_request_would_give(self):
-        """Codex r24: ranks restarted at 1 in every batch, so a strong hit in a crowded batch was cut."""
-        from . import service as module
-        receipts=[self.s.publish(Publication(**payload(source_record_id="NCT%d"%i,raw_sha256=("%x"%(i+100)).rjust(64,"0"),
-            content="Actual fixed text %d."%i,raw_locator=dict(source_instance="fabric",source_id="clinicaltrials",
-            source_record_id="NCT%d"%i,version_id="v1")))) for i in range(6)]
-        kids=sorted(r["knowledge_id"] for r in receipts)
-        score={k:float(i) for i,k in enumerate(kids)}  # the last id scores highest, wherever it lands
-        original=self.s.request
-        def upstream(method,path,**kwargs):
-            if path.endswith("/hybrid-search"):
-                ids=kwargs["json"]["knowledge_ids"]; n=kwargs["json"]["match_count"]
-                ranked=sorted(ids,key=lambda k:-score[k])[:n]
-                return {"data":[{"id":"chunk-"+k,"knowledge_id":k,"content":"t","score":score[k]} for k in ranked] or None}
-            return original(method,path,**kwargs)
-        self.s.request=upstream
-        self.s.model_call=lambda kind,body:({"data":[{"embedding":[1.0,0.0]}]},{"dimension":2}) if kind=="embedding" else (_ for _ in ()).throw(KeyError())
-        self.s.status=lambda pid:{"index_status":"ready","degraded_reasons":[],"index_version":"v"}
-        def top(batch):
-            with patch.object(module,"SCOPE_BATCH",batch):
-                return [r["knowledge_id"] for r in self.s.search(Search(knowledge_base_id=KB,source_scope="pipeline",query_text="t",top_k=1))["results"]]
-        self.assertEqual(top(1000),[kids[-1]])
-        for batch in (1,2,4):
-            self.assertEqual(top(batch),[kids[-1]],batch)
+    def _models(self, reranks):
+        def model_call(kind,body):
+            if kind=="embedding":
+                return {"data":[{"embedding":[1.0,0.0]}]},{"dimension":2}
+            reranks.append(body)
+            return {"results":[{"index":i,"relevance_score":1.0-i/100} for i in range(len(body["documents"]))]},{"model_id":"reranker"}
+        self.s.model_call=model_call
+
+    def test_whole_kb_recall_returns_only_active_authorized_hits_and_counts_the_rest(self):
+        meta={"doc_type":"registry_record","identifiers":["nct:NCT1"]}
+        active=self.s.publish(Publication(**payload(metadata=meta)))
+        gone=self.s.publish(Publication(**payload(source_record_id="NCT2",raw_sha256="b"*64,content="Second fixed text.",
+            raw_locator=dict(source_instance="fabric",source_id="clinicaltrials",source_record_id="NCT2",version_id="v1"))))
+        self.s.disable(gone["publication_id"],Disable(reason="test",state="revoked"))
+        hits=[{"id":"c1","knowledge_id":active["knowledge_id"],"content":"Actual fixed text.","score":2.0},
+              {"id":"c2","knowledge_id":gone["knowledge_id"],"content":"Second fixed text.","score":1.5},
+              {"id":"c3","knowledge_id":"someone-elses-knowledge","content":"private","score":1.0}]
+        calls,reranks=[],[]
+        self._search_upstream(hits,calls)
+        self._models(reranks)
+        result=self.s.search(Search(knowledge_base_id=KB,source_scope="pipeline",query_text="trial",top_k=60))
+        self.assertEqual([r["chunk_id"] for r in result["results"]],["c1"])
+        self.assertEqual(result["results"][0]["metadata"],meta)
+        self.assertEqual(result["results"][0]["retrieval_modes"],["keyword","vector"])
+        self.assertNotIn("_row",result["results"][0])
+        self.assertEqual(result["execution"]["filtered_counts"],{"disabled":2,"not_registered":2})
+        self.assertNotIn("private",json.dumps(result))
+        # one call per channel over the whole knowledge base: no knowledge-id list, no per-hit status reads
+        self.assertEqual(len(calls),2)
+        self.assertTrue(all("knowledge_ids" not in body and body["match_count"]==60 for _,body in calls))
+        self.assertEqual(reranks,[])  # candidate recall: no model reads unverified text
+
+    def test_search_is_recall_only_and_a_failed_channel_is_degraded(self):
+        from pydantic import ValidationError
+        with self.assertRaises(ValidationError):  # no blind-rerank entry left to bypass verify-then-rerank
+            Search(knowledge_base_id=KB,source_scope="pipeline",query_text="trial",rerank=True)
+        receipt=self.s.publish(Publication(**payload()))
+        calls,reranks=[],[]
+        self._search_upstream([{"id":"c1","knowledge_id":receipt["knowledge_id"],"content":"Actual fixed text."}],calls,fail=("keyword",))
+        self._models(reranks)
+        result=self.s.search(Search(knowledge_base_id=KB,source_scope="pipeline",query_text="trial"))
+        self.assertEqual(result["execution"]["keyword"],"failed")
+        self.assertIn("keyword_retrieval_failed",result["execution"]["degraded_reasons"])
+        self.assertEqual(len(result["results"]),1)
+        self.assertEqual(reranks,[])
+        self._search_upstream([],calls,fail=("keyword","vector"))
+        with self.assertRaises(HTTPException) as error:
+            self.s.search(Search(knowledge_base_id=KB,source_scope="pipeline",query_text="trial"))
+        self.assertEqual(error.exception.status_code,502)
+
+    def test_rerank_scores_caller_verified_texts_with_the_pinned_model(self):
+        reranks=[]
+        self._models(reranks)
+        result=self.s.rerank(Rerank(knowledge_base_id=KB,source_scope="pipeline",query_text="trial",documents=["a","b"]))
+        self.assertEqual([s["index"] for s in result["scores"]],[0,1])
+        self.assertEqual(result["rerank_model"],{"model_id":"reranker"})
+        self.assertEqual(reranks[0]["documents"],["a","b"])
+        with self.assertRaises(HTTPException):
+            self.s.rerank(Rerank(knowledge_base_id=KB,source_scope="other",query_text="trial",documents=["a"]))
+        self.s.model_call=lambda kind,body:({"results":[{"index":0,"relevance_score":1.0}]},{"model_id":"r"})
+        with self.assertRaises(HTTPException) as error:
+            self.s.rerank(Rerank(knowledge_base_id=KB,source_scope="pipeline",query_text="trial",documents=["a","b"]))
+        self.assertEqual(error.exception.status_code,502)
+
+    def test_metadata_is_bounded_descriptive_and_not_identity(self):
+        from pydantic import ValidationError
+        with self.assertRaises(ValidationError):
+            Publication(**payload(metadata={"secret_key":"x"}))
+        with self.assertRaises(ValidationError):
+            Publication(**payload(metadata={"identifiers":["x"]*51}))
+        many=["doi:10.1000/synthetic.identifier.%04d"%i for i in range(50)]
+        receipt=self.s.publish(Publication(**payload(metadata={"doc_type":"article","identifiers":many})))
+        doc=self.store.docs[receipt["knowledge_id"]]
+        compact=json.loads(doc["metadata"]["fabric_metadata"])
+        self.assertEqual(compact,{"doc_type":"article"})  # identifiers dropped to fit one native value
+        self.assertEqual(doc["custom_metadata"]["fabric_metadata"],doc["metadata"]["fabric_metadata"])
+        # a replay with other metadata is the same publication: metadata takes no part in identity or conflicts
+        again=self.s.publish(Publication(**payload(metadata={"doc_type":"other"})))
+        self.assertEqual(again["publication_id"],receipt["publication_id"])
+        self.assertEqual(self.uploads,1)
 
     def test_aggregation_normalizes_chunks_and_rejects_bad_vectors(self):
         self.assertEqual(aggregate([[3,0],[6,0]]),[1.0,0.0])
