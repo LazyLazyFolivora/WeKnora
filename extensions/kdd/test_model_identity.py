@@ -96,7 +96,7 @@ class ModelIdentityTests(unittest.TestCase):
         self.s.request = upstream
         self.s.client = httpx.Client(transport=httpx.MockTransport(lambda request: self.fail('provider must not be called')))
         self.addCleanup(self.s.client.close)
-        execution = self.s.search(Search(knowledge_base_id=KB, source_scope='pipeline', query_text='local fixture'))['execution']
+        execution = self.s.search(Search(knowledge_base_id=KB, source_scopes=["pipeline"], query_text='local fixture'))['execution']
         self.assertEqual(execution['embedding_error_code'], 'model_configuration_changed')
         self.assertTrue(execution['degraded'])
         self.assertNotIn('changed.invalid', json.dumps(execution))

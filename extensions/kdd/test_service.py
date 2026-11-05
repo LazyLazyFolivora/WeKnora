@@ -96,7 +96,7 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(error.exception.status_code, 403)
         self.assertEqual(self.uploads, 0)
         with self.assertRaises(HTTPException):
-            self.s.search(Search(knowledge_base_id=KB, source_scope="pipeline", query_text="trial", is_demo=True))
+            self.s.search(Search(knowledge_base_id=KB, source_scopes=["pipeline"], query_text="trial", is_demo=True))
 
     def test_explicit_demo_scope_roundtrip_and_real_exclusion(self):
         self.cfg["demo_kb_ids"] = [KB]
@@ -113,7 +113,7 @@ class ServiceTests(unittest.TestCase):
         with self.assertRaises(HTTPException):
             self.s.features(self.member_request())
         with self.assertRaises(HTTPException):
-            self.s.search(Search(knowledge_base_id=KB, source_scope="pipeline", query_text="trial"))
+            self.s.search(Search(knowledge_base_id=KB, source_scopes=["pipeline"], query_text="trial"))
 
     def test_reclassifying_kb_cannot_relabel_existing_publication(self):
         receipt = self.s.publish(Publication(**payload()))
@@ -292,7 +292,7 @@ class ServiceTests(unittest.TestCase):
         calls,reranks=[],[]
         self._search_upstream(hits,calls)
         self._models(reranks)
-        result=self.s.search(Search(knowledge_base_id=KB,source_scope="pipeline",query_text="trial",top_k=60))
+        result=self.s.search(Search(knowledge_base_id=KB,source_scopes=["pipeline"],query_text="trial",top_k=60))
         self.assertEqual([r["chunk_id"] for r in result["results"]],["c1"])
         self.assertEqual(result["results"][0]["metadata"],meta)
         self.assertEqual(result["results"][0]["retrieval_modes"],["keyword","vector"])
@@ -304,22 +304,43 @@ class ServiceTests(unittest.TestCase):
         self.assertTrue(all("knowledge_ids" not in body and body["match_count"]==60 for _,body in calls))
         self.assertEqual(reranks,[])  # candidate recall: no model reads unverified text
 
+    def test_one_recall_covers_every_requested_scope_of_a_knowledge_base(self):
+        """Scopes sharing a knowledge base are searched in one recall, so they do not crowd each other out."""
+        self.cfg["source_mappings"][0]["scopes"]=["pipeline","research"]
+        self.path.write_text(json.dumps(self.cfg))
+        a=self.s.publish(Publication(**payload()))
+        b=self.s.publish(Publication(**payload(source_scope="research",source_record_id="NCT9",raw_sha256="c"*64,
+            content="Research fixed text.",raw_locator=dict(source_instance="fabric",source_id="clinicaltrials",
+            source_record_id="NCT9",version_id="v1"))))
+        hits=[{"id":"c1","knowledge_id":a["knowledge_id"],"content":"x"},{"id":"c2","knowledge_id":b["knowledge_id"],"content":"y"}]
+        calls,reranks=[],[]
+        self._search_upstream(hits,calls)
+        self._models(reranks)
+        both=self.s.search(Search(knowledge_base_id=KB,source_scopes=["pipeline","research"],query_text="t"))
+        self.assertEqual(sorted(r["chunk_id"] for r in both["results"]),["c1","c2"])
+        self.assertEqual(len(calls),2)  # one keyword and one vector call for both scopes
+        one=self.s.search(Search(knowledge_base_id=KB,source_scopes=["research"],query_text="t"))
+        self.assertEqual([r["chunk_id"] for r in one["results"]],["c2"])
+        self.assertEqual(one["execution"]["filtered_counts"],{"other_scope":2})
+        with self.assertRaises(HTTPException):
+            self.s.search(Search(knowledge_base_id=KB,source_scopes=["pipeline","business"],query_text="t"))
+
     def test_search_is_recall_only_and_a_failed_channel_is_degraded(self):
         from pydantic import ValidationError
         with self.assertRaises(ValidationError):  # no blind-rerank entry left to bypass verify-then-rerank
-            Search(knowledge_base_id=KB,source_scope="pipeline",query_text="trial",rerank=True)
+            Search(knowledge_base_id=KB,source_scopes=["pipeline"],query_text="trial",rerank=True)
         receipt=self.s.publish(Publication(**payload()))
         calls,reranks=[],[]
         self._search_upstream([{"id":"c1","knowledge_id":receipt["knowledge_id"],"content":"Actual fixed text."}],calls,fail=("keyword",))
         self._models(reranks)
-        result=self.s.search(Search(knowledge_base_id=KB,source_scope="pipeline",query_text="trial"))
+        result=self.s.search(Search(knowledge_base_id=KB,source_scopes=["pipeline"],query_text="trial"))
         self.assertEqual(result["execution"]["keyword"],"failed")
         self.assertIn("keyword_retrieval_failed",result["execution"]["degraded_reasons"])
         self.assertEqual(len(result["results"]),1)
         self.assertEqual(reranks,[])
         self._search_upstream([],calls,fail=("keyword","vector"))
         with self.assertRaises(HTTPException) as error:
-            self.s.search(Search(knowledge_base_id=KB,source_scope="pipeline",query_text="trial"))
+            self.s.search(Search(knowledge_base_id=KB,source_scopes=["pipeline"],query_text="trial"))
         self.assertEqual(error.exception.status_code,502)
 
     def test_rerank_scores_caller_verified_texts_with_the_pinned_model(self):

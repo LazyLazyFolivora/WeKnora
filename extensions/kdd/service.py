@@ -524,12 +524,11 @@ class Service:
                 cache[kid] = "disabled"
             else:
                 value = row["payload"]
-                if (value["knowledge_base_id"], value["source_scope"], value.get("is_demo", False)) != (
-                        req.knowledge_base_id, req.source_scope, req.is_demo):
+                if (value["knowledge_base_id"], value.get("is_demo", False)) != (req.knowledge_base_id, req.is_demo)                         or value["source_scope"] not in req.source_scopes:
                     cache[kid] = "other_scope"
                 else:
                     try:
-                        self.authorize(req.knowledge_base_id, req.source_scope, value, is_demo=req.is_demo)
+                        self.authorize(req.knowledge_base_id, value["source_scope"], value, is_demo=req.is_demo)
                         cache[kid] = row
                     except HTTPException:
                         cache[kid] = "not_authorized"
@@ -541,8 +540,9 @@ class Service:
         an authorized scope (the others are counted by reason, never shown). The cost follows the hits, not the
         number of publications. This is recall only: the caller (Fabric) verifies the candidates first and
         reranks the verified ones through /rerank, so no model reads text that has not been checked; there is
-        no reranking here to bypass that order."""
-        self.authorize(req.knowledge_base_id, req.source_scope, is_demo=req.is_demo)
+        no reranking here to bypass that order. One call covers every requested scope of this knowledge base."""
+        for scope in req.source_scopes:
+            self.authorize(req.knowledge_base_id, scope, is_demo=req.is_demo)
         execution = {"keyword": "not_run", "vector": "not_run", "embedding": "not_run", "degraded_reasons": [],
                      "search_scope": "knowledge_base"}
         query_embedding = None

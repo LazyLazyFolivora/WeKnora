@@ -65,8 +65,16 @@ class Features(StrictModel):
 class Search(StrictModel):
     is_demo: bool = Field(default=False, strict=True)
     knowledge_base_id: str = Field(min_length=1, max_length=64)
-    source_scope: str = Field(min_length=1, max_length=128)
+    # one recall over the knowledge base for every requested scope: scopes sharing a KB do not crowd each other out
+    source_scopes: list[str] = Field(min_length=1, max_length=8)
     query_text: str = Field(min_length=1, max_length=8000)
+
+    @field_validator("source_scopes")
+    @classmethod
+    def bounded_scopes(cls, value):
+        if any(not 1 <= len(x) <= 128 for x in value) or len(set(value)) != len(value):
+            raise ValueError("invalid source scopes")
+        return value
     # candidate recall only; the caller verifies candidates and reranks the verified ones through /rerank
     top_k: int = Field(default=20, ge=1, le=60)
 
