@@ -1,9 +1,30 @@
 """Bounded, explicit version inputs; the server's source map grants access."""
 from typing import Literal
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
+class Piece(StrictModel):
+    """One index piece of a long derived artifact (Fabric processing.index_pieces): the artifact keeps its
+    artifact_key; the piece names its rule version, position, absolute range in the full text, the length of a
+    context prefix (a repeated table header, not source text), its size and the sha256 of the uploaded content."""
+    rule: str = Field(min_length=1, max_length=100, pattern=r"^[A-Za-z0-9._:-]+$")
+    index: int = Field(ge=1)
+    count: int = Field(ge=1)
+    start: int = Field(ge=0)
+    end: int = Field(ge=1)
+    context_chars: int = Field(ge=0)
+    chars: int = Field(ge=1)
+    bytes: int = Field(ge=1)
+    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+    @model_validator(mode="after")
+    def consistent(self):
+        if not (self.index <= self.count and self.start < self.end and self.chars == self.end - self.start
+                + self.context_chars):
+            raise ValueError("inconsistent piece")
+        return self
 
 class Identity(StrictModel):
     source_instance: str = Field(min_length=1, max_length=128)
@@ -14,6 +35,8 @@ class Identity(StrictModel):
     # 同一固定版本的派生正文产物（Fabric 附件：处理器版本:正文摘要）。带上时它是身份的一部分，
     # 处理器升级后的新正文是另一条发布；不带时身份与 weknora-kdd-v1 完全相同。
     artifact_key: str | None = Field(default=None, min_length=1, max_length=200, pattern=r"^[A-Za-z0-9._:-]+$")
+    # a piece of that artifact (long artifacts only); part of the identity when present, absent otherwise
+    piece: Piece | None = None
 
 class Locator(StrictModel):
     source_instance: str = Field(min_length=1, max_length=128)

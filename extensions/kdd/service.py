@@ -24,6 +24,8 @@ def identity(value):
     out = {k: value[k] for k in IDENTITY_FIELDS}
     if value.get("artifact_key"):
         out["artifact_key"] = value["artifact_key"]
+    if value.get("piece"):
+        out["piece"] = value["piece"]
     return out
 
 def publication_id(value):
@@ -31,6 +33,8 @@ def publication_id(value):
     parts = [value["knowledge_base_id"], *[value[k] for k in IDENTITY_FIELDS[:-1]]]
     if value.get("artifact_key"):
         parts.append(value["artifact_key"])
+    if value.get("piece"):
+        parts.append([value["piece"]["rule"], value["piece"]["index"]])
     return digest(parts)
 
 def compact_metadata(meta):
@@ -195,6 +199,8 @@ class Service:
         checksum = digest(value["content"].encode())
         if value.get("content_sha256") and checksum != value["content_sha256"]:
             raise HTTPException(400, "content_sha256 mismatch")
+        if value.get("piece") and (value["piece"]["sha256"] != checksum or value["piece"]["chars"] != len(value["content"])):
+            raise HTTPException(400, "piece does not match the uploaded content")
         value["content_sha256"] = checksum
         locator_text = json.dumps(value["raw_locator"], ensure_ascii=False, separators=(",", ":"))
         if len(locator_text.encode()) > 1000:
@@ -334,6 +340,11 @@ class Service:
                 return None, [], ["source_binding_mismatch"]
         except HTTPException:
             return None, [], ["upstream_access_unavailable"]
+        except ValueError as exc:
+            if "chunk limit" in str(exc):
+                # more chunks than this service verifies: an explainable budget limit, not a passing outage
+                return None, [], ["chunk_budget_exceeded"]
+            return None, [], ["vector_store_unavailable"]
         except Exception:
             return None, [], ["vector_store_unavailable"]
         if doc is None:
@@ -372,7 +383,9 @@ class Service:
         confirmed_disabled = disabled and doc is not None and all(not c["is_enabled"] and not c["vector_enabled"] for c in chunks)
         vector_status = "ready" if ready else "pending"
         index_status = "ready" if ready else "pending"
-        if {"vector_store_unavailable", "upstream_access_unavailable"}.intersection(reasons):
+        if "chunk_budget_exceeded" in reasons:
+            vector_status = index_status = "budget_exceeded"
+        elif {"vector_store_unavailable", "upstream_access_unavailable"}.intersection(reasons):
             vector_status = index_status = "unavailable"
         elif confirmed_disabled:
             vector_status = index_status = "disabled"

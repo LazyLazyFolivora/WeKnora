@@ -374,6 +374,32 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(again["publication_id"],receipt["publication_id"])
         self.assertEqual(self.uploads,1)
 
+    def test_pieces_of_a_long_artifact_are_separate_publications_with_their_identity(self):
+        import hashlib
+        text="Actual fixed text."
+        def piece(index, content):
+            return {"rule":"datafabric.index_piece.v1","index":index,"count":2,"start":0 if index==1 else 10,
+                    "end":10 if index==1 else 18,"context_chars":len(content)-(10 if index==1 else 8),
+                    "chars":len(content),"bytes":len(content.encode()),"sha256":hashlib.sha256(content.encode()).hexdigest()}
+        whole=self.s.publish(Publication(**payload(artifact_key="proc.v1:"+"a"*64)))
+        first=self.s.publish(Publication(**payload(artifact_key="proc.v1:"+"a"*64,content=text[:10],piece=piece(1,text[:10]))))
+        second=self.s.publish(Publication(**payload(artifact_key="proc.v1:"+"a"*64,content=text[10:],piece=piece(2,text[10:]))))
+        self.assertEqual(len({whole["publication_id"],first["publication_id"],second["publication_id"]}),3)
+        self.assertEqual(first["identity"]["piece"]["index"],1)
+        self.assertNotIn("piece",whole["identity"])  # 不分片：身份与原来一致
+        with self.assertRaises(HTTPException) as error:
+            self.s.publish(Publication(**payload(artifact_key="proc.v1:"+"a"*64,content="other",piece=piece(2,text[10:]))))
+        self.assertEqual(error.exception.status_code,400)
+
+    def test_more_chunks_than_verified_is_a_budget_limit_not_an_outage(self):
+        receipt=self.s.publish(Publication(**payload()))
+        def too_many(kb,kid):
+            raise ValueError("document exceeds bounded chunk limit")
+        self.store.document=too_many
+        status=self.s.status(receipt["publication_id"])
+        self.assertEqual(status["index_status"],"budget_exceeded")
+        self.assertIn("chunk_budget_exceeded",status["degraded_reasons"])
+
     def test_aggregation_normalizes_chunks_and_rejects_bad_vectors(self):
         self.assertEqual(aggregate([[3,0],[6,0]]),[1.0,0.0])
         with self.assertRaises(ValueError):aggregate([[1,0],[1]])
