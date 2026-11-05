@@ -329,27 +329,33 @@ class Service:
         return row
 
     def inspect(self, row):
+        """(document, chunks, reasons) - see inspect_with_upstream, which also returns the upstream document."""
+        doc, chunks, reasons, _ = self.inspect_with_upstream(row)
+        return doc, chunks, reasons
+
+    def inspect_with_upstream(self, row):
         value = row["payload"]
         if not row["knowledge_id"]:
-            return None, [], ["upload_not_confirmed"]
+            return None, [], ["upload_not_confirmed"], None
+        authorized_doc = None
         try:
             authorized_doc = self.get_document(row["knowledge_id"])
             if authorized_doc["knowledge_base_id"] != value["knowledge_base_id"]:
-                return None, [], ["source_binding_mismatch"]
+                return None, [], ["source_binding_mismatch"], None
             doc, chunks = self.store.document(value["knowledge_base_id"], row["knowledge_id"])
             if doc and doc["tenant_id"] != authorized_doc["tenant_id"]:
-                return None, [], ["source_binding_mismatch"]
+                return None, [], ["source_binding_mismatch"], None
         except HTTPException:
-            return None, [], ["upstream_access_unavailable"]
+            return None, [], ["upstream_access_unavailable"], None
         except ValueError as exc:
             if "chunk limit" in str(exc):
                 # more chunks than this service verifies: an explainable budget limit, not a passing outage
-                return None, [], ["chunk_budget_exceeded"]
-            return None, [], ["vector_store_unavailable"]
+                return None, [], ["chunk_budget_exceeded"], authorized_doc
+            return None, [], ["vector_store_unavailable"], authorized_doc
         except Exception:
-            return None, [], ["vector_store_unavailable"]
+            return None, [], ["vector_store_unavailable"], authorized_doc
         if doc is None:
-            return None, [], ["upstream_document_missing"]
+            return None, [], ["upstream_document_missing"], None
         expected = self.metadata(value, row["id"])
         meta = doc.get("metadata") or {}
         custom = doc.get("custom_metadata") or {}
@@ -370,15 +376,17 @@ class Service:
         if (row["source_status"] != "active" or custom.get("source_status") not in (None, "active")
                 or meta.get("source_status") not in (None, "active") or doc["enable_status"] != "enabled"):
             reasons.append("source_disabled")
-        return doc, chunks, reasons
+        return doc, chunks, reasons, authorized_doc
 
     def status(self, pid):
         row = self.row(pid, receipt_only=True)
         value = row["payload"]
-        doc, chunks, reasons = self.inspect(row)
+        doc, chunks, reasons, upstream = self.inspect_with_upstream(row)
         text_chunks = [c for c in chunks if c["chunk_type"] == "text"]
         vectors = [c for c in text_chunks if c["is_enabled"] and c["vector_enabled"] and c["embedding"]]
-        parse = doc["parse_status"] if doc else "unknown"
+        # the vector store could not be read: the parse status the upstream API confirmed stays (it is not
+        # "unparsed"); nothing is ready without the vectors checked
+        parse = doc["parse_status"] if doc else ((upstream or {}).get("parse_status") or "unknown")
         ready = bool(text_chunks) and len(vectors) == len(text_chunks) and parse in ("completed", "finalizing") and not reasons
         disabled = row["source_status"] != "active" or "source_disabled" in reasons
         confirmed_disabled = disabled and doc is not None and all(not c["is_enabled"] and not c["vector_enabled"] for c in chunks)

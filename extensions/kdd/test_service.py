@@ -407,6 +407,20 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(status["index_status"],"budget_exceeded")
         self.assertIn("chunk_budget_exceeded",status["degraded_reasons"])
 
+    def test_a_vector_store_failure_keeps_the_parse_status_the_upstream_api_confirmed(self):
+        # Codex r89: a slow vector check failed and the status said parse_status=unknown although the
+        # knowledge was completed upstream; the confirmed status stays, and nothing is ready
+        receipt=self.s.publish(Publication(**payload()))
+        confirmed=self.s.get_document(receipt["knowledge_id"])["parse_status"]
+        def broken(kb,kid):
+            raise RuntimeError("canceling statement due to statement timeout")
+        self.store.document=broken
+        status=self.s.status(receipt["publication_id"])
+        self.assertEqual((status["vector_status"],status["index_status"]),("unavailable","unavailable"))
+        self.assertEqual(status["parse_status"],confirmed)
+        self.assertNotEqual(status["parse_status"],"unknown")
+        self.assertIn("vector_store_unavailable",status["degraded_reasons"])
+
     def test_aggregation_normalizes_chunks_and_rejects_bad_vectors(self):
         self.assertEqual(aggregate([[3,0],[6,0]]),[1.0,0.0])
         with self.assertRaises(ValueError):aggregate([[1,0],[1]])

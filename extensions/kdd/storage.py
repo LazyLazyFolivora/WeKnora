@@ -85,9 +85,11 @@ class IndexStore:
                 c.start_at,c.end_at,c.content_revision,c.index_status,c.updated_at,
                 e.dimension,e.content AS embedded_text,e.embedding::text AS embedding,e.is_enabled AS vector_enabled,
                 e.updated_at AS vector_updated_at
-                FROM chunks c LEFT JOIN embeddings e ON e.chunk_id=c.id
-                    AND e.knowledge_id=c.knowledge_id AND e.knowledge_base_id=c.knowledge_base_id
-                    AND e.source_type=0 AND e.source_id=c.id
+                FROM chunks c LEFT JOIN LATERAL (
+                    -- one lookup per chunk by its unique source key (embeddings_unique_source); OFFSET 0 keeps the
+                    -- planner from folding it back into a KB-wide vector scan. No LIMIT: a duplicate stays visible.
+                    SELECT v.* FROM embeddings v WHERE v.source_id=c.id AND v.source_type=0 OFFSET 0
+                ) e ON e.chunk_id=c.id AND e.knowledge_id=c.knowledge_id AND e.knowledge_base_id=c.knowledge_base_id
                 WHERE c.knowledge_id=%s AND c.knowledge_base_id=%s AND c.tenant_id=%s
                     AND c.deleted_at IS NULL
                 ORDER BY c.chunk_index,c.id LIMIT 2001""", (kid,kb,doc["tenant_id"])).fetchall()
