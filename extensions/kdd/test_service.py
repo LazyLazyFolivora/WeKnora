@@ -515,6 +515,36 @@ class ServiceTests(unittest.TestCase):
             taken = list(pool.map(lambda _: shared.take(), range(40)))
         self.assertEqual(sum(taken), 7)
 
+    def test_one_unit_left_two_bridges_at_once_and_a_restart_never_send_more(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from .storage import PostBudget
+        path = str(Path(self.tmp.name) / "last.sqlite")
+        budget = {"path": path, "scope": "last", "cap": 3}
+        PostBudget(path, "last", 3).take() and PostBudget(path, "last", 3).take()  # two units already spent
+        services = []
+        for n in range(2):  # two bridge processes: separate journals, the same budget file
+            cfg = dict(self.cfg, journal_path=str(Path(self.tmp.name) / f"journal{n}.sqlite"), post_budget=budget)
+            cfg_path = Path(self.tmp.name) / f"config{n}.json"
+            cfg_path.write_text(json.dumps(cfg))
+            service = Service(cfg_path, store=self.store)
+            service.request = self.upstream
+            services.append(service)
+        bodies = [payload(source_record_id=f"NCT9{i}", raw_locator=dict(payload()["raw_locator"], source_record_id=f"NCT9{i}"))
+                  for i in range(6)]
+
+        def attempt(args):
+            service, body = args
+            try:
+                service.publish(Publication(**body))
+                return "sent"
+            except HTTPException as exc:
+                return exc.status_code
+        with ThreadPoolExecutor(6) as pool:
+            outcomes = list(pool.map(attempt, [(services[i % 2], b) for i, b in enumerate(bodies)]))
+        self.assertEqual((outcomes.count("sent"), outcomes.count(429), self.uploads), (1, 5, 1))
+        self.assertEqual(PostBudget(path, "last", 3).state()["left"], 0)
+        self.assertFalse(PostBudget(path, "last", 3).take())  # after a restart the spent budget stays spent
+
     def test_request_types_the_upstream_outcome_without_content(self):
         import httpx
         class Client:
