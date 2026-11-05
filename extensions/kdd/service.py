@@ -392,7 +392,7 @@ class Service:
                          json={"title": value["title"][:255], "custom_metadata": update})
 
     def row(self, pid, receipt_only=False):
-        row = self.journal.get(pid)
+        row = self.journal.get(pid, with_attempt=True)
         if row is None:
             raise HTTPException(404, "publication not found")
         value = row["payload"]
@@ -486,8 +486,7 @@ class Service:
                 "source_scope": value["source_scope"], "content_sha256": value["content_sha256"],
                 "indexed_text_sha256": value["indexed_text_sha256"], "upload_status": row["upload_status"],
                 # the latest physical upload attempt (append-only journal): which attempt this receipt speaks of
-                "last_attempt": ({k: last[k] for k in ("attempt", "outcome")}
-                                 if (last := (self.journal.attempts(pid) or [None])[-1]) else None),
+                "last_attempt": row.get("last_attempt"),
                 "parse_status": parse, "vector_status": vector_status, "index_status": index_status,
                 "binding_status": "bound" if doc and not {"source_binding_mismatch", "index_text_mismatch"}.intersection(reasons) else "pending",
                 "source_status": "disabled" if disabled else "active", "source_change_type": row["source_status"] if row["source_status"] != "active" or not disabled else "disabled_upstream",

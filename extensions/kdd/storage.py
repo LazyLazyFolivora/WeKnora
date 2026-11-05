@@ -35,12 +35,19 @@ class Journal:
         db.row_factory = sqlite3.Row
         return db
 
-    def get(self, pid):
+    def get(self, pid, with_attempt=False):
+        """The publication row; with_attempt adds its latest physical attempt as "last_attempt", read in the same
+        transaction (one snapshot: the row and the attempt agree). Only local reads inside it, no network."""
         with self.connect() as db:
+            db.execute("BEGIN")
             row = db.execute("SELECT * FROM publications WHERE id=?", (pid,)).fetchone()
+            last = db.execute("SELECT attempt,outcome FROM upload_attempts WHERE publication_id=? "
+                              "ORDER BY attempt DESC LIMIT 1", (pid,)).fetchone() if with_attempt and row else None
         if row:
             result = dict(row)
             result["payload"] = json.loads(result["payload"])
+            if with_attempt:
+                result["last_attempt"] = dict(last) if last else None
             return result
 
     def reserve(self, pid, payload):
