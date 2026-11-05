@@ -482,6 +482,14 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual((self.uploads,receipt["binding_status"]),(1,"bound"))
         self.assertEqual([(a["attempt"],a["outcome"]) for a in self.s.journal.attempts(pid)],[(1,"rejected"),(2,"in_flight")])
 
+    def test_receipt_names_the_latest_upload_attempt(self):
+        self.reject_next=True
+        with self.assertRaises(HTTPException):self.s.publish(Publication(**payload()))
+        (pid,)=self.s.journal.all()
+        self.assertEqual(self.s.status(pid)["last_attempt"],{"attempt":1,"outcome":"rejected"})
+        receipt=self.s.publish(Publication(**payload()))
+        self.assertEqual(receipt["last_attempt"],{"attempt":2,"outcome":"uploaded"})
+
     def test_request_types_the_upstream_outcome_without_content(self):
         import httpx
         class Client:
