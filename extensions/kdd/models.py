@@ -48,9 +48,9 @@ class Locator(StrictModel):
 # Fabric retrieval metadata: descriptive pointers returned with hits (time, document and evidence types,
 # identifiers). Not identity, not authorization; Fabric verifies every hit against its own records.
 METADATA_KEYS = frozenset({
-    "source_id", "source_record_id", "version_id", "published_at", "source_updated_at", "first_seen_at",
-    "proof_available_at", "proof_kind", "proof_uri", "doc_type", "doc_category", "evidence_types",
-    "processor_version", "artifact_sha256", "identifiers"})
+    "source_id", "source_record_id", "version_id", "published_at", "published_at_meaning", "source_updated_at",
+    "source_updated_at_meaning", "first_seen_at", "proof_available_at", "proof_kind", "proof_uri", "doc_type",
+    "doc_category", "evidence_types", "processor_version", "artifact_sha256", "identifiers"})
 
 class Publication(Identity):
     is_demo: bool = Field(default=False, strict=True)

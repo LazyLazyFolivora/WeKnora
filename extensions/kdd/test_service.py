@@ -288,7 +288,8 @@ class ServiceTests(unittest.TestCase):
         self.s.model_call=model_call
 
     def test_whole_kb_recall_returns_only_active_authorized_hits_and_counts_the_rest(self):
-        meta={"doc_type":"registry_record","identifiers":["nct:NCT1"]}
+        meta={"doc_type":"registry_record","identifiers":["nct:NCT1"],
+              "published_at_meaning":"who_notice_publication","source_updated_at_meaning":"who_notice_update"}
         active=self.s.publish(Publication(**payload(metadata=meta)))
         gone=self.s.publish(Publication(**payload(source_record_id="NCT2",raw_sha256="b"*64,content="Second fixed text.",
             raw_locator=dict(source_instance="fabric",source_id="clinicaltrials",source_record_id="NCT2",version_id="v1"))))
