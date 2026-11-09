@@ -1,6 +1,9 @@
 """Bounded, explicit version inputs; the server's source map grants access."""
+import logging
 from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+log = logging.getLogger(__name__)
 
 class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -47,6 +50,7 @@ class Locator(StrictModel):
 
 # Fabric retrieval metadata: descriptive pointers returned with hits (time, document and evidence types,
 # identifiers). Not identity, not authorization; Fabric verifies every hit against its own records.
+# These are the keys we know today. A key not listed here is logged and kept, never a reason to refuse.
 METADATA_KEYS = frozenset({
     "source_id", "source_record_id", "version_id", "published_at", "published_at_meaning", "source_updated_at",
     "source_updated_at_meaning", "first_seen_at", "proof_available_at", "proof_kind", "proof_uri", "doc_type",
@@ -67,8 +71,9 @@ class Publication(Identity):
     def bounded_metadata(cls, value):
         if value is None:
             return value
-        if set(value) - METADATA_KEYS:
-            raise ValueError("unknown metadata key")
+        unknown = set(value) - METADATA_KEYS
+        if unknown:
+            log.warning("unknown metadata keys accepted as descriptive: %s", [k[:60] for k in sorted(unknown)[:10]])
         for item in value.values():
             items = item if isinstance(item, list) else [item]
             if len(items) > 50 or any(len(x) > 500 for x in items):

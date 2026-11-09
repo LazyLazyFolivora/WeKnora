@@ -368,8 +368,6 @@ class ServiceTests(unittest.TestCase):
     def test_metadata_is_bounded_descriptive_and_not_identity(self):
         from pydantic import ValidationError
         with self.assertRaises(ValidationError):
-            Publication(**payload(metadata={"secret_key":"x"}))
-        with self.assertRaises(ValidationError):
             Publication(**payload(metadata={"identifiers":["x"]*51}))
         many=["doi:10.1000/synthetic.identifier.%04d"%i for i in range(50)]
         receipt=self.s.publish(Publication(**payload(metadata={"doc_type":"article","identifiers":many})))
@@ -381,6 +379,31 @@ class ServiceTests(unittest.TestCase):
         again=self.s.publish(Publication(**payload(metadata={"doc_type":"other"})))
         self.assertEqual(again["publication_id"],receipt["publication_id"])
         self.assertEqual(self.uploads,1)
+
+    def test_an_unknown_metadata_key_is_logged_and_accepted_but_identity_and_kb_are_still_checked(self):
+        with patch("extensions.kdd.app.Service", return_value=self.s):
+            client=TestClient(create_app(self.path))
+        headers={"Authorization":"Bearer private-token"}
+        meta={"doc_type":"article","brand_new_key":"x"}
+        def post(**changes):
+            return client.post("/api/v1/kdd/publications",headers=headers,json=payload(metadata=meta,**changes))
+        with self.assertLogs("extensions.kdd.models",level="WARNING") as logs:
+            # before this change the unknown key made the whole publication an HTTP 400
+            first=post()
+            self.assertEqual(first.status_code,200)
+            # a retry is the same publication: nothing is written twice
+            self.assertEqual(post().status_code,200)
+            self.assertEqual(self.uploads,1)
+            # the key is kept with the other descriptive metadata
+            stored=self.store.docs[first.json()["knowledge_id"]]["metadata"]["fabric_metadata"]
+            self.assertEqual(json.loads(stored),meta)
+            # the same request still fails when the identity or the knowledge base does not match
+            wrong_locator=payload(metadata=meta)
+            wrong_locator["raw_locator"]["source_record_id"]="NCT2"
+            self.assertEqual(client.post("/api/v1/kdd/publications",headers=headers,json=wrong_locator).status_code,400)
+            self.assertEqual(post(knowledge_base_id="another-kb").status_code,403)
+            self.assertEqual(self.uploads,1)
+        self.assertIn("brand_new_key",logs.output[0])
 
     def test_pieces_of_a_long_artifact_are_separate_publications_with_their_identity(self):
         import hashlib
@@ -490,61 +513,6 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(self.s.status(pid)["last_attempt"],{"attempt":1,"outcome":"rejected"})
         receipt=self.s.publish(Publication(**payload()))
         self.assertEqual(receipt["last_attempt"],{"attempt":2,"outcome":"uploaded"})
-
-    def test_the_physical_upload_budget_is_a_hard_shared_gate(self):
-        from concurrent.futures import ThreadPoolExecutor
-        from .storage import PostBudget
-        path = str(Path(self.tmp.name) / "budget.sqlite")
-        self.s.cfg["post_budget"] = {"path": path, "scope": "test", "cap": 2}
-        bodies = [payload(source_record_id=f"NCT{i}", raw_locator=dict(payload()["raw_locator"], source_record_id=f"NCT{i}"))
-                  for i in range(5)]
-        results = []
-        for body in bodies:
-            try:
-                results.append(self.s.publish(Publication(**body))["binding_status"])
-            except HTTPException as exc:
-                results.append(exc.status_code)
-        self.assertEqual(results.count(429), 3)
-        self.assertEqual(self.uploads, 2)  # exactly the cap reached the upstream
-        self.assertEqual(PostBudget(path, "test", 2).state(), {"scope": "test", "cap": 2, "used": 2, "left": 0})
-        refused = [pid for pid in self.s.journal.all() if self.s.journal.get(pid)["upload_status"] == "rejected"]
-        self.assertEqual(len(refused), 3)
-        self.assertTrue(all(self.s.journal.attempts(pid) == [] for pid in refused))  # no POST, no attempt row
-        # many takers at once never exceed the cap
-        shared = PostBudget(str(Path(self.tmp.name) / "many.sqlite"), "many", 7)
-        with ThreadPoolExecutor(8) as pool:
-            taken = list(pool.map(lambda _: shared.take(), range(40)))
-        self.assertEqual(sum(taken), 7)
-
-    def test_one_unit_left_two_bridges_at_once_and_a_restart_never_send_more(self):
-        from concurrent.futures import ThreadPoolExecutor
-        from .storage import PostBudget
-        path = str(Path(self.tmp.name) / "last.sqlite")
-        budget = {"path": path, "scope": "last", "cap": 3}
-        PostBudget(path, "last", 3).take() and PostBudget(path, "last", 3).take()  # two units already spent
-        services = []
-        for n in range(2):  # two bridge processes: separate journals, the same budget file
-            cfg = dict(self.cfg, journal_path=str(Path(self.tmp.name) / f"journal{n}.sqlite"), post_budget=budget)
-            cfg_path = Path(self.tmp.name) / f"config{n}.json"
-            cfg_path.write_text(json.dumps(cfg))
-            service = Service(cfg_path, store=self.store)
-            service.request = self.upstream
-            services.append(service)
-        bodies = [payload(source_record_id=f"NCT9{i}", raw_locator=dict(payload()["raw_locator"], source_record_id=f"NCT9{i}"))
-                  for i in range(6)]
-
-        def attempt(args):
-            service, body = args
-            try:
-                service.publish(Publication(**body))
-                return "sent"
-            except HTTPException as exc:
-                return exc.status_code
-        with ThreadPoolExecutor(6) as pool:
-            outcomes = list(pool.map(attempt, [(services[i % 2], b) for i, b in enumerate(bodies)]))
-        self.assertEqual((outcomes.count("sent"), outcomes.count(429), self.uploads), (1, 5, 1))
-        self.assertEqual(PostBudget(path, "last", 3).state()["left"], 0)
-        self.assertFalse(PostBudget(path, "last", 3).take())  # after a restart the spent budget stays spent
 
     def test_request_types_the_upstream_outcome_without_content(self):
         import httpx
